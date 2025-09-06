@@ -15,7 +15,7 @@ explore archived podcast content. Since I use
 [Overcast](https://overcast.fm) as my podcast player this work began
 as a clone of [Harold Martin’s
 `overcast-to-sqlite`](https://github.com/hbmartin/overcast-to-sqlite)
-as a foundation for pulling podcast information from my Overcast
+providing a foundation for pulling podcast information from my Overcast
 account. `retrocast` honors the Apache 2.0 license from
 `overcast-to-sqlite`.
 
