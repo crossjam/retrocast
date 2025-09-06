@@ -1,4 +1,4 @@
-# overcast-to-sqlite
+# retrocast
 
 [![PyPI](https://img.shields.io/pypi/v/overcast-to-sqlite.svg)](https://pypi.org/project/overcast-to-sqlite/)
 [![Lint](https://github.com/hbmartin/overcast-to-sqlite/actions/workflows/lint.yml/badge.svg)](https://github.com/hbmartin/overcast-to-sqlite/actions/workflows/lint.yml)
@@ -9,9 +9,17 @@
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/hbmartin/overcast-to-sqlite)
 [![twitter](https://img.shields.io/badge/@hmartin-00aced.svg?logo=twitter&logoColor=black)](https://twitter.com/hmartin)
 
-Save listening history and feed/episode info from Overcast to a SQLite database. Try exploring your podcast listening habits with [Datasette](https://datasette.io/)!
 
-If you simply want a page showing your recently listened episodes, try out the sister project [overcast-to-pages](https://github.com/hbmartin/overcast-to-pages-template).
+This is an exploration into using AI capabilities to interactively
+explore archived podcast content. Since I use
+[Overcast](https://overcast.fm) as my podcast player this work began
+as a clone of [Harold Martin’s
+`overcast-to-sqlite`](https://github.com/hbmartin/overcast-to-sqlite)
+as a foundation for pulling podcast information from my Overcast
+account. `retrocast` honors the Apache 2.0 licences from
+`overcast-to-sqlite`.
+
+Save listening history and feed/episode info from Overcast to a SQLite database. Try exploring your podcast listening habits with [Datasette](https://datasette.io/)!
 
 - [How to install](#how-to-install)
 - [Authentication](#authentication)
