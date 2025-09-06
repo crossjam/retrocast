@@ -16,7 +16,7 @@ explore archived podcast content. Since I use
 as a clone of [Harold Martin’s
 `overcast-to-sqlite`](https://github.com/hbmartin/overcast-to-sqlite)
 as a foundation for pulling podcast information from my Overcast
-account. `retrocast` honors the Apache 2.0 licences from
+account. `retrocast` honors the Apache 2.0 license from
 `overcast-to-sqlite`.
 
 Save listening history and feed/episode info from Overcast to a SQLite database. Try exploring your podcast listening habits with [Datasette](https://datasette.io/)!
