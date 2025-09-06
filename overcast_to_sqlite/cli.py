@@ -44,15 +44,19 @@ def cli() -> None:
     default="auth.json",
     help="Path to save auth cookie, defaults to auth.json",
 )
-def auth(auth_path: str) -> None:
+@click.option(
+    "--email",
+    prompt=True,
+    hide_input=False,
+)
+@click.password_option()
+def auth(auth_path: str, email: str, password: str) -> None:
     """Save authentication credentials to a JSON file."""
-    click.echo("Please login to Overcast")
+    click.echo("Logging in to Overcast")
     click.echo(
         f"Your password is not stored but an auth cookie will be saved to {auth_path}",
     )
     click.echo()
-    email = click.prompt("Email")
-    password = click.prompt("Password")
     auth_and_save_cookies(email, password, auth_path)
 
 
