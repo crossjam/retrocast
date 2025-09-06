@@ -1,13 +1,11 @@
 # retrocast
 
-[![PyPI](https://img.shields.io/pypi/v/overcast-to-sqlite.svg)](https://pypi.org/project/overcast-to-sqlite/)
-[![Lint](https://github.com/hbmartin/overcast-to-sqlite/actions/workflows/lint.yml/badge.svg)](https://github.com/hbmartin/overcast-to-sqlite/actions/workflows/lint.yml)
+[![Lint](https://github.com/hbmartin/retrocast/actions/workflows/lint.yml/badge.svg)](https://github.com/hbmartin/retrocast/actions/workflows/lint.yml)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![Code style: black](https://img.shields.io/badge/🐧️-black-000000.svg)](https://github.com/psf/black)
 [![Checked with pytype](https://img.shields.io/badge/🦆-pytype-437f30.svg)](https://google.github.io/pytype/)
-[![Versions](https://img.shields.io/pypi/pyversions/overcast-to-sqlite.svg)](https://pypi.python.org/pypi/overcast-to-sqlite)
-[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/hbmartin/overcast-to-sqlite)
-[![twitter](https://img.shields.io/badge/@hmartin-00aced.svg?logo=twitter&logoColor=black)](https://twitter.com/hmartin)
+[![Versions](https://img.shields.io/pypi/pyversions/retrocast.svg)](https://pypi.python.org/pypi/retrocast)
+
 
 
 This is an exploration into using AI capabilities to interactively
