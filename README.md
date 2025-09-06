@@ -133,4 +133,5 @@ This project is linted with [ruff](https://docs.astral.sh/ruff/) and uses [Black
 
 ## Authors
 
+* [Brian M. Dennis](https://bmdphd.info) - bmd at bmdphd dot info
 * [Harold Martin](https://www.linkedin.com/in/harold-martin-98526971/) - harold.martin at gmail
