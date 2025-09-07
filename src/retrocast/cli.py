@@ -1,5 +1,8 @@
 #!/usr/bin/env python
+import csv
+import json
 import os
+import sys
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from xml.etree import ElementTree
@@ -57,14 +60,14 @@ def auth(auth_path: str, email: str, password: str) -> None:
         f"Your password is not stored but an auth cookie will be saved to {auth_path}",
     )
     click.echo()
-    auth_and_save_cookies(email, password, auth_path)
+    auth_and_save_cookies(email, password)
 
 
 @cli.command()
 @click.argument(
     "db_path",
     type=click.Path(file_okay=True, dir_okay=False, allow_dash=False),
-    default="overcast.db",
+    default="retrocast.db",
 )
 @click.option(
     "-a",
@@ -97,7 +100,7 @@ def save(
         print("🔉Fetching latest OPML from Overcast")
         xml = _auth_and_fetch(
             auth_path,
-            None if no_archive else _archive_path(db_path, "overcast"),
+            None if no_archive else _archive_path(db_path, "retrocast"),
         )
 
     if verbose:
@@ -136,7 +139,7 @@ def _auth_and_fetch(auth_path: str, archive: Path | None) -> str:
 @click.argument(
     "db_path",
     type=click.Path(file_okay=True, dir_okay=False, allow_dash=False),
-    default="overcast.db",
+    default="retrocast.db",
 )
 @click.option("-na", "--no-archive", is_flag=True)
 @click.option("-v", "--verbose", is_flag=True)
@@ -185,7 +188,7 @@ def extend(
 @click.argument(
     "db_path",
     type=click.Path(file_okay=True, dir_okay=False, allow_dash=False),
-    default="overcast.db",
+    default="retrocast.db",
 )
 @click.option(
     "-p",
@@ -268,7 +271,7 @@ def transcripts(  # noqa: C901
 @click.argument(
     "db_path",
     type=click.Path(file_okay=True, dir_okay=False, allow_dash=False),
-    default="overcast.db",
+    default="retrocast.db",
 )
 @click.option(
     "-p",
@@ -291,7 +294,7 @@ def chapters(
 @click.argument(
     "db_path",
     type=click.Path(file_okay=True, dir_okay=False, allow_dash=False),
-    default="overcast.db",
+    default="retrocast.db",
 )
 @click.option(
     "-o",
@@ -310,9 +313,96 @@ def html(
         else:
             html_output_path = Path(output_path)
     else:
-        html_output_path = Path(db_path).parent / "overcast-played.html"
+        html_output_path = Path(db_path).parent / "retrocast-played.html"
     generate_html_played(db_path, html_output_path)
     print(f"📝Saved HTML to: file://{html_output_path.absolute()}")
+
+
+@cli.command()
+@click.argument(
+    "db_path",
+    type=click.Path(file_okay=True, dir_okay=False, allow_dash=False),
+    default="retrocast.db",
+)
+@click.argument("feed_titles", nargs=-1, required=True)
+@click.option(
+    "-o",
+    "--output",
+    "output_path",
+    type=click.Path(file_okay=True, dir_okay=False, allow_dash=True),
+    help="Output file path (default: stdout)",
+)
+@click.option(
+    "--format",
+    "output_format",
+    type=click.Choice(["csv", "json"], case_sensitive=False),
+    default="csv",
+    help="Output format.",
+)
+def episodes(
+    db_path: str,
+    feed_titles: tuple[str, ...],
+    output_path: str | None,
+    output_format: str,
+) -> None:
+    """Export episodes as CSV or JSON filtered by feed titles."""
+    db = Datastore(db_path)
+    episodes_data = db.get_episodes_by_feed_titles(list(feed_titles))
+
+    if not episodes_data:
+        click.echo("No episodes found for the specified feed titles.", err=True)
+        return
+
+    output_file = (
+        sys.stdout
+        if output_path is None
+        else open(output_path, "w", newline="" if output_format == "csv" else None)
+    )
+
+    try:
+        if output_format == "csv":
+            fieldnames = [
+                "episode_title",
+                "feed_title",
+                "played",
+                "progress",
+                "userUpdatedDate",
+                "userRecommendedDate",
+                "pubDate",
+                "episode_url",
+                "enclosureUrl",
+            ]
+            writer = csv.DictWriter(output_file, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(episodes_data)
+        elif output_format == "json":
+            json.dump(episodes_data, output_file, indent=2)
+    finally:
+        if output_path is not None:
+            output_file.close()
+            click.echo(
+                f"📝Exported {len(episodes_data)} episodes to {output_path} as {output_format.upper()}"
+            )
+
+
+@cli.command()
+@click.argument(
+    "db_path",
+    type=click.Path(file_okay=True, dir_okay=False, allow_dash=False),
+    default="retrocast.db",
+)
+@click.option(
+    "--all",
+    "all_feeds",
+    is_flag=True,
+    help="List all feeds, not just subscribed ones.",
+)
+def subscriptions(db_path: str, all_feeds: bool) -> None:
+    """List feed titles."""
+    db = Datastore(db_path)
+    feed_titles = db.get_feed_titles(subscribed_only=not all_feeds)
+    for title in feed_titles:
+        click.echo(title)
 
 
 @cli.command("all")
@@ -337,6 +427,14 @@ def save_extend_download(
     auth_path: str,
     verbose: bool,
 ) -> None:
+    """Run all steps to save, extend, download transcripts, and chapters.
+
+    This command sequentially executes the following:
+    1. Save Overcast information to the SQLite database.
+    2. Extend the database with new feed and episode data.
+    3. Download available transcripts for all or starred episodes.
+    4. Download and store available chapters for all or starred episodes.
+    """
     ctx.invoke(
         save,
         db_path=db_path,

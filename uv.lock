@@ -288,64 +288,6 @@ wheels = [
 ]
 
 [[package]]
-name = "overcast-to-sqlite"
-version = "0.9.0"
-source = { editable = "." }
-dependencies = [
-    { name = "click" },
-    { name = "podcast-chapter-tools" },
-    { name = "python-dateutil" },
-    { name = "requests" },
-    { name = "sqlite-utils" },
-]
-
-[package.optional-dependencies]
-lint = [
-    { name = "mypy" },
-    { name = "pyroma" },
-    { name = "pytest" },
-    { name = "requests-mock" },
-    { name = "ruff" },
-    { name = "types-python-dateutil" },
-    { name = "types-requests" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "black" },
-    { name = "mypy" },
-    { name = "ruff" },
-    { name = "types-python-dateutil" },
-    { name = "types-requests" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "click" },
-    { name = "mypy", marker = "extra == 'lint'" },
-    { name = "podcast-chapter-tools" },
-    { name = "pyroma", marker = "extra == 'lint'" },
-    { name = "pytest", marker = "extra == 'lint'" },
-    { name = "python-dateutil" },
-    { name = "requests" },
-    { name = "requests-mock", marker = "extra == 'lint'" },
-    { name = "ruff", marker = "extra == 'lint'" },
-    { name = "sqlite-utils" },
-    { name = "types-python-dateutil", marker = "extra == 'lint'" },
-    { name = "types-requests", marker = "extra == 'lint'" },
-]
-provides-extras = ["lint"]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "black", specifier = ">=25.1.0" },
-    { name = "mypy", specifier = ">=1.16.0" },
-    { name = "ruff", specifier = ">=0.11.13" },
-    { name = "types-python-dateutil", specifier = ">=2.9.0.20250516" },
-    { name = "types-requests", specifier = ">=2.32.4.20250611" },
-]
-
-[[package]]
 name = "packaging"
 version = "25.0"
 source = { registry = "https://pypi.org/simple" }
@@ -497,6 +439,64 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/92/32/587625f91f9a0a3d84688bf9cfc4b2480a7e8ec327cefd0ff2ac891fd2cf/requests-mock-1.12.1.tar.gz", hash = "sha256:e9e12e333b525156e82a3c852f22016b9158220d2f47454de9cae8a77d371401", size = 60901, upload-time = "2024-03-29T03:54:29.446Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/97/ec/889fbc557727da0c34a33850950310240f2040f3b1955175fdb2b36a8910/requests_mock-1.12.1-py2.py3-none-any.whl", hash = "sha256:b1e37054004cdd5e56c84454cc7df12b25f90f382159087f4b6915aaeef39563", size = 27695, upload-time = "2024-03-29T03:54:27.64Z" },
+]
+
+[[package]]
+name = "retrocastdb"
+version = "0.9.0"
+source = { editable = "." }
+dependencies = [
+    { name = "click" },
+    { name = "podcast-chapter-tools" },
+    { name = "python-dateutil" },
+    { name = "requests" },
+    { name = "sqlite-utils" },
+]
+
+[package.optional-dependencies]
+lint = [
+    { name = "mypy" },
+    { name = "pyroma" },
+    { name = "pytest" },
+    { name = "requests-mock" },
+    { name = "ruff" },
+    { name = "types-python-dateutil" },
+    { name = "types-requests" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "black" },
+    { name = "mypy" },
+    { name = "ruff" },
+    { name = "types-python-dateutil" },
+    { name = "types-requests" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "click" },
+    { name = "mypy", marker = "extra == 'lint'" },
+    { name = "podcast-chapter-tools" },
+    { name = "pyroma", marker = "extra == 'lint'" },
+    { name = "pytest", marker = "extra == 'lint'" },
+    { name = "python-dateutil" },
+    { name = "requests" },
+    { name = "requests-mock", marker = "extra == 'lint'" },
+    { name = "ruff", marker = "extra == 'lint'" },
+    { name = "sqlite-utils" },
+    { name = "types-python-dateutil", marker = "extra == 'lint'" },
+    { name = "types-requests", marker = "extra == 'lint'" },
+]
+provides-extras = ["lint"]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "black", specifier = ">=25.1.0" },
+    { name = "mypy", specifier = ">=1.16.0" },
+    { name = "ruff", specifier = ">=0.11.13" },
+    { name = "types-python-dateutil", specifier = ">=2.9.0.20250516" },
+    { name = "types-requests", specifier = ">=2.32.4.20250611" },
 ]
 
 [[package]]

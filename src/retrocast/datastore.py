@@ -369,6 +369,50 @@ class Datastore:
             f"AND ({CHAPTERS}.{SOURCE} IS NULL OR {CHAPTERS}.{SOURCE} != 'psc');",
         )
 
+    def get_feed_titles(self, *, subscribed_only: bool = True) -> list[str]:
+        """Retrieve a list of feed titles."""
+        query = f"SELECT {TITLE} FROM {FEEDS}"
+        if subscribed_only:
+            query += " WHERE subscribed = 1 AND dateRemoveDetected IS NULL"
+        query += f" ORDER BY {TITLE} ASC"
+        results = self.db.execute(query).fetchall()
+        return [row[0] for row in results]
+
+    def get_episodes_by_feed_titles(self, feed_titles: list[str]) -> list[dict[str, str]]:
+        """Retrieve episodes filtered by feed titles."""
+        if not feed_titles:
+            return []
+        
+        placeholders = ", ".join("?" * len(feed_titles))
+        query = f"""
+            SELECT 
+                {EPISODES}.{TITLE} as episode_title,
+                {FEEDS}.{TITLE} as feed_title,
+                {EPISODES}.played,
+                {EPISODES}.progress,
+                {EPISODES}.{USER_UPDATED_DATE},
+                {EPISODES}.{USER_REC_DATE},
+                {EPISODES}.{PUB_DATE},
+                {EPISODES}.{URL} as episode_url,
+                {EPISODES}.{ENCLOSURE_URL}
+            FROM {EPISODES}
+            LEFT JOIN {FEEDS} ON {EPISODES}.{FEED_ID} = {FEEDS}.{OVERCAST_ID}
+            WHERE {FEEDS}.{TITLE} IN ({placeholders})
+            ORDER BY {FEEDS}.{TITLE}, {EPISODES}.{PUB_DATE} DESC
+        """
+        
+        results = self.db.execute(query, feed_titles).fetchall()
+        columns = [
+            "episode_title", "feed_title", "played", "progress", 
+            "userUpdatedDate", "userRecommendedDate", "pubDate", 
+            "episode_url", "enclosureUrl"
+        ]
+        
+        return [
+            {columns[i]: result[i] for i in range(len(columns))}
+            for result in results
+        ]
+
     def get_recently_played(self) -> list[dict[str, str]]:
         """Retrieve a list of recently played episodes with metadata."""
         self.db.execute(
