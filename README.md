@@ -1,6 +1,6 @@
 # retrocast
 
-[![Lint](https://github.com/hbmartin/retrocast/actions/workflows/lint.yml/badge.svg)](https://github.com/hbmartin/retrocast/actions/workflows/lint.yml)
+[![Lint](https://github.com/crossjam/retrocast/actions/workflows/lint.yml/badge.svg)](https://github.com/crossjam/retrocast/actions/workflows/lint.yml)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![Code style: black](https://img.shields.io/badge/🐧️-black-000000.svg)](https://github.com/psf/black)
 [![Checked with pytype](https://img.shields.io/badge/🦆-pytype-437f30.svg)](https://google.github.io/pytype/)
@@ -9,12 +9,14 @@
 
 
 This is an exploration into using AI capabilities to interactively
-explore archived podcast content. Since I use
-[Overcast](https://overcast.fm) as my podcast player this work began
-as a clone of [Harold Martin’s
+explore archived podcast content. 
+[Overcast](https://overcast.fm) is a popular iOS podcast player that
+exposes some of its data to users. _I (crossjam) also use and
+recommend Overcast_.
+`retrocast` work began as a clone of [Harold Martin’s
 `overcast-to-sqlite`](https://github.com/hbmartin/overcast-to-sqlite)
-providing a foundation for pulling podcast information from my Overcast
-account. `retrocast` honors the Apache 2.0 license from
+providing a foundation for pulling podcast information from my
+Overcast account. `retrocast` honors the Apache 2.0 license from
 `overcast-to-sqlite`.
 
 Save listening history and feed/episode info from Overcast to a SQLite database. Try exploring your podcast listening habits with [Datasette](https://datasette.io/)!
@@ -27,17 +29,17 @@ Save listening history and feed/episode info from Overcast to a SQLite database.
 
 ## How to install
 
-    $ pip install overcast-to-sqlite
+    $ pip install git+https://github.com/crossjam/retrocast
 
 Or to upgrade:
 
-    $ pip install --upgrade overcast-to-sqlite
+    $ pip install --upgrade git+https://github.com/crossjam/retrocast
 
 ## Authentication
 
 Run this command to login to Overcast (note: neither your password nor email are saved, only the auth cookie):
 
-    $ overcast-to-sqlite auth
+    $ retrocast auth
 
 This will create a file called `auth.json` in your current directory containing the required value. To save the file at a different path or filename, use the `--auth=myauth.json` option.
 
@@ -47,19 +49,19 @@ If you do not wish to save this information you can manually download the "All d
 
 The `save` command retrieves all Overcast info and stores playlists, podcast feeds, and episodes in their respective tables with a primary key `overcastId`. 
 
-    $ overcast-to-sqlite save
+    $ retrocast save
 
 By default, this saves to `overcast.db` but this can be manually set.
 
-    $ overcast-to-sqlite save someother.db
+    $ retrocast save someother.db
 
 By default, it will attempt to use the info in `auth.json` file is present it will use the cookie from that file. You can point to a different location using `-a`:
 
-    $ overcast-to-sqlite save -a /path/to/auth.json
+    $ retrocast save -a /path/to/auth.json
 
 Alternately, you can skip authentication by passing in an OPML file you downloaded from Overcast:
 
-    $ overcast-to-sqlite save --load /path/to/overcast.opml
+    $ retrocast save --load /path/to/overcast.opml
 
 By default, the save command will save any OPML file it downloads adjacent to the database file in `archive/overcast/`. You can disable this behavior with `--no-archive` or `-na`.
 
@@ -69,7 +71,7 @@ For increased reporting verbosity, use the `-v` flag.
 
 The `extend` command that will download the XML files for all feeds you are subscribed to and extract tags and attributes. These are stored in separate tables `feeds_extended` and `episodes_extended` with primary keys `xmlUrl` and  `enclosureUrl` respectively. (See points 4 and 5 below for more information.)
 
-    $ overcast-to-sqlite extend
+    $ retrocast extend
 
 Like the save command, this will attempt to archive feeds to `archive/feeds/` by default. This can be disabled with `--no-archive` or `-na`.
 
@@ -83,7 +85,7 @@ There are a few caveats for this functionality:
 4. The `_extended` tables use URLs as their primary key. This may potentially lead to unjoinable / orphaned episodes if the enclosure URL (i.e. URL of the audio file) has changed since Overcast stored it.
 5. There is no guarantee of which columns will be present in these tables aside from URL, title, and description. This command attempts to capture and normalize all XML tags contained in the feed so it is likely that many columns will be created and only a few rows will have values for uncommon tags/attributes.
 
-Any suggestions for improving on these caveats are welcome, please [open an issue](https://github.com/hbmartin/overcast-to-sqlite/issues)!
+Any suggestions for improving on these caveats are welcome, please [open an issue](https://github.com/crossjam/retrocast/issues)!
 
 ## Downloading transcripts
 
@@ -93,7 +95,7 @@ The `save` and `extend` commands MUST be run prior to this.
 
 Episodes with a "podcast:transcript:url" value will be downloaded from that URL and the download's location will then be stored in "transcriptDownloadPath". 
 
-    $ overcast-to-sqlite transcripts
+    $ retrocast transcripts
 
 Like previous commands, by default this will save transcripts to `archive/transcripts/<feed title>/<episode title>` by default.
 
@@ -117,12 +119,12 @@ Pull requests are very welcome! For major changes, please open an issue first to
 ### Setup
 
 ```bash
-git clone git@github.com:hbmartin/overcast-to-sqlite.git
-cd overcast-to-sqlite
+git clone git@github.com:crossjam/retrocast.git
+cd retrocast
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
-python -m overcast_to_sqlite.cli all -v
+python -m retrocast.cli all -v
 ```
 
 ### Code Formatting

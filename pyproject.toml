@@ -13,7 +13,7 @@ packages = ["retrocast", "retrocast.html"]
 "retrocast.html" = ["*.css", "*.html", "*.js"]
 
 [project]
-name = "retrocastdb"
+name = "retrocast"
 version = "0.9.0"
 description = "AI driven exploration of archived podcast content"
 readme = "README.md"
@@ -48,7 +48,7 @@ dependencies = [
 lint = ["pyroma", "mypy", "ruff", "types-python-dateutil", "types-requests", "pytest", "requests-mock"]
 
 [project.scripts]
-retrocastdb = "retrocast.cli:cli"
+retrocast = "retrocast.cli:cli"
 
 [project.urls]
 Homepage = "https://github.com/crossjam/retrocast"
