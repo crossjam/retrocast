@@ -7,8 +7,8 @@ from xml.etree import ElementTree
 import click
 import requests
 
-from overcast_to_sqlite.chapters_backfill import backfill_all_chapters
-from overcast_to_sqlite.html.page import generate_html_played
+from retrocast.chapters_backfill import backfill_all_chapters
+from retrocast.html.page import generate_html_played
 
 from .constants import BATCH_SIZE, TITLE
 from .datastore import Datastore

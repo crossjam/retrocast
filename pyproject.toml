@@ -3,13 +3,14 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [options]
-packages = ["overcast_to_sqlite", "overcast_to_sqlite.html"]
+packages = ["retrocast", "retrocast.html"]
 
 [tool.setuptools]
-packages = ["overcast_to_sqlite", "overcast_to_sqlite.html"]
+package-dir = {"" = "src"}
+packages = ["retrocast", "retrocast.html"]
 
 [tool.setuptools.package-data]
-"overcast_to_sqlite.html" = ["*.css", "*.html", "*.js"]
+"retrocast.html" = ["*.css", "*.html", "*.js"]
 
 [project]
 name = "overcast-to-sqlite"
@@ -41,7 +42,7 @@ dependencies = ["click", "podcast-chapter-tools", "python-dateutil", "requests",
 lint = ["pyroma", "mypy", "ruff", "types-python-dateutil", "types-requests", "pytest", "requests-mock"]
 
 [project.scripts]
-retrocastdb = "overcast_to_sqlite.cli:cli"
+retrocastdb = "retrocast.cli:cli"
 
 [project.urls]
 Homepage = "https://github.com/crossjam/retrocast"
@@ -68,10 +69,10 @@ lint.select = ["ALL"]
 lint.ignore = ["D100", "D101", "D102", "D103", "D104", "D105", "D107", "D203", "D213", "ICN001", "S608", "S113", "S311", "S314", "T201"]
 
 [tool.ruff.lint.per-file-ignores]
-"overcast_to_sqlite/cli.py" = ["FBT001"]
-"overcast_to_sqlite/more_itertools.py" = ["RET505", "EM101", "TRY003", "ANN202", "D415", "D400", "ANN001", "FBT002", "ANN201"]
-"overcast_to_sqlite/episode.py" = ["SIM102"]
-"overcast_to_sqlite/html/htmltagfixer.py" = ["ANN001", "ANN201", "ANN204"]
+"retrocast/cli.py" = ["FBT001"]
+"retrocast/more_itertools.py" = ["RET505", "EM101", "TRY003", "ANN202", "D415", "D400", "ANN001", "FBT002", "ANN201"]
+"retrocast/episode.py" = ["SIM102"]
+"retrocast/html/htmltagfixer.py" = ["ANN001", "ANN201", "ANN204"]
 
 [tool.ruff.format]
 # Same as Black.
