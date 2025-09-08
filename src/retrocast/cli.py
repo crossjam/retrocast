@@ -38,7 +38,7 @@ def _confirm_db_creation(db_path: str) -> bool:
         return True
 
     return click.confirm(
-        f"Database file '{db_path}' does not exist. Create it?", default=True
+        f"Database file '{db_path}' does not exist. Create it?", default=True,
     )
 
 
@@ -389,43 +389,62 @@ def episodes(
 
     db = Datastore(db_path)
     episodes_data = db.get_episodes_by_feed_titles(
-        list(feed_titles), all_episodes=all_episodes
+        list(feed_titles), all_episodes=all_episodes,
     )
 
     if not episodes_data:
         click.echo("No episodes found for the specified feed titles.", err=True)
         return
 
-    output_file = (
-        sys.stdout
-        if output_path is None
-        else open(output_path, "w", newline="" if output_format == "csv" else None)
-    )
+    if output_path is None:
+        output_file = sys.stdout
+        try:
+            if output_format == "csv":
+                fieldnames = [
+                    "episode_title",
+                    "feed_title",
+                    "played",
+                    "progress",
+                    "userUpdatedDate",
+                    "userRecommendedDate",
+                    "pubDate",
+                    "episode_url",
+                    "enclosureUrl",
+                ]
+                writer = csv.DictWriter(output_file, fieldnames=fieldnames)
+                writer.writeheader()
+                writer.writerows(episodes_data)
+            elif output_format == "json":
+                json.dump(episodes_data, output_file, indent=2)
+        finally:
+            pass  # Don't close stdout
+    else:
+        # Use Path for file handling with context manager
+        with Path(output_path).open(
+            "w", newline="" if output_format == "csv" else None,
+        ) as output_file:
+            if output_format == "csv":
+                fieldnames = [
+                    "episode_title",
+                    "feed_title",
+                    "played",
+                    "progress",
+                    "userUpdatedDate",
+                    "userRecommendedDate",
+                    "pubDate",
+                    "episode_url",
+                    "enclosureUrl",
+                ]
+                writer = csv.DictWriter(output_file, fieldnames=fieldnames)
+                writer.writeheader()
+                writer.writerows(episodes_data)
+            elif output_format == "json":
+                json.dump(episodes_data, output_file, indent=2)
 
-    try:
-        if output_format == "csv":
-            fieldnames = [
-                "episode_title",
-                "feed_title",
-                "played",
-                "progress",
-                "userUpdatedDate",
-                "userRecommendedDate",
-                "pubDate",
-                "episode_url",
-                "enclosureUrl",
-            ]
-            writer = csv.DictWriter(output_file, fieldnames=fieldnames)
-            writer.writeheader()
-            writer.writerows(episodes_data)
-        elif output_format == "json":
-            json.dump(episodes_data, output_file, indent=2)
-    finally:
-        if output_path is not None:
-            output_file.close()
-            click.echo(
-                f"📝Exported {len(episodes_data)} episodes to {output_path} as {output_format.upper()}"
-            )
+        click.echo(
+            f"📝Exported {len(episodes_data)} episodes to {output_path} "
+            f"as {output_format.upper()}",
+        )
 
 
 @cli.command()
