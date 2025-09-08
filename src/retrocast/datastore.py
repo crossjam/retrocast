@@ -3,6 +3,7 @@
 import datetime
 import sqlite3
 from collections.abc import Iterable
+from pathlib import Path
 
 from sqlite_utils import Database
 
@@ -43,6 +44,11 @@ from .constants import (
 
 class Datastore:
     """Object responsible for all database interactions."""
+
+    @staticmethod
+    def exists(db_path: str) -> bool:
+        """Check if the database file exists."""
+        return Path(db_path).exists()
 
     def __init__(self, db_path: str) -> None:
         """Instantiate and ensure tables exist with expected columns."""
@@ -378,12 +384,18 @@ class Datastore:
         results = self.db.execute(query).fetchall()
         return [row[0] for row in results]
 
-    def get_episodes_by_feed_titles(self, feed_titles: list[str]) -> list[dict[str, str]]:
+    def get_episodes_by_feed_titles(
+        self, feed_titles: list[str], *, all_episodes: bool = False
+    ) -> list[dict[str, str]]:
         """Retrieve episodes filtered by feed titles."""
         if not feed_titles:
             return []
-        
+
         placeholders = ", ".join("?" * len(feed_titles))
+        where_clauses = [f"{FEEDS}.{TITLE} IN ({placeholders})"]
+        if not all_episodes:
+            where_clauses.append(f"{EPISODES}.played = 1")
+
         query = f"""
             SELECT 
                 {EPISODES}.{TITLE} as episode_title,
@@ -397,10 +409,10 @@ class Datastore:
                 {EPISODES}.{ENCLOSURE_URL}
             FROM {EPISODES}
             LEFT JOIN {FEEDS} ON {EPISODES}.{FEED_ID} = {FEEDS}.{OVERCAST_ID}
-            WHERE {FEEDS}.{TITLE} IN ({placeholders})
+            WHERE {" AND ".join(where_clauses)}
             ORDER BY {FEEDS}.{TITLE}, {EPISODES}.{PUB_DATE} DESC
         """
-        
+
         results = self.db.execute(query, feed_titles).fetchall()
         columns = [
             "episode_title", "feed_title", "played", "progress", 

@@ -32,6 +32,17 @@ from .utils import (
 )
 
 
+def _confirm_db_creation(db_path: str) -> bool:
+    """Confirm database creation if it doesn't exist."""
+    if Datastore.exists(db_path):
+        return True
+    
+    return click.confirm(
+        f"Database file '{db_path}' does not exist. Create it?", 
+        default=True
+    )
+
+
 @click.group()
 @click.version_option()
 def cli() -> None:
@@ -92,6 +103,10 @@ def save(
     verbose: bool,
 ) -> None:
     """Save Overcast info to SQLite database."""
+    if not _confirm_db_creation(db_path):
+        click.echo("Database creation cancelled.")
+        return
+    
     db = Datastore(db_path)
     ingested_feed_ids = set()
     if load:
@@ -149,6 +164,10 @@ def extend(
     verbose: bool,
 ) -> None:
     """Download XML feed and extract all feed and episode tags and attributes."""
+    if not _confirm_db_creation(db_path):
+        click.echo("Database creation cancelled.")
+        return
+    
     db = Datastore(db_path)
     feeds_to_extend = db.get_feeds_to_extend()
     print(f"➡️Extending {len(feeds_to_extend)} feeds")
@@ -205,6 +224,10 @@ def transcripts(  # noqa: C901
     verbose: bool,
 ) -> None:
     """Download available transcripts for all or starred episodes."""
+    if not _confirm_db_creation(db_path):
+        click.echo("Database creation cancelled.")
+        return
+    
     db = Datastore(db_path)
 
     transcripts_path = (
@@ -284,6 +307,10 @@ def chapters(
     archive_path: str | None,
 ) -> None:
     """Download and store available chapters for all or starred episodes."""
+    if not _confirm_db_creation(db_path):
+        click.echo("Database creation cancelled.")
+        return
+    
     archive_root = (
         Path(archive_path) if archive_path else Path(db_path).parent / "archive"
     )
@@ -307,6 +334,10 @@ def html(
     output_path: str | None,
 ) -> None:
     """Download and store available chapters for all or starred episodes."""
+    if not _confirm_db_creation(db_path):
+        click.echo("Database creation cancelled.")
+        return
+    
     if output_path:
         if Path(output_path).is_dir():
             html_output_path = Path(output_path) / "overcast-played.html"
@@ -339,15 +370,28 @@ def html(
     default="csv",
     help="Output format.",
 )
+@click.option(
+    "--all",
+    "all_episodes",
+    is_flag=True,
+    help="Retrieve all matching episodes, not just played ones.",
+)
 def episodes(
     db_path: str,
     feed_titles: tuple[str, ...],
     output_path: str | None,
     output_format: str,
+    all_episodes: bool,
 ) -> None:
     """Export episodes as CSV or JSON filtered by feed titles."""
+    if not _confirm_db_creation(db_path):
+        click.echo("Database creation cancelled.")
+        return
+    
     db = Datastore(db_path)
-    episodes_data = db.get_episodes_by_feed_titles(list(feed_titles))
+    episodes_data = db.get_episodes_by_feed_titles(
+        list(feed_titles), all_episodes=all_episodes
+    )
 
     if not episodes_data:
         click.echo("No episodes found for the specified feed titles.", err=True)
@@ -399,6 +443,10 @@ def episodes(
 )
 def subscriptions(db_path: str, all_feeds: bool) -> None:
     """List feed titles."""
+    if not _confirm_db_creation(db_path):
+        click.echo("Database creation cancelled.")
+        return
+    
     db = Datastore(db_path)
     feed_titles = db.get_feed_titles(subscribed_only=not all_feeds)
     for title in feed_titles:
@@ -435,6 +483,9 @@ def save_extend_download(
     3. Download available transcripts for all or starred episodes.
     4. Download and store available chapters for all or starred episodes.
     """
+    if not _confirm_db_creation(db_path):
+        click.echo("Database creation cancelled.")
+        return
     ctx.invoke(
         save,
         db_path=db_path,
