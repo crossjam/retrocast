@@ -2,9 +2,9 @@ import html
 import re
 from pathlib import Path
 
-from overcast_to_sqlite.constants import DESCRIPTION
-from overcast_to_sqlite.datastore import Datastore
-from overcast_to_sqlite.html.htmltagfixer import HTMLTagFixer
+from retrocast.constants import DESCRIPTION
+from retrocast.datastore import Datastore
+from retrocast.html.htmltagfixer import HTMLTagFixer
 
 
 def _convert_urls_to_links(text: str) -> str:

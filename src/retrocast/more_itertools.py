@@ -54,5 +54,4 @@ def chunked(iterable, n, strict=False):
                 yield chunk
 
         return iter(ret())
-    else:
-        return iterator
+    return iterator

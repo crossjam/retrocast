@@ -8,10 +8,10 @@ from podcast_chapter_tools.extractors import (
     get_and_extract_pci_chapters,
 )
 
-from overcast_to_sqlite.constants import BATCH_SIZE, CHAPTERS, FEEDS
-from overcast_to_sqlite.datastore import Datastore
-from overcast_to_sqlite.more_itertools import chunked
-from overcast_to_sqlite.utils import _headers_ua, _sanitize_for_path
+from retrocast.constants import BATCH_SIZE, CHAPTERS, FEEDS
+from retrocast.datastore import Datastore
+from retrocast.more_itertools import chunked
+from retrocast.utils import _headers_ua, _sanitize_for_path
 
 
 def backfill_chapters_description(db: Datastore) -> None:
