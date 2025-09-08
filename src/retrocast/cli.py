@@ -36,10 +36,9 @@ def _confirm_db_creation(db_path: str) -> bool:
     """Confirm database creation if it doesn't exist."""
     if Datastore.exists(db_path):
         return True
-    
+
     return click.confirm(
-        f"Database file '{db_path}' does not exist. Create it?", 
-        default=True
+        f"Database file '{db_path}' does not exist. Create it?", default=True
     )
 
 
@@ -71,7 +70,7 @@ def auth(auth_path: str, email: str, password: str) -> None:
         f"Your password is not stored but an auth cookie will be saved to {auth_path}",
     )
     click.echo()
-    auth_and_save_cookies(email, password)
+    auth_and_save_cookies(email, password, auth_path)
 
 
 @cli.command()
@@ -106,7 +105,7 @@ def save(
     if not _confirm_db_creation(db_path):
         click.echo("Database creation cancelled.")
         return
-    
+
     db = Datastore(db_path)
     ingested_feed_ids = set()
     if load:
@@ -167,7 +166,7 @@ def extend(
     if not _confirm_db_creation(db_path):
         click.echo("Database creation cancelled.")
         return
-    
+
     db = Datastore(db_path)
     feeds_to_extend = db.get_feeds_to_extend()
     print(f"➡️Extending {len(feeds_to_extend)} feeds")
@@ -227,7 +226,7 @@ def transcripts(  # noqa: C901
     if not _confirm_db_creation(db_path):
         click.echo("Database creation cancelled.")
         return
-    
+
     db = Datastore(db_path)
 
     transcripts_path = (
@@ -310,7 +309,7 @@ def chapters(
     if not _confirm_db_creation(db_path):
         click.echo("Database creation cancelled.")
         return
-    
+
     archive_root = (
         Path(archive_path) if archive_path else Path(db_path).parent / "archive"
     )
@@ -337,7 +336,7 @@ def html(
     if not _confirm_db_creation(db_path):
         click.echo("Database creation cancelled.")
         return
-    
+
     if output_path:
         if Path(output_path).is_dir():
             html_output_path = Path(output_path) / "overcast-played.html"
@@ -387,7 +386,7 @@ def episodes(
     if not _confirm_db_creation(db_path):
         click.echo("Database creation cancelled.")
         return
-    
+
     db = Datastore(db_path)
     episodes_data = db.get_episodes_by_feed_titles(
         list(feed_titles), all_episodes=all_episodes
@@ -446,7 +445,7 @@ def subscriptions(db_path: str, all_feeds: bool) -> None:
     if not _confirm_db_creation(db_path):
         click.echo("Database creation cancelled.")
         return
-    
+
     db = Datastore(db_path)
     feed_titles = db.get_feed_titles(subscribed_only=not all_feeds)
     for title in feed_titles:
