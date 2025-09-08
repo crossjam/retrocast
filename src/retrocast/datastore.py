@@ -385,7 +385,10 @@ class Datastore:
         return [row[0] for row in results]
 
     def get_episodes_by_feed_titles(
-        self, feed_titles: list[str], *, all_episodes: bool = False,
+        self,
+        feed_titles: list[str],
+        *,
+        all_episodes: bool = False,
     ) -> list[dict[str, str]]:
         """Retrieve episodes filtered by feed titles."""
         if not feed_titles:
@@ -415,14 +418,19 @@ class Datastore:
 
         results = self.db.execute(query, feed_titles).fetchall()
         columns = [
-            "episode_title", "feed_title", "played", "progress",
-            "userUpdatedDate", "userRecommendedDate", "pubDate",
-            "episode_url", "enclosureUrl",
+            "episode_title",
+            "feed_title",
+            "played",
+            "progress",
+            "userUpdatedDate",
+            "userRecommendedDate",
+            "pubDate",
+            "episode_url",
+            "enclosureUrl",
         ]
 
         return [
-            {columns[i]: result[i] for i in range(len(columns))}
-            for result in results
+            {columns[i]: result[i] for i in range(len(columns))} for result in results
         ]
 
     def get_recently_played(self) -> list[dict[str, str]]:

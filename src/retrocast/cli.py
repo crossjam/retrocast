@@ -38,7 +38,8 @@ def _confirm_db_creation(db_path: str) -> bool:
         return True
 
     return click.confirm(
-        f"Database file '{db_path}' does not exist. Create it?", default=True,
+        f"Database file '{db_path}' does not exist. Create it?",
+        default=True,
     )
 
 
@@ -389,7 +390,8 @@ def episodes(
 
     db = Datastore(db_path)
     episodes_data = db.get_episodes_by_feed_titles(
-        list(feed_titles), all_episodes=all_episodes,
+        list(feed_titles),
+        all_episodes=all_episodes,
     )
 
     if not episodes_data:
@@ -421,7 +423,8 @@ def episodes(
     else:
         # Use Path for file handling with context manager
         with Path(output_path).open(
-            "w", newline="" if output_format == "csv" else None,
+            "w",
+            newline="" if output_format == "csv" else None,
         ) as output_file:
             if output_format == "csv":
                 fieldnames = [
