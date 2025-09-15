@@ -391,32 +391,38 @@ def episodes(
     count: int | None,
 ) -> None:
     """Export episodes as CSV or JSON filtered by feed titles.
-    
-    If no feed titles are provided, exports episodes from all feeds."""
+
+    If no feed titles are provided, exports episodes from all feeds.
+    """
     if not _confirm_db_creation(db_path):
         click.echo("Database creation cancelled.")
         return
 
     db = Datastore(db_path)
-    
+
     # If no feed titles provided, get all feed titles from the database
     titles_to_query = list(feed_titles)
     if not titles_to_query:
         titles_to_query = db.get_feed_titles(subscribed_only=True)
         if titles_to_query:
-            click.echo(f"No feed titles specified, using all {len(titles_to_query)} subscribed feeds")
-        
+            click.echo(
+                "No feed titles specified, "
+                "using all {len(titles_to_query)} subscribed feeds",
+            )
+
     episodes_data = db.get_episodes_by_feed_titles(
         titles_to_query,
         all_episodes=all_episodes,
     )
-    
+
     # Limit the number of episodes if count is specified
     if count is not None and count > 0:
         original_count = len(episodes_data)
         episodes_data = episodes_data[:count]
         if original_count > count:
-            click.echo(f"Limiting output to {count} episodes (from {original_count} total)")
+            click.echo(
+                f"Limiting output to {count} episodes (from {original_count} total)",
+            )
 
     if not episodes_data:
         if feed_titles:
@@ -487,18 +493,34 @@ def episodes(
     "--all",
     "all_feeds",
     is_flag=True,
-    help="List all feeds, not just subscribed ones.",
+    help="List all feeds known to Overcast, not just subscribed ones.",
 )
-def subscriptions(db_path: str, all_feeds: bool) -> None:
-    """List feed titles."""
+@click.option(
+    "--json",
+    "json_output",
+    is_flag=True,
+    help="Output feed data in JSON format.",
+)
+def subscriptions(db_path: str, all_feeds: bool, json_output: bool) -> None:
+    """List feed titles.
+
+    Default is only podcasts subscribed in Overcast.
+
+    Use --json to output detailed feed data in JSON format.
+    """
     if not _confirm_db_creation(db_path):
         click.echo("Database creation cancelled.")
         return
 
     db = Datastore(db_path)
-    feed_titles = db.get_feed_titles(subscribed_only=not all_feeds)
-    for title in feed_titles:
-        click.echo(title)
+
+    if json_output:
+        feed_data = db.get_feed_data(subscribed_only=not all_feeds)
+        click.echo(json.dumps(feed_data, indent=2))
+    else:
+        feed_titles = db.get_feed_titles(subscribed_only=not all_feeds)
+        for title in feed_titles:
+            click.echo(title)
 
 
 @cli.command("all")

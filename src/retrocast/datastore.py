@@ -384,6 +384,52 @@ class Datastore:
         results = self.db.execute(query).fetchall()
         return [row[0] for row in results]
 
+    def get_feed_data(self, *, subscribed_only: bool = True) -> list[dict]:
+        """Retrieve detailed feed data as a list of dictionaries.
+
+        Args:
+            subscribed_only: If True, only return subscribed feeds.
+
+        Returns:
+            List of feed data dictionaries.
+
+        """
+        query = f"""
+            SELECT
+                {OVERCAST_ID},
+                {TITLE},
+                subscribed,
+                overcastAddedDate,
+                notifications,
+                {XML_URL},
+                htmlUrl,
+                dateRemoveDetected
+            FROM {FEEDS}
+        """
+
+        if subscribed_only:
+            query += " WHERE subscribed = 1 AND dateRemoveDetected IS NULL"
+
+        query += f" ORDER BY {TITLE} ASC"
+
+        results = self.db.execute(query).fetchall()
+
+        feed_data = []
+        for row in results:
+            feed_dict = {
+                "overcastId": row[0],
+                "title": row[1],
+                "subscribed": bool(row[2]),
+                "overcastAddedDate": row[3],
+                "notifications": bool(row[4]),
+                "xmlUrl": row[5],
+                "htmlUrl": row[6],
+                "dateRemoveDetected": row[7],
+            }
+            feed_data.append(feed_dict)
+
+        return feed_data
+
     def get_episodes_by_feed_titles(
         self,
         feed_titles: list[str],
