@@ -67,16 +67,19 @@ dev = [
 exclude = [".bzr", ".direnv", ".eggs", ".git", ".git-rewrite", ".hg", ".ipynb_checkpoints", ".mypy_cache", ".nox", ".pants.d", ".pyenv", ".pytest_cache", ".pytype", ".ruff_cache", ".svn", ".tox", ".venv", ".vscode", "__pypackages__", "_build", "buck-out", "build", "dist", "node_modules", "setup.py", "site-packages", "venv"]
 
 # Same as Black.
-line-length = 88
+line-length = 100
 indent-width = 4
 target-version = "py311"
 
-lint.select = ["ALL"]
-lint.ignore = ["D100", "D101", "D102", "D103", "D104", "D105", "D107", "D203", "D213", "ICN001", "S608", "S113", "S311", "S314", "T201"]
+# lint.select = ["ALL"]
+lint.ignore = ["D100", "D101", "D102", "D103", "D104",
+	       "D105", "D107", "D203", "D213",
+	       "ICN001", "S608", "S113", "S311", "S314", "T201"]
 
 [tool.ruff.lint.per-file-ignores]
 "src/retrocast/cli.py" = ["FBT001"]
-"src/retrocast/more_itertools.py" = ["RET505", "EM101", "TRY003", "ANN202", "D415", "D400", "ANN001", "FBT002", "ANN201", "ANN202"]
+"src/retrocast/more_itertools.py" = ["RET505", "EM101", "TRY003", "ANN202",
+				     "D415", "D400", "ANN001", "FBT002", "ANN201", "ANN202"]
 "src/retrocast/episode.py" = ["SIM102"]
 "src/retrocast/html/htmltagfixer.py" = ["ANN001", "ANN201", "ANN204"]
 
