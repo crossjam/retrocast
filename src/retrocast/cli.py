@@ -355,7 +355,7 @@ def html(
     type=click.Path(file_okay=True, dir_okay=False, allow_dash=False),
     default="retrocast.db",
 )
-@click.argument("feed_titles", nargs=-1, required=True)
+@click.argument("feed_titles", nargs=-1, required=False)
 @click.option(
     "-o",
     "--output",
@@ -376,26 +376,53 @@ def html(
     is_flag=True,
     help="Retrieve all matching episodes, not just played ones.",
 )
+@click.option(
+    "-c",
+    "--count",
+    type=int,
+    help="Limit the number of episodes returned.",
+)
 def episodes(
     db_path: str,
     feed_titles: tuple[str, ...],
     output_path: str | None,
     output_format: str,
     all_episodes: bool,
+    count: int | None,
 ) -> None:
-    """Export episodes as CSV or JSON filtered by feed titles."""
+    """Export episodes as CSV or JSON filtered by feed titles.
+    
+    If no feed titles are provided, exports episodes from all feeds."""
     if not _confirm_db_creation(db_path):
         click.echo("Database creation cancelled.")
         return
 
     db = Datastore(db_path)
+    
+    # If no feed titles provided, get all feed titles from the database
+    titles_to_query = list(feed_titles)
+    if not titles_to_query:
+        titles_to_query = db.get_feed_titles(subscribed_only=True)
+        if titles_to_query:
+            click.echo(f"No feed titles specified, using all {len(titles_to_query)} subscribed feeds")
+        
     episodes_data = db.get_episodes_by_feed_titles(
-        list(feed_titles),
+        titles_to_query,
         all_episodes=all_episodes,
     )
+    
+    # Limit the number of episodes if count is specified
+    if count is not None and count > 0:
+        original_count = len(episodes_data)
+        episodes_data = episodes_data[:count]
+        if original_count > count:
+            click.echo(f"Limiting output to {count} episodes (from {original_count} total)")
 
     if not episodes_data:
-        click.echo("No episodes found for the specified feed titles.", err=True)
+        if feed_titles:
+            click.echo("No episodes found for the specified feed titles.", err=True)
+        else:
+            click.echo("No episodes found in the database.", err=True)
         return
 
     if output_path is None:
