@@ -1,0 +1,33 @@
+repos:
+  - repo: https://github.com/psf/black
+    # Black version
+    rev: 24.8.0
+    hooks:
+      # Run the Black formatter
+      - id: black
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    # Ruff version
+    rev: v0.6.3
+    hooks:
+      # Run the linter
+      - id: ruff
+        args: [ --fix ]
+      # Run the formatter
+      - id: ruff-format
+
+  - repo: https://github.com/PyCQA/isort
+    # isort version
+    rev: 5.13.2
+    hooks:
+      # Sort imports with isort
+      - id: isort
+        args: [ "--profile", "black", "--filter-files" ]
+
+  - repo: https://github.com/kynan/nbstripout
+    # nbstripout version
+    rev: 0.7.1
+    hooks:
+      # Strip output cells from Jupyter notebooks before committing to keep notebooks clean and reduce merge conflicts
+      - id: nbstripout
+        stages: [ commit ]
