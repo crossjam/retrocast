@@ -230,9 +230,7 @@ def transcripts(  # noqa: C901
 
     db = Datastore(db_path)
 
-    transcripts_path = (
-        Path(archive_path) if archive_path else _archive_path(db_path, "transcripts")
-    )
+    transcripts_path = Path(archive_path) if archive_path else _archive_path(db_path, "transcripts")
 
     transcripts_path.mkdir(parents=True, exist_ok=True)
 
@@ -249,7 +247,6 @@ def transcripts(  # noqa: C901
     def _fetch_and_write_transcript(
         transcript: tuple[str, str, str, str, str],
     ) -> tuple[str, str] | None:
-
         title, url, mimetype, enclosure, feed_title = transcript
         if verbose:
             print(f"⬇️Downloading {title} @ {url}")
@@ -311,9 +308,7 @@ def chapters(
         click.echo("Database creation cancelled.")
         return
 
-    archive_root = (
-        Path(archive_path) if archive_path else Path(db_path).parent / "archive"
-    )
+    archive_root = Path(archive_path) if archive_path else Path(db_path).parent / "archive"
     backfill_all_chapters(db_path, archive_root)
 
 
@@ -371,10 +366,18 @@ def html(
     help="Output format.",
 )
 @click.option(
-    "--all",
+    "--all-episodes",
     "all_episodes",
     is_flag=True,
     help="Retrieve all matching episodes, not just played ones.",
+)
+@click.option(
+    "-a",
+    "--all",
+    "--all-feeds",
+    "all_feeds",
+    is_flag=True,
+    help="Pull episodes from all known feeds, not just subscribed ones.",
 )
 @click.option(
     "-c",
@@ -388,6 +391,7 @@ def episodes(
     output_path: str | None,
     output_format: str,
     all_episodes: bool,
+    all_feeds: bool,
     count: int | None,
 ) -> None:
     """Export episodes as CSV or JSON filtered by feed titles.
@@ -403,11 +407,12 @@ def episodes(
     # If no feed titles provided, get all feed titles from the database
     titles_to_query = list(feed_titles)
     if not titles_to_query:
-        titles_to_query = db.get_feed_titles(subscribed_only=True)
+        titles_to_query = db.get_feed_titles(subscribed_only=not all_feeds)
         if titles_to_query:
+            feed_type = "all" if not all_feeds else "all known"
             click.echo(
-                "No feed titles specified, "
-                "using all {len(titles_to_query)} subscribed feeds",
+                f"No feed titles specified, " f"using {feed_type} {len(titles_to_query)} feeds",
+                err=True,
             )
 
     episodes_data = db.get_episodes_by_feed_titles(
@@ -418,10 +423,14 @@ def episodes(
     # Limit the number of episodes if count is specified
     if count is not None and count > 0:
         original_count = len(episodes_data)
-        episodes_data = episodes_data[:count]
+        # Sort in descending order by userUpdatedDate before limiting
+        episodes_data = sorted(
+            episodes_data, key=lambda x: x.get("userUpdatedDate", ""), reverse=True
+        )[:count]
         if original_count > count:
             click.echo(
                 f"Limiting output to {count} episodes (from {original_count} total)",
+                err=True,
             )
 
     if not episodes_data:

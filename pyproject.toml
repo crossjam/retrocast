@@ -97,3 +97,6 @@ line-ending = "auto"
 [tool.isort]
 profile = "black"
 
+[tool.black]
+line-length = 100
+

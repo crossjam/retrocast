@@ -459,7 +459,8 @@ class Datastore:
             FROM {EPISODES}
             LEFT JOIN {FEEDS} ON {EPISODES}.{FEED_ID} = {FEEDS}.{OVERCAST_ID}
             WHERE {" AND ".join(where_clauses)}
-            ORDER BY {FEEDS}.{TITLE}, {EPISODES}.{PUB_DATE} DESC
+            ORDER BY {FEEDS}.{TITLE}, {EPISODES}.{PUB_DATE} DESC,
+                     {EPISODES}.{USER_UPDATED_DATE} DESC
         """
 
         results = self.db.execute(query, feed_titles).fetchall()
@@ -475,9 +476,7 @@ class Datastore:
             "enclosureUrl",
         ]
 
-        return [
-            {columns[i]: result[i] for i in range(len(columns))} for result in results
-        ]
+        return [{columns[i]: result[i] for i in range(len(columns))} for result in results]
 
     def get_recently_played(self) -> list[dict[str, str]]:
         """Retrieve a list of recently played episodes with metadata."""
@@ -525,8 +524,7 @@ class Datastore:
             f"{FEEDS_EXTENDED}.{TITLE} as feed_title",
             f"{FEEDS_EXTENDED}.'itunes:image:href' as image_",
             f"{FEEDS_EXTENDED}.link as link_",
-            f"coalesce({EPISODES_EXTENDED}.description, "
-            "'No description') as description",
+            f"coalesce({EPISODES_EXTENDED}.description, " "'No description') as description",
             f"{EPISODES_EXTENDED}.pubDate as pubDate",
             f"{EPISODES_EXTENDED}.'itunes:image:href' as 'images.'",
             f"{EPISODES_EXTENDED}.link as 'links.'",
