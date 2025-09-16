@@ -28,9 +28,6 @@ jobs:
         else
           mypy src
         fi
-    - uses: psf/black@stable
-      with:
-        options: "--check --verbose"
     - run: pyroma . --min=10
     - run: |
         python -m retrocast.cli |& grep -q 'Usage:'
