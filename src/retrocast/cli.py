@@ -366,18 +366,21 @@ def html(
     help="Output format.",
 )
 @click.option(
-    "--all-episodes",
+    "--all-episodes / --played-episodes",
     "all_episodes",
+    default=False,
     is_flag=True,
-    help="Retrieve all matching episodes, not just played ones.",
+    show_default=True,
+    help="Only played or all episodes from selected feeds",
 )
 @click.option(
     "-a",
-    "--all",
-    "--all-feeds",
+    "--all-feeds / --subbed-feeds",
     "all_feeds",
     is_flag=True,
-    help="Pull episodes from all known feeds, not just subscribed ones.",
+    default=False,
+    show_default=True,
+    help="Select from subscribed or all feeds.",
 )
 @click.option(
     "-c",
