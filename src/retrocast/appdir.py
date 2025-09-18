@@ -13,7 +13,7 @@ def get_app_dir() -> Path:
     Returns:
         Path: The application directory path
     """
-    app_dir = Path(platformdirs.user_data_dir("retrocast", "retrocast"))
+    app_dir = Path(platformdirs.user_data_dir("net.memexponent.retrocast", "retrocast"))
     app_dir.mkdir(parents=True, exist_ok=True)
     return app_dir
 
