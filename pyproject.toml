@@ -3,18 +3,19 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [options]
-packages = ["overcast_to_sqlite", "overcast_to_sqlite.html"]
+packages = ["retrocast", "retrocast.html"]
 
 [tool.setuptools]
-packages = ["overcast_to_sqlite", "overcast_to_sqlite.html"]
+package-dir = {"" = "src"}
+packages = ["retrocast", "retrocast.html"]
 
 [tool.setuptools.package-data]
-"overcast_to_sqlite.html" = ["*.css", "*.html", "*.js"]
+"retrocast.html" = ["*.css", "*.html", "*.js"]
 
 [project]
-name = "overcast-to-sqlite"
+name = "retrocast"
 version = "0.9.0"
-description = "Save listening history and feed/episode info from Overcast to a SQLite database."
+description = "AI driven exploration of archived podcast content"
 readme = "README.md"
 requires-python = ">=3.11"
 authors = [
@@ -35,13 +36,19 @@ classifiers = [
     "Programming Language :: Python :: 3.14",
     "Typing :: Typed",
 ]
-dependencies = ["click", "podcast-chapter-tools", "python-dateutil", "requests", "sqlite-utils"]
+dependencies = [
+ "click",
+ "podcast-chapter-tools",
+ "python-dateutil",
+ "requests",
+ "sqlite-utils",
+]
 
 [project.optional-dependencies]
 lint = ["pyroma", "mypy", "ruff", "types-python-dateutil", "types-requests", "pytest", "requests-mock"]
 
 [project.scripts]
-retrocastdb = "overcast_to_sqlite.cli:cli"
+retrocast = "retrocast.cli:cli"
 
 [project.urls]
 Homepage = "https://github.com/crossjam/retrocast"
@@ -59,19 +66,26 @@ dev = [
 # Exclude a variety of commonly ignored directories.
 exclude = [".bzr", ".direnv", ".eggs", ".git", ".git-rewrite", ".hg", ".ipynb_checkpoints", ".mypy_cache", ".nox", ".pants.d", ".pyenv", ".pytest_cache", ".pytype", ".ruff_cache", ".svn", ".tox", ".venv", ".vscode", "__pypackages__", "_build", "buck-out", "build", "dist", "node_modules", "setup.py", "site-packages", "venv"]
 
-# Same as Black.
-line-length = 88
+# Same as Black, but wider lines
+line-length = 100
 indent-width = 4
 target-version = "py311"
 
-lint.select = ["ALL"]
-lint.ignore = ["D100", "D101", "D102", "D103", "D104", "D105", "D107", "D203", "D213", "ICN001", "S608", "S113", "S311", "S314", "T201"]
+lint.select = [
+   "E", # Pycodestyle errors
+   "F", # Pyflakes
+   "I", # Import order
+   "C", # Pylint convention messages
+   "R", # Pylint refactor messages
+   "W", # Pylint warning messages
+]
 
-[tool.ruff.lint.per-file-ignores]
-"overcast_to_sqlite/cli.py" = ["FBT001"]
-"overcast_to_sqlite/more_itertools.py" = ["RET505", "EM101", "TRY003", "ANN202", "D415", "D400", "ANN001", "FBT002", "ANN201"]
-"overcast_to_sqlite/episode.py" = ["SIM102"]
-"overcast_to_sqlite/html/htmltagfixer.py" = ["ANN001", "ANN201", "ANN204"]
+lint.ignore = ["D100", "D101", "D102", "D103", "D104",
+	       "D105", "D107", "D203", "D213",
+	       "ICN001", "S608", "S113", "S311", "S314", "T201"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 20
 
 [tool.ruff.format]
 # Same as Black.
@@ -79,3 +93,10 @@ quote-style = "double"
 indent-style = "space"
 skip-magic-trailing-comma = false
 line-ending = "auto"
+
+[tool.isort]
+profile = "black"
+
+[tool.black]
+line-length = 100
+

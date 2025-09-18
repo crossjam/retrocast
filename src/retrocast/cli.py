@@ -1,5 +1,8 @@
 #!/usr/bin/env python
+import csv
+import json
 import os
+import sys
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from xml.etree import ElementTree
@@ -7,8 +10,8 @@ from xml.etree import ElementTree
 import click
 import requests
 
-from overcast_to_sqlite.chapters_backfill import backfill_all_chapters
-from overcast_to_sqlite.html.page import generate_html_played
+from retrocast.chapters_backfill import backfill_all_chapters
+from retrocast.html.page import generate_html_played
 
 from .constants import BATCH_SIZE, TITLE
 from .datastore import Datastore
@@ -27,6 +30,17 @@ from .utils import (
     _headers_ua,
     _sanitize_for_path,
 )
+
+
+def _confirm_db_creation(db_path: str) -> bool:
+    """Confirm database creation if it doesn't exist."""
+    if Datastore.exists(db_path):
+        return True
+
+    return click.confirm(
+        f"Database file '{db_path}' does not exist. Create it?",
+        default=True,
+    )
 
 
 @click.group()
@@ -64,7 +78,7 @@ def auth(auth_path: str, email: str, password: str) -> None:
 @click.argument(
     "db_path",
     type=click.Path(file_okay=True, dir_okay=False, allow_dash=False),
-    default="overcast.db",
+    default="retrocast.db",
 )
 @click.option(
     "-a",
@@ -89,6 +103,10 @@ def save(
     verbose: bool,
 ) -> None:
     """Save Overcast info to SQLite database."""
+    if not _confirm_db_creation(db_path):
+        click.echo("Database creation cancelled.")
+        return
+
     db = Datastore(db_path)
     ingested_feed_ids = set()
     if load:
@@ -97,7 +115,7 @@ def save(
         print("🔉Fetching latest OPML from Overcast")
         xml = _auth_and_fetch(
             auth_path,
-            None if no_archive else _archive_path(db_path, "overcast"),
+            None if no_archive else _archive_path(db_path, "retrocast"),
         )
 
     if verbose:
@@ -136,7 +154,7 @@ def _auth_and_fetch(auth_path: str, archive: Path | None) -> str:
 @click.argument(
     "db_path",
     type=click.Path(file_okay=True, dir_okay=False, allow_dash=False),
-    default="overcast.db",
+    default="retrocast.db",
 )
 @click.option("-na", "--no-archive", is_flag=True)
 @click.option("-v", "--verbose", is_flag=True)
@@ -146,6 +164,10 @@ def extend(
     verbose: bool,
 ) -> None:
     """Download XML feed and extract all feed and episode tags and attributes."""
+    if not _confirm_db_creation(db_path):
+        click.echo("Database creation cancelled.")
+        return
+
     db = Datastore(db_path)
     feeds_to_extend = db.get_feeds_to_extend()
     print(f"➡️Extending {len(feeds_to_extend)} feeds")
@@ -185,7 +207,7 @@ def extend(
 @click.argument(
     "db_path",
     type=click.Path(file_okay=True, dir_okay=False, allow_dash=False),
-    default="overcast.db",
+    default="retrocast.db",
 )
 @click.option(
     "-p",
@@ -202,11 +224,13 @@ def transcripts(  # noqa: C901
     verbose: bool,
 ) -> None:
     """Download available transcripts for all or starred episodes."""
+    if not _confirm_db_creation(db_path):
+        click.echo("Database creation cancelled.")
+        return
+
     db = Datastore(db_path)
 
-    transcripts_path = (
-        Path(archive_path) if archive_path else _archive_path(db_path, "transcripts")
-    )
+    transcripts_path = Path(archive_path) if archive_path else _archive_path(db_path, "transcripts")
 
     transcripts_path.mkdir(parents=True, exist_ok=True)
 
@@ -223,7 +247,6 @@ def transcripts(  # noqa: C901
     def _fetch_and_write_transcript(
         transcript: tuple[str, str, str, str, str],
     ) -> tuple[str, str] | None:
-
         title, url, mimetype, enclosure, feed_title = transcript
         if verbose:
             print(f"⬇️Downloading {title} @ {url}")
@@ -268,7 +291,7 @@ def transcripts(  # noqa: C901
 @click.argument(
     "db_path",
     type=click.Path(file_okay=True, dir_okay=False, allow_dash=False),
-    default="overcast.db",
+    default="retrocast.db",
 )
 @click.option(
     "-p",
@@ -281,9 +304,11 @@ def chapters(
     archive_path: str | None,
 ) -> None:
     """Download and store available chapters for all or starred episodes."""
-    archive_root = (
-        Path(archive_path) if archive_path else Path(db_path).parent / "archive"
-    )
+    if not _confirm_db_creation(db_path):
+        click.echo("Database creation cancelled.")
+        return
+
+    archive_root = Path(archive_path) if archive_path else Path(db_path).parent / "archive"
     backfill_all_chapters(db_path, archive_root)
 
 
@@ -291,7 +316,7 @@ def chapters(
 @click.argument(
     "db_path",
     type=click.Path(file_okay=True, dir_okay=False, allow_dash=False),
-    default="overcast.db",
+    default="retrocast.db",
 )
 @click.option(
     "-o",
@@ -304,15 +329,210 @@ def html(
     output_path: str | None,
 ) -> None:
     """Download and store available chapters for all or starred episodes."""
+    if not _confirm_db_creation(db_path):
+        click.echo("Database creation cancelled.")
+        return
+
     if output_path:
         if Path(output_path).is_dir():
             html_output_path = Path(output_path) / "overcast-played.html"
         else:
             html_output_path = Path(output_path)
     else:
-        html_output_path = Path(db_path).parent / "overcast-played.html"
+        html_output_path = Path(db_path).parent / "retrocast-played.html"
     generate_html_played(db_path, html_output_path)
     print(f"📝Saved HTML to: file://{html_output_path.absolute()}")
+
+
+@cli.command()
+@click.argument(
+    "db_path",
+    type=click.Path(file_okay=True, dir_okay=False, allow_dash=False),
+    default="retrocast.db",
+)
+@click.argument("feed_titles", nargs=-1, required=False)
+@click.option(
+    "-o",
+    "--output",
+    "output_path",
+    type=click.Path(file_okay=True, dir_okay=False, allow_dash=True),
+    help="Output file path (default: stdout)",
+)
+@click.option(
+    "--format",
+    "output_format",
+    type=click.Choice(["csv", "json"], case_sensitive=False),
+    default="csv",
+    help="Output format.",
+)
+@click.option(
+    "--all-episodes / --played-episodes",
+    "all_episodes",
+    default=False,
+    is_flag=True,
+    show_default=True,
+    help="Only played or all episodes from selected feeds",
+)
+@click.option(
+    "-a",
+    "--all-feeds / --subbed-feeds",
+    "all_feeds",
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help="Select from subscribed or all feeds.",
+)
+@click.option(
+    "-c",
+    "--count",
+    type=int,
+    help="Limit the number of episodes returned.",
+)
+def episodes(
+    db_path: str,
+    feed_titles: tuple[str, ...],
+    output_path: str | None,
+    output_format: str,
+    all_episodes: bool,
+    all_feeds: bool,
+    count: int | None,
+) -> None:
+    """Export episodes as CSV or JSON filtered by feed titles.
+
+    If no feed titles are provided, exports episodes from all feeds.
+    """
+    if not _confirm_db_creation(db_path):
+        click.echo("Database creation cancelled.")
+        return
+
+    db = Datastore(db_path)
+
+    # If no feed titles provided, get all feed titles from the database
+    titles_to_query = list(feed_titles)
+    if not titles_to_query:
+        titles_to_query = db.get_feed_titles(subscribed_only=not all_feeds)
+        if titles_to_query:
+            feed_type = "all" if not all_feeds else "all known"
+            click.echo(
+                f"No feed titles specified, " f"using {feed_type} {len(titles_to_query)} feeds",
+                err=True,
+            )
+
+    episodes_data = db.get_episodes_by_feed_titles(
+        titles_to_query,
+        all_episodes=all_episodes,
+    )
+
+    # Limit the number of episodes if count is specified
+    if count is not None and count > 0:
+        original_count = len(episodes_data)
+        # Sort in descending order by userUpdatedDate before limiting
+        episodes_data = sorted(
+            episodes_data, key=lambda x: x.get("userUpdatedDate", ""), reverse=True
+        )[:count]
+        if original_count > count:
+            click.echo(
+                f"Limiting output to {count} episodes (from {original_count} total)",
+                err=True,
+            )
+
+    if not episodes_data:
+        if feed_titles:
+            click.echo("No episodes found for the specified feed titles.", err=True)
+        else:
+            click.echo("No episodes found in the database.", err=True)
+        return
+
+    if output_path is None:
+        output_file = sys.stdout
+        try:
+            if output_format == "csv":
+                fieldnames = [
+                    "episode_title",
+                    "feed_title",
+                    "played",
+                    "progress",
+                    "userUpdatedDate",
+                    "userRecommendedDate",
+                    "pubDate",
+                    "episode_url",
+                    "enclosureUrl",
+                ]
+                writer = csv.DictWriter(output_file, fieldnames=fieldnames)
+                writer.writeheader()
+                writer.writerows(episodes_data)
+            elif output_format == "json":
+                json.dump(episodes_data, output_file, indent=2)
+        finally:
+            pass  # Don't close stdout
+    else:
+        # Use Path for file handling with context manager
+        with Path(output_path).open(
+            "w",
+            newline="" if output_format == "csv" else None,
+        ) as output_file:
+            if output_format == "csv":
+                fieldnames = [
+                    "episode_title",
+                    "feed_title",
+                    "played",
+                    "progress",
+                    "userUpdatedDate",
+                    "userRecommendedDate",
+                    "pubDate",
+                    "episode_url",
+                    "enclosureUrl",
+                ]
+                writer = csv.DictWriter(output_file, fieldnames=fieldnames)
+                writer.writeheader()
+                writer.writerows(episodes_data)
+            elif output_format == "json":
+                json.dump(episodes_data, output_file, indent=2)
+
+        click.echo(
+            f"📝Exported {len(episodes_data)} episodes to {output_path} "
+            f"as {output_format.upper()}",
+        )
+
+
+@cli.command()
+@click.argument(
+    "db_path",
+    type=click.Path(file_okay=True, dir_okay=False, allow_dash=False),
+    default="retrocast.db",
+)
+@click.option(
+    "--all",
+    "all_feeds",
+    is_flag=True,
+    help="List all feeds known to Overcast, not just subscribed ones.",
+)
+@click.option(
+    "--json",
+    "json_output",
+    is_flag=True,
+    help="Output feed data in JSON format.",
+)
+def subscriptions(db_path: str, all_feeds: bool, json_output: bool) -> None:
+    """List feed titles.
+
+    Default is only podcasts subscribed in Overcast.
+
+    Use --json to output detailed feed data in JSON format.
+    """
+    if not _confirm_db_creation(db_path):
+        click.echo("Database creation cancelled.")
+        return
+
+    db = Datastore(db_path)
+
+    if json_output:
+        feed_data = db.get_feed_data(subscribed_only=not all_feeds)
+        click.echo(json.dumps(feed_data, indent=2))
+    else:
+        feed_titles = db.get_feed_titles(subscribed_only=not all_feeds)
+        for title in feed_titles:
+            click.echo(title)
 
 
 @cli.command("all")
@@ -337,6 +557,17 @@ def save_extend_download(
     auth_path: str,
     verbose: bool,
 ) -> None:
+    """Run all steps to save, extend, download transcripts, and chapters.
+
+    This command sequentially executes the following:
+    1. Save Overcast information to the SQLite database.
+    2. Extend the database with new feed and episode data.
+    3. Download available transcripts for all or starred episodes.
+    4. Download and store available chapters for all or starred episodes.
+    """
+    if not _confirm_db_creation(db_path):
+        click.echo("Database creation cancelled.")
+        return
     ctx.invoke(
         save,
         db_path=db_path,

@@ -8,8 +8,8 @@ from podcast_chapter_tools.extractors import (
     get_and_extract_pci_chapters,
 )
 
-from overcast_to_sqlite.constants import ENCLOSURE_URL, FEED_XML_URL, TITLE
-from overcast_to_sqlite.utils import _headers_ua, _parse_date_or_none
+from retrocast.constants import ENCLOSURE_URL, FEED_XML_URL, TITLE
+from retrocast.utils import _headers_ua, _parse_date_or_none
 
 
 def _element_to_dict(element: ElementTree.Element) -> dict[str, Any]:
