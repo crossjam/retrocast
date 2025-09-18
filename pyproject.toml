@@ -38,6 +38,7 @@ classifiers = [
 ]
 dependencies = [
  "click",
+ "platformdirs",
  "podcast-chapter-tools",
  "python-dateutil",
  "requests",
