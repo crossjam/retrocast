@@ -42,6 +42,7 @@ dependencies = [
  "podcast-chapter-tools",
  "python-dateutil",
  "requests",
+ "rich",
  "sqlite-utils",
 ]
 

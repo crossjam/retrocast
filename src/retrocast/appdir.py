@@ -3,6 +3,9 @@
 from pathlib import Path
 
 import platformdirs
+from rich.console import Console
+
+console = Console()
 
 
 def get_app_dir() -> Path:
@@ -14,7 +17,9 @@ def get_app_dir() -> Path:
         Path: The application directory path
     """
     app_dir = Path(platformdirs.user_data_dir("net.memexponent.retrocast", "retrocast"))
-    app_dir.mkdir(parents=True, exist_ok=True)
+    if not app_dir.exists():
+        console.print(f"[bold green]Creating application directory:[/] [blue]{app_dir}[/]")
+        app_dir.mkdir(parents=True, exist_ok=True)
     return app_dir
 
 
