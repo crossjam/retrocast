@@ -38,9 +38,11 @@ classifiers = [
 ]
 dependencies = [
  "click",
+ "platformdirs",
  "podcast-chapter-tools",
  "python-dateutil",
  "requests",
+ "rich",
  "sqlite-utils",
  "stamina>=25.1.0",
 ]
