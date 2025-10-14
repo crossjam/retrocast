@@ -34,8 +34,8 @@ def random_port() -> int:
 
 @stamina.retry(
     on=(OSError, ConnectionRefusedError, TimeoutError),
-    wait=stamina.wait_exponential(min=0.05, max=1.0),
-    stop=stamina.stop_after_delay(3.0),  # total TCP wait budget
+    # wait=stamina.wait_exponential(min=0.05, max=1.0),
+    # stop=stamina.stop_after_delay(3.0),  # total TCP wait budget
 )
 def tcp_ready(host: str, port: int) -> bool:
     """Return True when a TCP connection succeeds; raises to trigger stamina retries."""
@@ -45,8 +45,8 @@ def tcp_ready(host: str, port: int) -> bool:
 
 @stamina.retry(
     on=(ConnectionError, xmlrpc.client.ProtocolError, xmlrpc.client.Fault, OSError),
-    wait=stamina.wait_exponential(min=0.1, max=1.5),
-    stop=stamina.stop_after_delay(3.0),  # total XML-RPC wait budget
+    # wait=stamina.wait_exponential(min=0.1, max=1.5),
+    # stop=stamina.stop_after_delay(3.0),  # total XML-RPC wait budget
 )
 def xmlrpc_ready(host: str, port: int, secret: Optional[str] = None) -> bool:
     """
@@ -97,8 +97,8 @@ def _kill(proc: subprocess.Popen) -> None:
 
 @stamina.retry(
     on=(RuntimeError,),
-    wait=stamina.wait_exponential(min=0.1, max=2),
-    stop=stamina.stop_after_attempt(20),
+    #     wait=stamina.wait_exponential(min=0.1, max=2),
+    #     stop=stamina.stop_after_attempt(20),
 )
 def start_aria2c_ephemeral_rpc(
     secret: Optional[str] = None,
