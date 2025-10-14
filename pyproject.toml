@@ -42,6 +42,7 @@ dependencies = [
  "python-dateutil",
  "requests",
  "sqlite-utils",
+ "stamina>=25.1.0",
 ]
 
 [project.optional-dependencies]
