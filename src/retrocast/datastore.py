@@ -46,13 +46,13 @@ class Datastore:
     """Object responsible for all database interactions."""
 
     @staticmethod
-    def exists(db_path: str) -> bool:
+    def exists(db_path: Path | str) -> bool:
         """Check if the database file exists."""
         return Path(db_path).exists()
 
-    def __init__(self, db_path: str) -> None:
+    def __init__(self, db_path: Path | str) -> None:
         """Instantiate and ensure tables exist with expected columns."""
-        self.db: Database = Database(db_path)
+        self.db: Database = Database(str(db_path))
         self._prepare_db()
 
     def _prepare_db(self) -> None:
