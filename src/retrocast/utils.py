@@ -30,7 +30,7 @@ def _parse_date_or_none(date_string: str) -> str | None:
         return None
 
 
-def _archive_path(db_path: str, archive_name: str) -> Path:
+def _archive_path(db_path: Path | str, archive_name: str) -> Path:
     return Path(db_path).parent / "archive" / archive_name
 
 

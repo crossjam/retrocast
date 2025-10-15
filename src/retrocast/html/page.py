@@ -40,7 +40,7 @@ def _fix_unclosed_html_tags(html_string: str) -> str:
         return html_string
 
 
-def generate_html_played(db_path: str, html_output_path: Path) -> None:
+def generate_html_played(db_path: Path | str, html_output_path: Path) -> None:
     db = Datastore(db_path)
     episodes = db.get_recently_played()
     this_dir = Path(__file__).parent
