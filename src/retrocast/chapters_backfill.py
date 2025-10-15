@@ -85,7 +85,7 @@ def backfill_chapters_psc(db: Datastore, feeds_root: Path) -> None:
     db.insert_chapters(to_insert)
 
 
-def backfill_all_chapters(db_path: str, archive_root: Path) -> None:
+def backfill_all_chapters(db_path: Path | str, archive_root: Path) -> None:
     db = Datastore(db_path)
     backfill_chapters_description(db)
     backfill_chapters_pci(db, archive_root / CHAPTERS)
