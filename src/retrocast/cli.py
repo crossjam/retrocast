@@ -8,8 +8,8 @@ from pathlib import Path
 from xml.etree import ElementTree
 
 import click
-from click_default_group import DefaultGroup
 import requests
+from click_default_group import DefaultGroup
 
 from retrocast.appdir import get_app_dir, get_auth_path, get_default_db_path
 from retrocast.chapters_backfill import backfill_all_chapters

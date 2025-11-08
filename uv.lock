@@ -468,6 +468,7 @@ version = "0.9.0"
 source = { editable = "." }
 dependencies = [
     { name = "click" },
+    { name = "click-default-group" },
     { name = "platformdirs" },
     { name = "podcast-chapter-tools" },
     { name = "python-dateutil" },
@@ -491,6 +492,7 @@ lint = [
 dev = [
     { name = "black" },
     { name = "mypy" },
+    { name = "pytest" },
     { name = "ruff" },
     { name = "types-python-dateutil" },
     { name = "types-requests" },
@@ -499,6 +501,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "click" },
+    { name = "click-default-group" },
     { name = "mypy", marker = "extra == 'lint'" },
     { name = "platformdirs" },
     { name = "podcast-chapter-tools" },
@@ -519,6 +522,7 @@ provides-extras = ["lint"]
 dev = [
     { name = "black", specifier = ">=25.1.0" },
     { name = "mypy", specifier = ">=1.16.0" },
+    { name = "pytest", specifier = ">=8.3.4" },
     { name = "ruff", specifier = ">=0.11.13" },
     { name = "types-python-dateutil", specifier = ">=2.9.0.20250516" },
     { name = "types-requests", specifier = ">=2.32.4.20250611" },
