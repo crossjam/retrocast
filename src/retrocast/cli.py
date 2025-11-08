@@ -10,6 +10,7 @@ from xml.etree import ElementTree
 import click
 import requests
 from click_default_group import DefaultGroup
+from rich.console import Console
 
 from retrocast.appdir import get_app_dir, get_auth_path, get_default_db_path
 from retrocast.chapters_backfill import backfill_all_chapters
@@ -56,13 +57,19 @@ def cli(ctx: click.Context) -> None:
     ctx.obj["app_dir"] = get_app_dir()
 
 
+ABOUT_MESSAGE = (
+    "Retrocast saves your Overcast listening history and related metadata "
+    "to a local SQLite database."
+)
+
+
 @cli.command()
 def about() -> None:
     """Show information about Retrocast."""
 
-    click.echo(
-        "Retrocast saves your Overcast listening history and related metadata "
-        "to a local SQLite database."
+    Console().print(
+        f"[bold cyan]Retrocast[/bold cyan]\n[dim]{ABOUT_MESSAGE}[/dim]",
+        highlight=False,
     )
 
 

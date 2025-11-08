@@ -1,3 +1,4 @@
+import builtins
 import importlib.util
 import sys
 import tempfile
@@ -25,6 +26,9 @@ if importlib.util.find_spec("rich.console") is None:
         def print(self, *args: object, **kwargs: object) -> None:  # noqa: D401
             """Pretend to print output."""
 
+            kwargs.pop("highlight", None)
+            builtins.print(*args, **kwargs)
+
     rich_console_module.Console = _Console  # type: ignore[attr-defined]
     sys.modules.setdefault("rich", rich_module)
     sys.modules.setdefault("rich.console", rich_console_module)
@@ -33,12 +37,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from click.testing import CliRunner
 
-from retrocast.cli import cli
-
-ABOUT_MESSAGE_SNIPPET = (
-    "Retrocast saves your Overcast listening history and related metadata"
-    " to a local SQLite database."
-)
+from retrocast.cli import ABOUT_MESSAGE, cli
 
 
 def test_cli_default_runs_about() -> None:
@@ -47,7 +46,7 @@ def test_cli_default_runs_about() -> None:
     result = runner.invoke(cli)
 
     assert result.exit_code == 0
-    assert ABOUT_MESSAGE_SNIPPET in result.output
+    assert ABOUT_MESSAGE in result.output
 
 
 def test_cli_about_command_explicit() -> None:
@@ -56,4 +55,4 @@ def test_cli_about_command_explicit() -> None:
     result = runner.invoke(cli, ["about"])
 
     assert result.exit_code == 0
-    assert ABOUT_MESSAGE_SNIPPET in result.output
+    assert ABOUT_MESSAGE in result.output
