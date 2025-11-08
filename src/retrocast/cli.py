@@ -8,6 +8,7 @@ from pathlib import Path
 from xml.etree import ElementTree
 
 import click
+from click_default_group import DefaultGroup
 import requests
 
 from retrocast.appdir import get_app_dir, get_auth_path, get_default_db_path
@@ -44,7 +45,7 @@ def _confirm_db_creation(db_path: str) -> bool:
     )
 
 
-@click.group()
+@click.group(cls=DefaultGroup, default="about", default_if_no_args=True)
 @click.version_option()
 @click.pass_context
 def cli(ctx: click.Context) -> None:
@@ -53,6 +54,16 @@ def cli(ctx: click.Context) -> None:
     ctx.ensure_object(dict)
     # Store app directory in context
     ctx.obj["app_dir"] = get_app_dir()
+
+
+@cli.command()
+def about() -> None:
+    """Show information about Retrocast."""
+
+    click.echo(
+        "Retrocast saves your Overcast listening history and related metadata "
+        "to a local SQLite database."
+    )
 
 
 @cli.command()

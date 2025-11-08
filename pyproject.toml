@@ -38,6 +38,7 @@ classifiers = [
 ]
 dependencies = [
  "click",
+ "click-default-group",
  "platformdirs",
  "podcast-chapter-tools",
  "python-dateutil",
@@ -59,6 +60,7 @@ Homepage = "https://github.com/crossjam/retrocast"
 dev = [
     "black>=25.1.0",
     "mypy>=1.16.0",
+    "pytest>=8.3.4",
     "ruff>=0.11.13",
     "types-python-dateutil>=2.9.0.20250516",
     "types-requests>=2.32.4.20250611",
