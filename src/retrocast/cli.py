@@ -9,7 +9,10 @@ from xml.etree import ElementTree
 
 import click
 import requests
+from click_default_group import DefaultGroup
+from rich.console import Console
 
+from retrocast.appdir import get_app_dir, get_auth_path, get_default_db_path
 from retrocast.chapters_backfill import backfill_all_chapters
 from retrocast.html.page import generate_html_played
 
@@ -43,20 +46,41 @@ def _confirm_db_creation(db_path: str) -> bool:
     )
 
 
-@click.group()
+@click.group(cls=DefaultGroup, default="about", default_if_no_args=True)
 @click.version_option()
-def cli() -> None:
+@click.pass_context
+def cli(ctx: click.Context) -> None:
     """Save listening history and feed/episode info from Overcast to SQLite."""
+    # Initialize context object if it doesn't exist
+    ctx.ensure_object(dict)
+    # Store app directory in context
+    ctx.obj["app_dir"] = get_app_dir()
+
+
+ABOUT_MESSAGE = (
+    "Retrocast saves your Overcast listening history and related metadata "
+    "to a local SQLite database."
+)
 
 
 @cli.command()
+def about() -> None:
+    """Show information about Retrocast."""
+
+    Console().print(
+        f"[bold cyan]Retrocast[/bold cyan]\n[dim]{ABOUT_MESSAGE}[/dim]",
+        highlight=False,
+    )
+
+
+@cli.command()
+@click.pass_context
 @click.option(
     "-a",
     "--auth",
-    "auth_path",
+    "custom_auth_path",
     type=click.Path(file_okay=True, dir_okay=False, allow_dash=False),
-    default="auth.json",
-    help="Path to save auth cookie, defaults to auth.json",
+    help="Custom path to save auth cookie (defaults to app directory)",
 )
 @click.option(
     "--email",
@@ -64,8 +88,9 @@ def cli() -> None:
     hide_input=False,
 )
 @click.password_option()
-def auth(auth_path: str, email: str, password: str) -> None:
+def auth(ctx: click.Context, custom_auth_path: str | None, email: str, password: str) -> None:
     """Save authentication credentials to a JSON file."""
+    auth_path = custom_auth_path if custom_auth_path else str(get_auth_path())
     click.echo("Logging in to Overcast")
     click.echo(
         f"Your password is not stored but an auth cookie will be saved to {auth_path}",
@@ -75,18 +100,20 @@ def auth(auth_path: str, email: str, password: str) -> None:
 
 
 @cli.command()
-@click.argument(
+@click.pass_context
+@click.option(
+    "-d",
+    "--database",
     "db_path",
     type=click.Path(file_okay=True, dir_okay=False, allow_dash=False),
-    default="retrocast.db",
+    help="Path to database file (defaults to retrocast.db in app directory)",
 )
 @click.option(
     "-a",
     "--auth",
-    "auth_path",
+    "custom_auth_path",
     type=click.Path(file_okay=True, dir_okay=False, allow_dash=True),
-    default="auth.json",
-    help="Path to auth.json file",
+    help="Custom path to auth.json file (defaults to app directory)",
 )
 @click.option(
     "--load",
@@ -96,13 +123,24 @@ def auth(auth_path: str, email: str, password: str) -> None:
 @click.option("-na", "--no-archive", is_flag=True)
 @click.option("-v", "--verbose", is_flag=True)
 def save(
+    ctx: click.Context,
     db_path: str,
-    auth_path: str,
+    custom_auth_path: str | None,
     load: str | None,
     no_archive: bool,
     verbose: bool,
 ) -> None:
     """Save Overcast info to SQLite database."""
+
+    app_dir = ctx.obj["app_dir"]
+
+    # Use default db path if not specified
+    if db_path is None:
+        db_path = str(get_default_db_path())
+    # If db_path is not absolute, make it relative to app_dir
+    elif not Path(db_path).is_absolute():
+        db_path = str(app_dir / db_path)
+
     if not _confirm_db_creation(db_path):
         click.echo("Database creation cancelled.")
         return
@@ -114,7 +152,7 @@ def save(
     else:
         print("🔉Fetching latest OPML from Overcast")
         xml = _auth_and_fetch(
-            auth_path,
+            custom_auth_path,
             None if no_archive else _archive_path(db_path, "retrocast"),
         )
 
@@ -140,30 +178,47 @@ def save(
     db.mark_feed_removed_if_missing(ingested_feed_ids)
 
 
-def _auth_and_fetch(auth_path: str, archive: Path | None) -> str:
+def _auth_and_fetch(auth_path: str | None, archive: Path | None) -> str:
     if (cookie := os.getenv("OVERCAST_COOKIE")) is not None:
         session = _session_from_cookie(cookie)
     else:
-        if not Path(auth_path).exists():
-            auth(auth_path)
-        session = _session_from_json(auth_path)
+        actual_auth_path = auth_path if auth_path else str(get_auth_path())
+        if not Path(actual_auth_path).exists():
+            click.echo(f"Auth file not found at {actual_auth_path}")
+            ctx = click.get_current_context()
+            ctx.invoke(auth)
+        session = _session_from_json(actual_auth_path)
     return fetch_opml(session, archive)
 
 
 @cli.command()
-@click.argument(
+@click.pass_context
+@click.option(
+    "-d",
+    "--database",
     "db_path",
     type=click.Path(file_okay=True, dir_okay=False, allow_dash=False),
-    default="retrocast.db",
+    help="Path to database file (defaults to retrocast.db in app directory)",
 )
 @click.option("-na", "--no-archive", is_flag=True)
 @click.option("-v", "--verbose", is_flag=True)
 def extend(
+    ctx: click.Context,
     db_path: str,
     no_archive: bool,
     verbose: bool,
 ) -> None:
     """Download XML feed and extract all feed and episode tags and attributes."""
+
+    app_dir = ctx.obj["app_dir"]
+
+    # Use default db path if not specified
+    if db_path is None:
+        db_path = str(get_default_db_path())
+    # If db_path is not absolute, make it relative to app_dir
+    elif not Path(db_path).is_absolute():
+        db_path = str(app_dir / db_path)
+
     if not _confirm_db_creation(db_path):
         click.echo("Database creation cancelled.")
         return
@@ -204,10 +259,13 @@ def extend(
 
 
 @cli.command()
-@click.argument(
+@click.pass_context
+@click.option(
+    "-d",
+    "--database",
     "db_path",
     type=click.Path(file_okay=True, dir_okay=False, allow_dash=False),
-    default="retrocast.db",
+    help="Path to database file (defaults to retrocast.db in app directory)",
 )
 @click.option(
     "-p",
@@ -218,12 +276,23 @@ def extend(
 @click.option("-s", "--starred-only", is_flag=True)
 @click.option("-v", "--verbose", is_flag=True)
 def transcripts(  # noqa: C901
+    ctx: click.Context,
     db_path: str,
     archive_path: str | None,
     starred_only: bool,
     verbose: bool,
 ) -> None:
     """Download available transcripts for all or starred episodes."""
+
+    app_dir = ctx.obj["app_dir"]
+
+    # Use default db path if not specified
+    if db_path is None:
+        db_path = str(get_default_db_path())
+    # If db_path is not absolute, make it relative to app_dir
+    elif not Path(db_path).is_absolute():
+        db_path = str(app_dir / db_path)
+
     if not _confirm_db_creation(db_path):
         click.echo("Database creation cancelled.")
         return
@@ -288,10 +357,13 @@ def transcripts(  # noqa: C901
 
 
 @cli.command()
-@click.argument(
+@click.pass_context
+@click.option(
+    "-d",
+    "--database",
     "db_path",
     type=click.Path(file_okay=True, dir_okay=False, allow_dash=False),
-    default="retrocast.db",
+    help="Path to database file (defaults to retrocast.db in app directory)",
 )
 @click.option(
     "-p",
@@ -300,23 +372,37 @@ def transcripts(  # noqa: C901
     type=click.Path(file_okay=False, dir_okay=True, allow_dash=False),
 )
 def chapters(
+    ctx: click.Context,
     db_path: str,
     archive_path: str | None,
 ) -> None:
     """Download and store available chapters for all or starred episodes."""
+
+    app_dir = ctx.obj["app_dir"]
+
+    # Use default db path if not specified
+    if db_path is None:
+        db_path = str(get_default_db_path())
+    # If db_path is not absolute, make it relative to app_dir
+    elif not Path(db_path).is_absolute():
+        db_path = str(app_dir / db_path)
+
     if not _confirm_db_creation(db_path):
         click.echo("Database creation cancelled.")
         return
 
-    archive_root = Path(archive_path) if archive_path else Path(db_path).parent / "archive"
+    archive_root = Path(archive_path) if archive_path else app_dir / "archive"
     backfill_all_chapters(db_path, archive_root)
 
 
 @cli.command()
-@click.argument(
+@click.pass_context
+@click.option(
+    "-d",
+    "--database",
     "db_path",
     type=click.Path(file_okay=True, dir_okay=False, allow_dash=False),
-    default="retrocast.db",
+    help="Path to database file (defaults to retrocast.db in app directory)",
 )
 @click.option(
     "-o",
@@ -325,10 +411,21 @@ def chapters(
     type=click.Path(file_okay=False, dir_okay=True, allow_dash=False),
 )
 def html(
+    ctx: click.Context,
     db_path: str,
     output_path: str | None,
 ) -> None:
     """Download and store available chapters for all or starred episodes."""
+
+    app_dir = ctx.obj["app_dir"]
+
+    # Use default db path if not specified
+    if db_path is None:
+        db_path = str(get_default_db_path())
+    # If db_path is not absolute, make it relative to app_dir
+    elif not Path(db_path).is_absolute():
+        db_path = str(app_dir / db_path)
+
     if not _confirm_db_creation(db_path):
         click.echo("Database creation cancelled.")
         return
@@ -339,16 +436,19 @@ def html(
         else:
             html_output_path = Path(output_path)
     else:
-        html_output_path = Path(db_path).parent / "retrocast-played.html"
+        html_output_path = app_dir / "retrocast-played.html"
     generate_html_played(db_path, html_output_path)
     print(f"📝Saved HTML to: file://{html_output_path.absolute()}")
 
 
 @cli.command()
-@click.argument(
+@click.pass_context
+@click.option(
+    "-d",
+    "--database",
     "db_path",
     type=click.Path(file_okay=True, dir_okay=False, allow_dash=False),
-    default="retrocast.db",
+    help="Path to database file (defaults to retrocast.db in app directory)",
 )
 @click.argument("feed_titles", nargs=-1, required=False)
 @click.option(
@@ -389,6 +489,7 @@ def html(
     help="Limit the number of episodes returned.",
 )
 def episodes(
+    ctx: click.Context,
     db_path: str,
     feed_titles: tuple[str, ...],
     output_path: str | None,
@@ -401,6 +502,16 @@ def episodes(
 
     If no feed titles are provided, exports episodes from all feeds.
     """
+
+    app_dir = ctx.obj["app_dir"]
+
+    # Use default db path if not specified
+    if db_path is None:
+        db_path = str(get_default_db_path())
+    # If db_path is not absolute, make it relative to app_dir
+    elif not Path(db_path).is_absolute():
+        db_path = str(app_dir / db_path)
+
     if not _confirm_db_creation(db_path):
         click.echo("Database creation cancelled.")
         return
@@ -496,10 +607,13 @@ def episodes(
 
 
 @cli.command()
-@click.argument(
+@click.pass_context
+@click.option(
+    "-d",
+    "--database",
     "db_path",
     type=click.Path(file_okay=True, dir_okay=False, allow_dash=False),
-    default="retrocast.db",
+    help="Path to database file (defaults to retrocast.db in app directory)",
 )
 @click.option(
     "--all",
@@ -513,13 +627,23 @@ def episodes(
     is_flag=True,
     help="Output feed data in JSON format.",
 )
-def subscriptions(db_path: str, all_feeds: bool, json_output: bool) -> None:
+def subscriptions(ctx: click.Context, db_path: str, all_feeds: bool, json_output: bool) -> None:
     """List feed titles.
 
     Default is only podcasts subscribed in Overcast.
 
     Use --json to output detailed feed data in JSON format.
     """
+
+    app_dir = ctx.obj["app_dir"]
+
+    # Use default db path if not specified
+    if db_path is None:
+        db_path = str(get_default_db_path())
+    # If db_path is not absolute, make it relative to app_dir
+    elif not Path(db_path).is_absolute():
+        db_path = str(app_dir / db_path)
+
     if not _confirm_db_creation(db_path):
         click.echo("Database creation cancelled.")
         return
@@ -537,24 +661,25 @@ def subscriptions(db_path: str, all_feeds: bool, json_output: bool) -> None:
 
 @cli.command("all")
 @click.pass_context
-@click.argument(
+@click.option(
+    "-d",
+    "--database",
     "db_path",
     type=click.Path(file_okay=True, dir_okay=False, allow_dash=False),
-    default="overcast.db",
+    help="Path to database file (defaults to retrocast.db in app directory)",
 )
 @click.option(
     "-a",
     "--auth",
-    "auth_path",
+    "custom_auth_path",
     type=click.Path(file_okay=True, dir_okay=False, allow_dash=True),
-    default="auth.json",
-    help="Path to auth.json file",
+    help="Custom path to auth.json file (defaults to app directory)",
 )
 @click.option("-v", "--verbose", is_flag=True)
 def save_extend_download(
     ctx: click.core.Context,
     db_path: str,
-    auth_path: str,
+    custom_auth_path: str | None,
     verbose: bool,
 ) -> None:
     """Run all steps to save, extend, download transcripts, and chapters.
@@ -565,13 +690,23 @@ def save_extend_download(
     3. Download available transcripts for all or starred episodes.
     4. Download and store available chapters for all or starred episodes.
     """
+
+    app_dir = ctx.obj["app_dir"]
+
+    # Use default db path if not specified
+    if db_path is None:
+        db_path = str(get_default_db_path())
+    # If db_path is not absolute, make it relative to app_dir
+    elif not Path(db_path).is_absolute():
+        db_path = str(app_dir / db_path)
+
     if not _confirm_db_creation(db_path):
         click.echo("Database creation cancelled.")
         return
     ctx.invoke(
         save,
         db_path=db_path,
-        auth_path=auth_path,
+        custom_auth_path=custom_auth_path,
         load=None,
         no_archive=False,
         verbose=verbose,
