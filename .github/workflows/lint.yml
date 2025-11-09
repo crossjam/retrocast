@@ -8,26 +8,22 @@ jobs:
       matrix:
         python-version: ["3.11", "3.12", "3.13", "3.14"]
     steps:
-    - uses: actions/checkout@v4
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
-      id: cpython3
-      with:
-        python-version: ${{ matrix.python-version }}
-        cache: pip
-        cache-dependency-path: requirements.txt
-        allow-prereleases: true
-    - run: sudo apt-get install libxml2 libxml2-dev libxslt-dev python-dev-is-python3
-    - run: pip install -e '.[lint]'
-    - run: ruff check src
-    - name: Run mypy (pytype on 3.11)
-      run: |
-        if [[ '${{ steps.cpython3.outputs.python-version }}' == *"3.11"* ]]; then
-          pip install pytype
-          pytype -j auto src
-        else
-          mypy src
-        fi
-    - run: pyroma . --min=10
-    - run: |
-        python -m retrocast.cli |& grep -q 'Usage:'
+      - uses: actions/checkout@v4
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: astral-sh/setup-uv@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+          enable-cache: true
+      - run: sudo apt-get install libxml2 libxml2-dev libxslt-dev python-dev-is-python3
+      - name: Sync project dependencies
+        run: uv sync --locked --extra lint
+      - run: uv run ruff check src
+      - name: Run mypy
+        if: matrix.python-version != '3.11'
+        run: uv run mypy src
+      - name: Skip type checking on Python 3.11
+        if: matrix.python-version == '3.11'
+        run: echo "Skipping type checking on Python 3.11"
+      - run: uv run pyroma . --min=10
+      - run: |
+          uv run python -m retrocast.cli --help |& grep -q 'Usage:'

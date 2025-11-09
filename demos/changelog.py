@@ -1,7 +1,6 @@
 from pathlib import Path
 
 from bs4 import BeautifulSoup
-
 from overcast_to_sqlite.utils import _sanitize_for_path
 
 keywords = [
@@ -96,7 +95,10 @@ def main():
                     else:
                         prev_child = child
 
-    html = f'<!DOCTYPE html><html><head><title>Changelog ❤️ Silicon Valley ({total_quotes} times!)</title><meta charset="utf-8"></head><body>'
+    html = (
+        "<!DOCTYPE html><html><head><title>Changelog ❤️ Silicon Valley "
+        f"({total_quotes} times!)</title><meta charset=\"utf-8\"></head><body>"
+    )
     for pod in pods:
         if pod in sv_quotes:
             html += f"<h1>{pod}</h1>"
