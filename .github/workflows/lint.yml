@@ -27,4 +27,4 @@ jobs:
           fi
       - run: uv run pyroma . --min=10
       - run: |
-          uv run python -m retrocast.cli |& grep -q 'Usage:'
+          uv run python -m retrocast.cli --help |& grep -q 'Usage:'
