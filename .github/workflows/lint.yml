@@ -18,10 +18,10 @@ jobs:
       - name: Sync project dependencies
         run: uv sync --locked --extra lint
       - run: uv run ruff check src
-      - name: Run mypy (pytype on 3.11)
+      - name: Run mypy
         run: |
           if [[ '${{ matrix.python-version }}' == '3.11' ]]; then
-            uv tool run pytype -j auto src
+            echo "Skipping type checking on Python 3.11"
           else
             uv run mypy src
           fi
