@@ -6,7 +6,7 @@ import subprocess
 import time
 import xmlrpc.client
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Tuple
+from typing import Any, Iterable, Mapping, Optional
 from urllib.parse import urlparse
 
 from rich.console import Console
@@ -23,6 +23,54 @@ from rich.progress import (
 
 from retrocast.ariafetcher import LOCALHOST, start_aria2c_ephemeral_rpc, stop_aria2c
 from retrocast.logging_config import get_logger
+
+
+def _coerce_str(value: Any, default: str = "") -> str:
+    if isinstance(value, str):
+        return value
+    if value is None:
+        return default
+    return str(value)
+
+
+def _coerce_float(value: Any, default: float = 0.0) -> float:
+    if isinstance(value, (int, float)):
+        return float(value)
+    if isinstance(value, str):
+        try:
+            return float(value)
+        except ValueError:
+            return default
+    return default
+
+
+def _coerce_int(value: Any, default: int = 0) -> int:
+    if isinstance(value, int):
+        return value
+    if isinstance(value, float):
+        return int(value)
+    if isinstance(value, str):
+        try:
+            return int(value)
+        except ValueError:
+            return default
+    return default
+
+
+def _collect_entries(value: Any) -> list[Mapping[str, Any]]:
+    entries: list[Mapping[str, Any]] = []
+    if isinstance(value, list):
+        for item in value:
+            if isinstance(item, Mapping):
+                entries.append(item)
+    return entries
+
+
+def _extract_file_entries(entry: Mapping[str, Any]) -> list[Mapping[str, Any]]:
+    files_value = entry.get("files")
+    if not isinstance(files_value, list):
+        return []
+    return [file_entry for file_entry in files_value if isinstance(file_entry, Mapping)]
 
 
 class AriaDownloader:
@@ -51,16 +99,16 @@ class AriaDownloader:
         self._progress = Progress(
             TextColumn("[progress.description]{task.description}"),
             BarColumn(),
-            DownloadColumn(binary=True),
+            DownloadColumn(binary_units=True),
             TransferSpeedColumn(),
             TimeRemainingColumn(),
             TimeElapsedColumn(),
             console=self._console,
             transient=not verbose,
         )
-        self._tasks: Dict[str, TaskID] = {}
-        self._completed: Dict[str, Dict[str, str]] = {}
-        self._failed: Dict[str, Dict[str, str]] = {}
+        self._tasks: dict[str, TaskID] = {}
+        self._completed: dict[str, dict[str, str]] = {}
+        self._failed: dict[str, dict[str, str]] = {}
         self._processed_stopped: set[str] = set()
         self._running = False
 
@@ -103,7 +151,7 @@ class AriaDownloader:
     # ------------------------------------------------------------------
     # RPC helpers
     # ------------------------------------------------------------------
-    def _rpc(self, method: str, *params):  # type: ignore[no-untyped-def]
+    def _rpc(self, method: str, *params: object) -> Any:
         if self._client is None:
             raise RuntimeError("aria2c RPC client is not initialized")
 
@@ -118,13 +166,13 @@ class AriaDownloader:
     # ------------------------------------------------------------------
     # Download management
     # ------------------------------------------------------------------
-    def add_urls(self, urls: Iterable[str]) -> List[str]:
+    def add_urls(self, urls: Iterable[str]) -> list[str]:
         """Submit URLs to aria2c download queue."""
 
         if not self._running:
             raise RuntimeError("AriaDownloader must be started before adding URLs")
 
-        added: List[str] = []
+        added: list[str] = []
         for url in urls:
             parsed = urlparse(url)
             if parsed.scheme not in {"http", "https"} or not parsed.netloc:
@@ -148,9 +196,9 @@ class AriaDownloader:
         if not self._running:
             raise RuntimeError("AriaDownloader is not running")
 
-        active = self._rpc("aria2.tellActive")
-        waiting = self._rpc("aria2.tellWaiting", 0, 1000)
-        stopped = self._rpc("aria2.tellStopped", 0, 1000)
+        active = _collect_entries(self._rpc("aria2.tellActive"))
+        waiting = _collect_entries(self._rpc("aria2.tellWaiting", 0, 1000))
+        stopped = _collect_entries(self._rpc("aria2.tellStopped", 0, 1000))
 
         for entry in waiting:
             self._ensure_task(entry, status="waiting")
@@ -163,7 +211,7 @@ class AriaDownloader:
         self._progress.refresh()
         return bool(active or waiting)
 
-    def wait_for_completion(self) -> Tuple[List[Dict[str, str]], List[Dict[str, str]]]:
+    def wait_for_completion(self) -> tuple[list[dict[str, str]], list[dict[str, str]]]:
         """Block until downloads finish and return completion summary."""
 
         if not self._running:
@@ -184,7 +232,7 @@ class AriaDownloader:
 
         return self.get_results()
 
-    def get_results(self) -> Tuple[List[Dict[str, str]], List[Dict[str, str]]]:
+    def get_results(self) -> tuple[list[dict[str, str]], list[dict[str, str]]]:
         """Return completed and failed download metadata."""
 
         return list(self._completed.values()), list(self._failed.values())
@@ -192,68 +240,73 @@ class AriaDownloader:
     # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
-    def _ensure_task(self, entry: Dict[str, str], status: str) -> None:
-        gid = entry.get("gid")
-        if not gid:
+    def _ensure_task(self, entry: Mapping[str, Any], status: str) -> None:
+        gid_obj = entry.get("gid")
+        if not isinstance(gid_obj, str):
             return
 
+        gid = gid_obj
         task_id = self._tasks.get(gid)
-        total_length = int(entry.get("totalLength", "0"))
+        total_length = _coerce_int(entry.get("totalLength"))
         description = self._build_description(entry, status=status)
-        completed = float(entry.get("completedLength", "0"))
+        completed = _coerce_float(entry.get("completedLength"))
 
         if task_id is None:
-            total = float(total_length) if total_length > 0 else 0
+            total = float(total_length) if total_length > 0 else 0.0
             task_id = self._progress.add_task(description, total=total)
             self._tasks[gid] = task_id
         self._progress.update(task_id, description=description, completed=completed)
 
-    def _build_description(self, entry: Dict[str, str], status: str) -> str:
-        files = entry.get("files", []) or []
+    def _build_description(self, entry: Mapping[str, Any], status: str) -> str:
         filename = ""
-        if files:
-            path = files[0].get("path")  # type: ignore[index]
-            if path:
-                filename = Path(path).name
+        for file_entry in _extract_file_entries(entry):
+            path_value = file_entry.get("path")
+            if isinstance(path_value, str) and path_value:
+                filename = Path(path_value).name
+                break
         if not filename:
-            filename = entry.get("gid", "unknown")
+            filename = _coerce_str(entry.get("gid"), default="unknown")
         status_label = status.upper()
         return f"{filename} [{status_label}]"
 
-    def _update_task_progress(self, entry: Dict[str, str]) -> None:
-        gid = entry.get("gid")
-        if not gid or gid not in self._tasks:
+    def _update_task_progress(self, entry: Mapping[str, Any]) -> None:
+        gid_obj = entry.get("gid")
+        if not isinstance(gid_obj, str) or gid_obj not in self._tasks:
             return
 
+        gid = gid_obj
         task_id = self._tasks[gid]
-        completed = float(entry.get("completedLength", "0"))
-        total = float(entry.get("totalLength", "0"))
+        completed = _coerce_float(entry.get("completedLength"))
+        total = _coerce_float(entry.get("totalLength"))
         if total > 0:
             self._progress.update(task_id, completed=completed, total=total)
         else:
             self._progress.update(task_id, completed=completed)
 
-    def _process_stopped(self, entries: Iterable[Dict[str, str]]) -> None:
+    def _process_stopped(self, entries: Iterable[Mapping[str, Any]]) -> None:
         for entry in entries:
-            gid = entry.get("gid")
-            if not gid or gid in self._processed_stopped:
+            gid_obj = entry.get("gid")
+            if not isinstance(gid_obj, str) or gid_obj in self._processed_stopped:
                 continue
 
+            gid = gid_obj
             self._processed_stopped.add(gid)
-            status = entry.get("status", "unknown")
-            files = entry.get("files", []) or []
+            status = _coerce_str(entry.get("status"), default="unknown")
             path = ""
-            if files:
-                path = files[0].get("path", "")  # type: ignore[index]
+            for file_entry in _extract_file_entries(entry):
+                path_value = file_entry.get("path")
+                if isinstance(path_value, str):
+                    path = path_value
+                    break
 
-            record = {
+            record: dict[str, str] = {
                 "gid": gid,
                 "path": path,
                 "status": status,
-                "totalLength": entry.get("totalLength", "0"),
-                "completedLength": entry.get("completedLength", "0"),
-                "errorCode": entry.get("errorCode", ""),
-                "errorMessage": entry.get("errorMessage", ""),
+                "totalLength": _coerce_str(entry.get("totalLength"), default="0"),
+                "completedLength": _coerce_str(entry.get("completedLength"), default="0"),
+                "errorCode": _coerce_str(entry.get("errorCode")),
+                "errorMessage": _coerce_str(entry.get("errorMessage")),
             }
 
             task_id = self._tasks.get(gid)
