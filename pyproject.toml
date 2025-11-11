@@ -46,6 +46,7 @@ dependencies = [
  "rich",
  "sqlite-utils",
  "types-click-default-group>=1.2.0.20250513",
+ "stamina>=25.1.0",
 ]
 
 [project.optional-dependencies]
