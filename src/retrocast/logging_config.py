@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
-from typing import Optional
+from typing import TYPE_CHECKING, MutableMapping, Optional
 
 from loguru import logger as _logger
 
@@ -15,8 +15,13 @@ LOG_FORMAT = (
     "<level>{message}</level>"
 )
 
+if TYPE_CHECKING:
+    from loguru import Record
+else:  # pragma: no cover - runtime alias for typing compatibility
+    Record = MutableMapping[str, object]
 
-def _format_record(record: dict) -> str:
+
+def _format_record(record: "Record") -> str:
     """Build the log line using either the bound name or module name."""
 
     logger_name = record["extra"].get("logger_name", record["name"])
