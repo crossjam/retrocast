@@ -3,9 +3,11 @@
 import click
 from click_default_group import DefaultGroup
 from rich.console import Console
+from rich.markdown import Markdown
 from rich.table import Table
 
 from retrocast.appdir import get_app_dir
+from retrocast.about_content import load_about_markdown
 from retrocast.crawl_commands import crawl
 from retrocast.logging_config import setup_logging
 from retrocast.overcast import overcast
@@ -27,20 +29,18 @@ def cli(ctx: click.Context, verbose: bool) -> None:
     setup_logging(verbose=verbose, log_file=log_file)
 
 
-ABOUT_MESSAGE = (
-    "Retrocast saves your Overcast listening history and related metadata "
-    "to a local SQLite database."
-)
-
-
 @cli.command()
 def about() -> None:
     """Show information about Retrocast."""
+    console = Console()
 
-    Console().print(
-        f"[bold cyan]Retrocast[/bold cyan]\n[dim]{ABOUT_MESSAGE}[/dim]",
-        highlight=False,
-    )
+    try:
+        about_text = load_about_markdown()
+    except (FileNotFoundError, OSError):
+        console.print("[bold red]Unable to load Retrocast about information.[/bold red]")
+        return
+
+    console.print(Markdown(about_text))
 
 
 @cli.command()

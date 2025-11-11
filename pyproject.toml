@@ -10,6 +10,7 @@ package-dir = {"" = "src"}
 packages = ["retrocast", "retrocast.html"]
 
 [tool.setuptools.package-data]
+"retrocast" = ["ABOUT.md"]
 "retrocast.html" = ["*.css", "*.html", "*.js"]
 
 [project]
