@@ -1,24 +1,30 @@
 #!/usr/bin/env python
 
 import click
-import requests
 from click_default_group import DefaultGroup
 from rich.console import Console
 from rich.table import Table
 
 from retrocast.appdir import get_app_dir
+from retrocast.crawl_commands import crawl
+from retrocast.logging_config import setup_logging
 from retrocast.overcast import overcast
 
 
 @click.group(cls=DefaultGroup, default="about", default_if_no_args=True)
 @click.version_option()
+@click.option("-v", "--verbose", is_flag=True, help="Enable verbose logging output.")
 @click.pass_context
-def cli(ctx: click.Context) -> None:
+def cli(ctx: click.Context, verbose: bool) -> None:
     """Save listening history and feed/episode info from Overcast to SQLite."""
     # Initialize context object if it doesn't exist
     ctx.ensure_object(dict)
     # Store app directory in context
     ctx.obj["app_dir"] = get_app_dir()
+    log_file = ctx.obj["app_dir"] / "retrocast.log"
+    ctx.obj["log_file"] = log_file
+    ctx.obj["verbose"] = verbose
+    setup_logging(verbose=verbose, log_file=log_file)
 
 
 ABOUT_MESSAGE = (
@@ -85,6 +91,10 @@ def sync(ctx: click.Context) -> None:
 
 # Register overcast commands
 sync.add_command(overcast)
+
+
+# Register crawl commands
+cli.add_command(crawl)
 
 
 if __name__ == "__main__":

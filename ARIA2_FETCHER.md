@@ -253,3 +253,9 @@ Use Rich library for nice terminal output:
 - [ ] Rate limiting options
 - [ ] Integration with retrocast database (track downloaded episodes)
 - [ ] Batch download of episodes from specific feeds
+
+# Implementation
+
+- Added a centralized Loguru-powered logging configuration and wired it into the CLI bootstrap and aria2 lifecycle so verbose and non-verbose runs share consistent formatting and file/console handling.
+- Implemented an `AriaDownloader` orchestrator that manages an embedded aria2c instance via XML-RPC, providing queue management, lifecycle control, and rich progress reporting for downloads sourced from files or stdin.
+- Introduced a `crawl` CLI command group with an `aria` subcommand that parses URL sources, configures download directories and concurrency, surfaces completion summaries, and gracefully handles failures and interrupts.

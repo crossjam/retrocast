@@ -39,6 +39,7 @@ classifiers = [
 dependencies = [
  "click",
  "click-default-group",
+ "loguru",
  "platformdirs",
  "podcast-chapter-tools",
  "python-dateutil",
