@@ -19,6 +19,7 @@ except ModuleNotFoundError:  # pragma: no cover - fallback for test envs without
 if importlib.util.find_spec("rich.console") is None:
     rich_module = types.ModuleType("rich")
     rich_console_module = types.ModuleType("rich.console")
+    rich_markdown_module = types.ModuleType("rich.markdown")
 
     class _Console:  # noqa: D401 - simple stub
         """Console stub used for tests when Rich is unavailable."""
@@ -30,14 +31,24 @@ if importlib.util.find_spec("rich.console") is None:
             builtins.print(*args, **kwargs)
 
     rich_console_module.Console = _Console  # type: ignore[attr-defined]
+    rich_markdown_module.Markdown = lambda text: text  # type: ignore[assignment]
     sys.modules.setdefault("rich", rich_module)
     sys.modules.setdefault("rich.console", rich_console_module)
+    sys.modules.setdefault("rich.markdown", rich_markdown_module)
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from click.testing import CliRunner
 
-from retrocast.cli import ABOUT_MESSAGE, cli
+from retrocast.about_content import load_about_markdown
+from retrocast.cli import cli
+
+
+def _first_markdown_heading(markdown_text: str) -> str:
+    return next(line for line in markdown_text.splitlines() if line.strip()).lstrip("# ").strip()
+
+
+ABOUT_HEADING = _first_markdown_heading(load_about_markdown())
 
 
 def test_cli_default_runs_about() -> None:
@@ -46,7 +57,7 @@ def test_cli_default_runs_about() -> None:
     result = runner.invoke(cli)
 
     assert result.exit_code == 0
-    assert ABOUT_MESSAGE in result.output
+    assert ABOUT_HEADING in result.output
 
 
 def test_cli_about_command_explicit() -> None:
@@ -55,4 +66,4 @@ def test_cli_about_command_explicit() -> None:
     result = runner.invoke(cli, ["about"])
 
     assert result.exit_code == 0
-    assert ABOUT_MESSAGE in result.output
+    assert ABOUT_HEADING in result.output
