@@ -6,8 +6,8 @@ from rich.console import Console
 from rich.markdown import Markdown
 from rich.table import Table
 
-from retrocast.appdir import get_app_dir
 from retrocast.about_content import load_about_markdown
+from retrocast.appdir import get_app_dir
 from retrocast.crawl_commands import crawl
 from retrocast.logging_config import setup_logging
 from retrocast.overcast import overcast
