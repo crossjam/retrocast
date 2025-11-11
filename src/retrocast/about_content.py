@@ -6,7 +6,6 @@ from functools import lru_cache
 from importlib import resources
 from typing import Final
 
-
 _PACKAGE: Final[str] = __package__ or "retrocast"
 _ABOUT_RESOURCE: Final[str] = "ABOUT.md"
 
