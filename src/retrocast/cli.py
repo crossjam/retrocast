@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
-from contextlib import nullcontext
-from pathlib import Path
 import sys
 import tarfile
+from contextlib import nullcontext
+from pathlib import Path
 
 import click
 from click_default_group import DefaultGroup
@@ -115,7 +115,12 @@ def check(ctx: click.Context) -> None:
 
 
 @config.command(name="initialize")
-@click.option("-y", "--yes", is_flag=True, help="Create the directory without confirmation prompts.")
+@click.option(
+    "-y",
+    "--yes",
+    is_flag=True,
+    help="Create the directory without confirmation prompts.",
+)
 @click.pass_context
 def config_initialize(ctx: click.Context, yes: bool) -> None:
     """Create the Retrocast configuration directory."""
@@ -225,7 +230,8 @@ def init(ctx: click.Context) -> None:
 
     console = Console()
     console.print(
-        "[yellow]`retrocast init` is deprecated. Using `retrocast config initialize` instead.[/yellow]",
+        "[yellow]`retrocast init` is deprecated. Using "
+        "`retrocast config initialize` instead.[/yellow]",
     )
     ctx.invoke(config_initialize, yes=False)
 

@@ -44,3 +44,6 @@
 
 ## Implementation Summary (2025-12-01 21:40 UTC)
 - Hardened `config archive` to use context-managed output streams and confirmed CLI changes via tests.
+
+## Implementation Summary (2025-12-01 21:59 UTC)
+- Added a vendored shim for `loguru-config` to support offline installs and completed ruff linting of the CLI.
