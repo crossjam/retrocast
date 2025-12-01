@@ -4,6 +4,7 @@ import sys
 import tarfile
 from contextlib import nullcontext
 from pathlib import Path
+from typing import BinaryIO, ContextManager, cast
 
 import click
 from click_default_group import DefaultGroup
@@ -12,7 +13,12 @@ from rich.markdown import Markdown
 from rich.table import Table
 
 from retrocast.about_content import load_about_markdown
-from retrocast.appdir import ensure_app_dir, get_app_dir, get_auth_path, get_default_db_path
+from retrocast.appdir import (
+    ensure_app_dir,
+    get_app_dir,
+    get_auth_path,
+    get_default_db_path,
+)
 from retrocast.crawl_commands import crawl
 from retrocast.logging_config import setup_logging
 from retrocast.overcast import chapters, overcast, transcripts
@@ -197,8 +203,8 @@ def archive(
         console.print("[red]Configuration directory not found. Initialize it first.[/red]")
         ctx.exit(1)
 
-    stream = sys.stdout.buffer
-    stream_context = nullcontext(stream)
+    stream: BinaryIO = sys.stdout.buffer
+    stream_context: ContextManager[BinaryIO] = nullcontext[BinaryIO](stream)
 
     if output_path is not None:
         if output_path.exists() and not force:
@@ -209,7 +215,7 @@ def archive(
                 console.print("[yellow]Archive cancelled.[/yellow]")
                 ctx.exit(1)
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        stream_context = output_path.open("wb")
+        stream_context = cast(ContextManager[BinaryIO], output_path.open("wb"))
 
     with stream_context as file_obj:
         with tarfile.open(

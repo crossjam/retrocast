@@ -50,10 +50,8 @@ uv run ruff format src
 # Black formatting
 uv run black src
 
-# Type checking (mypy for 3.12+, pytype for 3.11)
-uv run mypy src
-# OR
-uv run pytype -j auto src
+# Type checking
+uv run ty check src
 
 # Package quality check
 uv run pyroma . --min=10
@@ -177,4 +175,3 @@ To run tests:
 ```bash
 uv run pytest
 ```
-

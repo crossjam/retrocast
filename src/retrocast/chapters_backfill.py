@@ -41,13 +41,26 @@ def backfill_chapters_pci(db: Datastore, chapters_path: Path) -> None:
     ) -> None | list[tuple[str, str, str, int, str, str | None, str | None]]:
         enc_url, guid, title, chap_url = podcast
         try:
-            extracted = get_and_extract_pci_chapters(
-                url=chap_url,
-                headers=_headers_ua(),
-                archive_path_json=chapters_path / f"{_sanitize_for_path(title)}.json",
+            extracted: list[tuple[int, str, str | None, str | None]] | None = (
+                get_and_extract_pci_chapters(
+                    url=chap_url,
+                    headers=_headers_ua(),
+                    archive_path_json=chapters_path / f"{_sanitize_for_path(title)}.json",
+                )
             )
             if extracted is not None:
-                return [(enc_url, guid, ChapterType.PCI.value, *c) for c in extracted]
+                return [
+                    (
+                        enc_url,
+                        guid,
+                        ChapterType.PCI.value,
+                        c[0],
+                        c[1],
+                        c[2],
+                        c[3],
+                    )
+                    for c in extracted
+                ]
         except Exception as e:  # noqa: BLE001
             print(f"Error fetching PCI chapters for {title}: {e}")
         return None
