@@ -223,19 +223,6 @@ def archive(
         console.print(f"[green]Archive written to {output_path}[/green]")
 
 
-@cli.command()
-@click.pass_context
-def init(ctx: click.Context) -> None:
-    """Deprecated: initialize configuration (use `config initialize`)."""
-
-    console = Console()
-    console.print(
-        "[yellow]`retrocast init` is deprecated. Using "
-        "`retrocast config initialize` instead.[/yellow]",
-    )
-    ctx.invoke(config_initialize, yes=False)
-
-
 @cli.group()
 @click.pass_context
 def sync(ctx: click.Context) -> None:

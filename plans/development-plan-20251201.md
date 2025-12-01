@@ -8,7 +8,7 @@
 - Integrate `loguru-config` for centralized logging configuration (Issue #20).
 
 ## Current Context
-- The CLI entrypoint (`src/retrocast/cli.py`) defines `cli`, `about`, `init`, and a `sync` group that nests `overcast` commands; initialization currently creates the app directory and displays next steps with `rich`. `DefaultGroup` sets `about` as the default command.
+- The CLI entrypoint (`src/retrocast/cli.py`) defines `cli`, `about`, `config`, and a `sync` group that nests `overcast` commands; initialization now lives under `config initialize` (superseding the old `init` entrypoint). `DefaultGroup` sets `about` as the default command.
 - Application directories are managed in `src/retrocast/appdir.py`, which auto-creates the platform-specific data dir and exposes helper paths for auth and the default DB.
 - Logging is not yet configured; `loguru` is a dependency, but no logger setup exists in the CLI or helpers.
 
@@ -47,3 +47,6 @@
 
 ## Implementation Summary (2025-12-01 21:59 UTC)
 - Added a vendored shim for `loguru-config` to support offline installs and completed ruff linting of the CLI.
+
+## Implementation Summary (2025-12-02 21:57 UTC)
+- Removed the deprecated `init` command in favor of `config initialize` to reduce duplicate entrypoints.
