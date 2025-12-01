@@ -178,9 +178,3 @@ To run tests:
 uv run pytest
 ```
 
-## Branch Strategy
-
-Current branch: `aria2-retriever-subprocess`
-Main branch: `main`
-
-This branch appears to be adding the aria2c-based fetcher functionality for enhanced download capabilities.
