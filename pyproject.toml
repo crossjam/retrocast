@@ -41,6 +41,7 @@ dependencies = [
  "click",
  "click-default-group",
  "loguru",
+ "loguru-config",
  "platformdirs",
  "podcast-chapter-tools",
  "python-dateutil",
@@ -119,4 +120,7 @@ profile = "black"
 
 [tool.black]
 line-length = 100
+
+[tool.uv.sources]
+loguru-config = { path = "vendor/loguru-config" }
 
