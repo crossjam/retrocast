@@ -20,7 +20,7 @@ jobs:
       - run: uv run ruff check src
       - name: Run mypy
         if: matrix.python-version != '3.11'
-        run: uv run mypy src
+        run: uv run ty src
       - name: Skip type checking on Python 3.11
         if: matrix.python-version == '3.11'
         run: echo "Skipping type checking on Python 3.11"
