@@ -41,6 +41,7 @@ dependencies = [
  "click",
  "click-default-group",
  "loguru",
+ "loguru-config",
  "platformdirs",
  "podcast-chapter-tools",
  "python-dateutil",

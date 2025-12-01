@@ -8,29 +8,47 @@ charset-normalizer==3.4.3
     # via requests
 click==8.2.1
     # via
-    #   overcast-to-sqlite (pyproject.toml)
+    #   retrocast (pyproject.toml)
     #   click-default-group
     #   sqlite-utils
+    #   types-click-default-group
 click-default-group==1.2.4
-    # via sqlite-utils
+    # via
+    #   retrocast (pyproject.toml)
+    #   sqlite-utils
 idna==3.10
     # via requests
 loguru==0.7.3
-    # via podcast-transcript-convert
+    # via
+    #   retrocast (pyproject.toml)
+    #   loguru-config
+    #   podcast-transcript-convert
+loguru-config==0.1.0
+    # via retrocast (pyproject.toml)
 lxml==6.0.1
     # via podcast-transcript-convert
+markdown-it-py==4.0.0
+    # via rich
+mdurl==0.1.2
+    # via markdown-it-py
+platformdirs==4.5.0
+    # via retrocast (pyproject.toml)
 pluggy==1.6.0
     # via sqlite-utils
 podcast-chapter-tools==0.1.0
-    # via overcast-to-sqlite (pyproject.toml)
+    # via retrocast (pyproject.toml)
 podcast-transcript-convert==0.1.2
     # via podcast-chapter-tools
+pygments==2.19.2
+    # via rich
 python-dateutil==2.9.0.post0
     # via
-    #   overcast-to-sqlite (pyproject.toml)
+    #   retrocast (pyproject.toml)
     #   sqlite-utils
 requests==2.32.5
-    # via overcast-to-sqlite (pyproject.toml)
+    # via retrocast (pyproject.toml)
+rich==14.2.0
+    # via retrocast (pyproject.toml)
 six==1.17.0
     # via python-dateutil
 soupsieve==2.7
@@ -38,9 +56,15 @@ soupsieve==2.7
 sqlite-fts4==1.0.3
     # via sqlite-utils
 sqlite-utils==3.38
-    # via overcast-to-sqlite (pyproject.toml)
+    # via retrocast (pyproject.toml)
+stamina==25.1.0
+    # via retrocast (pyproject.toml)
 tabulate==0.9.0
     # via sqlite-utils
+tenacity==9.1.2
+    # via stamina
+types-click-default-group==1.2.0.20250513
+    # via retrocast (pyproject.toml)
 typing-extensions==4.15.0
     # via beautifulsoup4
 urllib3==2.5.0

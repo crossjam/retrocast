@@ -16,7 +16,7 @@ from requests import Session
 from rich.console import Console
 from rich.table import Table
 
-from .appdir import get_auth_path, get_default_db_path
+from .appdir import ensure_app_dir, get_auth_path, get_default_db_path
 from .chapters_backfill import backfill_all_chapters
 from .constants import (
     BATCH_SIZE,
@@ -32,6 +32,7 @@ from .datastore import Datastore
 from .exceptions import AuthFailedError, OpmlFetchError, WrongPasswordError
 from .feed import fetch_xml_and_extract
 from .html.page import generate_html_played
+from .logging_config import get_logger
 from .utils import (
     _archive_path,
     _file_extension_for_type,
@@ -39,6 +40,8 @@ from .utils import (
     _parse_date_or_none,
     _sanitize_for_path,
 )
+
+logger = get_logger(__name__)
 
 
 def auth_and_save_cookies(email: str, password: str, auth_json: str) -> None:
@@ -56,7 +59,7 @@ def auth_and_save_cookies(email: str, password: str, auth_json: str) -> None:
     if "o" not in cookies:
         raise AuthFailedError
 
-    print("Authenticated successfully. Saving session.")
+    logger.info("Authenticated successfully. Saving session.")
     auth_json_path = Path(auth_json)
     if auth_json_path.exists():
         auth_data = json.loads(auth_json_path.read_text())
@@ -158,6 +161,32 @@ def extract_feed_and_episodes_from_opml(
 # CLI Helper Functions
 
 
+def _ensure_app_dir_from_ctx(ctx: click.Context) -> Path:
+    """Ensure the application directory exists and update the context."""
+
+    app_dir = ctx.obj.get("app_dir")
+    if app_dir is None or not Path(app_dir).exists():
+        app_dir = ensure_app_dir()
+        ctx.obj["app_dir"] = app_dir
+    return Path(app_dir)
+
+
+def _resolve_db_path(ctx: click.Context, db_path: str | None) -> Path:
+    """Resolve a database path relative to the application directory."""
+
+    app_dir = _ensure_app_dir_from_ctx(ctx)
+
+    if db_path is None:
+        resolved_db_path: Path = get_default_db_path(create=True)
+    elif not Path(db_path).is_absolute():
+        resolved_db_path = app_dir / db_path
+    else:
+        resolved_db_path = Path(db_path)
+
+    resolved_db_path.parent.mkdir(parents=True, exist_ok=True)
+    return resolved_db_path
+
+
 def _confirm_db_creation(db_path: Path | str) -> bool:
     """Confirm database creation if it doesn't exist."""
     if Datastore.exists(db_path):
@@ -197,7 +226,8 @@ def overcast(ctx: click.Context) -> None:
 def init(ctx: click.Context) -> None:
     """Initialize Overcast database in user platform directory."""
     console = Console()
-    db_path = get_default_db_path()
+    app_dir = _ensure_app_dir_from_ctx(ctx)
+    db_path = get_default_db_path(create=True)
 
     # Check if database already exists
     already_exists = Datastore.exists(db_path)
@@ -211,6 +241,7 @@ def init(ctx: click.Context) -> None:
     table.add_column("Label", style="bold")
     table.add_column("Value")
 
+    table.add_row("Config directory:", str(app_dir))
     table.add_row("Database path:", str(db_path))
 
     if already_exists:
@@ -228,6 +259,7 @@ def init(ctx: click.Context) -> None:
         console.print("[dim]Next steps:[/dim]")
         console.print("  1. Authenticate:  [cyan]retrocast sync overcast auth[/cyan]")
         console.print("  2. Sync data:     [cyan]retrocast sync overcast save[/cyan]")
+        console.print("  3. Download:     [cyan]retrocast retrieve overcast transcripts[/cyan]")
         console.print()
     else:
         console.print("[dim]Use [cyan]retrocast sync overcast check[/cyan] to verify setup.[/dim]")
@@ -239,15 +271,16 @@ def init(ctx: click.Context) -> None:
 def check(ctx: click.Context) -> None:
     """Check authentication and database setup status."""
     console = Console()
-    app_dir = ctx.obj["app_dir"]
+    app_dir = Path(ctx.obj["app_dir"])
+    app_exists = app_dir.exists()
 
     # Check auth file
     auth_path = get_auth_path()
-    auth_exists = auth_path.exists()
+    auth_exists = auth_path.exists() if app_exists else False
 
     # Check database
     db_path = get_default_db_path()
-    db_exists = Datastore.exists(db_path)
+    db_exists = Datastore.exists(db_path) if app_exists else False
 
     # Create status table
     table = Table(title="Retrocast Setup Status", show_header=True, header_style="bold cyan")
@@ -257,7 +290,12 @@ def check(ctx: click.Context) -> None:
     table.add_column("Action", style="dim italic")
 
     # Add app directory row
-    table.add_row("App Directory", str(app_dir), "[green]✓[/green]", "")
+    table.add_row(
+        "App Directory",
+        str(app_dir),
+        "[green]✓[/green]" if app_exists else "[red]✗ Missing[/red]",
+        "" if app_exists else "Run: retrocast config initialize",
+    )
 
     # Add auth row
     if auth_exists:
@@ -310,7 +348,8 @@ def check(ctx: click.Context) -> None:
 @click.password_option()
 def auth(ctx: click.Context, custom_auth_path: str | None, email: str, password: str) -> None:
     """Save authentication credentials to a JSON file."""
-    auth_path = custom_auth_path if custom_auth_path else str(get_auth_path())
+    _ensure_app_dir_from_ctx(ctx)
+    auth_path = custom_auth_path if custom_auth_path else str(get_auth_path(create=True))
     click.echo("Logging in to Overcast")
     click.echo(
         f"Your password is not stored but an auth cookie will be saved to {auth_path}",
@@ -352,16 +391,7 @@ def save(
 ) -> None:
     """Save Overcast info to SQLite database."""
 
-    app_dir = ctx.obj["app_dir"]
-
-    # Use default db path if not specified
-    if db_path is None:
-        resolved_db_path: Path | str = get_default_db_path()
-    # If db_path is not absolute, make it relative to app_dir
-    elif not Path(db_path).is_absolute():
-        resolved_db_path = app_dir / db_path
-    else:
-        resolved_db_path = Path(db_path)
+    resolved_db_path = _resolve_db_path(ctx, db_path)
 
     if not _confirm_db_creation(resolved_db_path):
         click.echo("Database creation cancelled.")
@@ -372,28 +402,32 @@ def save(
     if load:
         xml = Path(load).read_text()
     else:
-        print("🔉Fetching latest OPML from Overcast")
+        logger.info("🔉 Fetching latest OPML from Overcast")
         xml = _auth_and_fetch(
             custom_auth_path,
             None if no_archive else _archive_path(resolved_db_path, "retrocast"),
         )
 
     if verbose:
-        print("📥Parsing OPML...")
+        logger.info("📥 Parsing OPML...")
     root = ElementTree.fromstring(xml)
 
     for playlist in extract_playlists_from_opml(root):
         if verbose:
-            print(f"▶️Saving playlist: {playlist['title']}")
+            logger.info("▶️ Saving playlist: {title}", title=playlist["title"])
         db.save_playlist(playlist)
 
     for feed, episodes in extract_feed_and_episodes_from_opml(root):
         if not episodes:
             if verbose:
-                print(f"⚠️Skipping {feed[TITLE]} (no episodes)")
+                logger.warning("⚠️ Skipping %s (no episodes)", feed[TITLE])
             continue
         if verbose:
-            print(f"⤵️Saving {feed[TITLE]} (latest: {episodes[0][TITLE]})")
+            logger.info(
+                "⤵️ Saving %s (latest: %s)",
+                feed[TITLE],
+                episodes[0][TITLE],
+            )
         ingested_feed_ids.add(feed["overcastId"])
         db.save_feed_and_episodes(feed, episodes)
 
@@ -419,16 +453,7 @@ def extend(
 ) -> None:
     """Download XML feed and extract all feed and episode tags and attributes."""
 
-    app_dir = ctx.obj["app_dir"]
-
-    # Use default db path if not specified
-    if db_path is None:
-        resolved_db_path: Path | str = get_default_db_path()
-    # If db_path is not absolute, make it relative to app_dir
-    elif not Path(db_path).is_absolute():
-        resolved_db_path = app_dir / db_path
-    else:
-        resolved_db_path = Path(db_path)
+    resolved_db_path = _resolve_db_path(ctx, db_path)
 
     if not _confirm_db_creation(resolved_db_path):
         click.echo("Database creation cancelled.")
@@ -436,7 +461,7 @@ def extend(
 
     db = Datastore(resolved_db_path)
     feeds_to_extend = db.get_feeds_to_extend()
-    print(f"➡️Extending {len(feeds_to_extend)} feeds")
+    logger.info("➡️ Extending %d feeds", len(feeds_to_extend))
 
     archive_dir = None if no_archive else _archive_path(resolved_db_path, "feeds")
 
@@ -452,19 +477,19 @@ def extend(
         )
         if not episodes:
             if verbose:
-                print(f"⚠️Skipping {title} (no episodes)")
+                logger.warning("⚠️ Skipping %s (no episodes)", title)
         else:
             if verbose:
-                print(f"⏩️Extending {title} (latest: {episodes[0][TITLE]})")
+                logger.info("⏩️ Extending %s (latest: %s)", title, episodes[0][TITLE])
             if "errorCode" in feed:
-                print(f"⛔️Found error: {feed['errorCode']}")
+                logger.error("⛔️ Found error: %s", feed["errorCode"])
         return feed, episodes
 
     with ThreadPoolExecutor(max_workers=BATCH_SIZE) as executor:
         results = list(executor.map(_fetch_feed_extend_save, feeds_to_extend))
 
     if verbose:
-        print(f"Saving {len(results)} feeds to database")
+        logger.info("Saving %d feeds to database", len(results))
     for feed, episodes in results:
         db.save_extended_feed_and_episodes(feed, episodes)
 
@@ -495,16 +520,13 @@ def transcripts(  # noqa: C901
 ) -> None:
     """Download available transcripts for all or starred episodes."""
 
-    app_dir = ctx.obj["app_dir"]
+    if ctx.command_path.startswith("retrocast sync"):
+        Console(stderr=True).print(
+            "[yellow]Use `retrocast retrieve overcast transcripts` for future runs."
+            " The current location will be deprecated.[/yellow]",
+        )
 
-    # Use default db path if not specified
-    if db_path is None:
-        resolved_db_path: Path | str = get_default_db_path()
-    # If db_path is not absolute, make it relative to app_dir
-    elif not Path(db_path).is_absolute():
-        resolved_db_path = app_dir / db_path
-    else:
-        resolved_db_path = Path(db_path)
+    resolved_db_path = _resolve_db_path(ctx, db_path)
 
     if not _confirm_db_creation(resolved_db_path):
         click.echo("Database creation cancelled.")
@@ -519,38 +541,38 @@ def transcripts(  # noqa: C901
     transcripts_path.mkdir(parents=True, exist_ok=True)
 
     if db.ensure_transcript_columns():
-        print("⚠️No transcript URLs found in database, please run `extend`")
+        logger.warning("⚠️ No transcript URLs found in database, please run `extend`")
 
     transcripts_to_download = list(
         db.transcripts_to_download(starred_only=starred_only),
     )
 
     if verbose:
-        print(f"🔉Downloading {len(transcripts_to_download)} transcripts...")
+        logger.info("🔉 Downloading %d transcripts...", len(transcripts_to_download))
 
     def _fetch_and_write_transcript(
         transcript: tuple[str, str, str, str, str],
     ) -> tuple[str, str] | None:
         title, url, mimetype, enclosure, feed_title = transcript
         if verbose:
-            print(f"⬇️Downloading {title} @ {url}")
+            logger.info("⬇️ Downloading %s @ %s", title, url)
         try:
             response = requests.get(url, headers=_headers_ua())
         except requests.exceptions.RequestException as e:
-            print(f"⛔ Error downloading {url}: {e}")
+            logger.error("⛔ Error downloading %s: %s", url, e)
             return None
 
         if not response.ok:
-            print(f"⛔ Error code {response.status_code} downloading {url}")
+            logger.error("⛔ Error code %s downloading %s", response.status_code, url)
             if verbose:
-                print(response.headers)
+                logger.debug("Response headers: %s", response.headers)
             return None
         feed_path = transcripts_path / _sanitize_for_path(feed_title)
         feed_path.mkdir(exist_ok=True)
         file_ext = _file_extension_for_type(response.headers, mimetype)
         file_path = feed_path / (_sanitize_for_path(title) + file_ext)
         if verbose:
-            print(f"📝Saving {file_path}")
+            logger.info("📝 Saving %s", file_path)
         with file_path.open(mode="wb") as file:
             file.write(response.content)
         return enclosure, str(file_path.absolute())
@@ -561,7 +583,7 @@ def transcripts(  # noqa: C901
         )
 
     if verbose:
-        print(f"Saving {len(results)} transcripts to database")
+        logger.info("Saving %d transcripts to database", len(results))
     for row in results:
         if row is not None:
             enclosure, file_path = row
@@ -593,22 +615,21 @@ def chapters(
 ) -> None:
     """Download and store available chapters for all or starred episodes."""
 
-    app_dir = ctx.obj["app_dir"]
+    if ctx.command_path.startswith("retrocast sync"):
+        Console(stderr=True).print(
+            "[yellow]Use `retrocast retrieve overcast chapters` for future runs."
+            " The current location will be deprecated.[/yellow]",
+        )
 
-    # Use default db path if not specified
-    if db_path is None:
-        resolved_db_path: Path | str = get_default_db_path()
-    # If db_path is not absolute, make it relative to app_dir
-    elif not Path(db_path).is_absolute():
-        resolved_db_path = app_dir / db_path
-    else:
-        resolved_db_path = Path(db_path)
+    resolved_db_path = _resolve_db_path(ctx, db_path)
+    app_dir = _ensure_app_dir_from_ctx(ctx)
 
     if not _confirm_db_creation(resolved_db_path):
         click.echo("Database creation cancelled.")
         return
 
     archive_root = Path(archive_path) if archive_path else app_dir / "archive"
+    archive_root.mkdir(parents=True, exist_ok=True)
     backfill_all_chapters(resolved_db_path, archive_root)
 
 
@@ -634,16 +655,8 @@ def html(
 ) -> None:
     """Download and store available chapters for all or starred episodes."""
 
-    app_dir = ctx.obj["app_dir"]
-
-    # Use default db path if not specified
-    if db_path is None:
-        resolved_db_path: Path | str = get_default_db_path()
-    # If db_path is not absolute, make it relative to app_dir
-    elif not Path(db_path).is_absolute():
-        resolved_db_path = app_dir / db_path
-    else:
-        resolved_db_path = Path(db_path)
+    resolved_db_path = _resolve_db_path(ctx, db_path)
+    app_dir = _ensure_app_dir_from_ctx(ctx)
 
     if not _confirm_db_creation(resolved_db_path):
         click.echo("Database creation cancelled.")
@@ -656,8 +669,9 @@ def html(
             html_output_path = Path(output_path)
     else:
         html_output_path = app_dir / "retrocast-played.html"
+    html_output_path.parent.mkdir(parents=True, exist_ok=True)
     generate_html_played(resolved_db_path, html_output_path)
-    print(f"📝Saved HTML to: file://{html_output_path.absolute()}")
+    logger.info("📝 Saved HTML to: file://%s", html_output_path.absolute())
 
 
 @overcast.command()
@@ -722,16 +736,7 @@ def episodes(
     If no feed titles are provided, exports episodes from all feeds.
     """
 
-    app_dir = ctx.obj["app_dir"]
-
-    # Use default db path if not specified
-    if db_path is None:
-        resolved_db_path: Path | str = get_default_db_path()
-    # If db_path is not absolute, make it relative to app_dir
-    elif not Path(db_path).is_absolute():
-        resolved_db_path = app_dir / db_path
-    else:
-        resolved_db_path = Path(db_path)
+    resolved_db_path = _resolve_db_path(ctx, db_path)
 
     if not _confirm_db_creation(resolved_db_path):
         click.echo("Database creation cancelled.")
@@ -858,16 +863,7 @@ def subscriptions(
     Use --json to output detailed feed data in JSON format.
     """
 
-    app_dir = ctx.obj["app_dir"]
-
-    # Use default db path if not specified
-    if db_path is None:
-        resolved_db_path: Path | str = get_default_db_path()
-    # If db_path is not absolute, make it relative to app_dir
-    elif not Path(db_path).is_absolute():
-        resolved_db_path = app_dir / db_path
-    else:
-        resolved_db_path = Path(db_path)
+    resolved_db_path = _resolve_db_path(ctx, db_path)
 
     if not _confirm_db_creation(resolved_db_path):
         click.echo("Database creation cancelled.")
@@ -916,16 +912,7 @@ def save_extend_download(
     4. Download and store available chapters for all or starred episodes.
     """
 
-    app_dir = ctx.obj["app_dir"]
-
-    # Use default db path if not specified
-    if db_path is None:
-        resolved_db_path: Path | str = get_default_db_path()
-    # If db_path is not absolute, make it relative to app_dir
-    elif not Path(db_path).is_absolute():
-        resolved_db_path = app_dir / db_path
-    else:
-        resolved_db_path = Path(db_path)
+    resolved_db_path = _resolve_db_path(ctx, db_path)
 
     if not _confirm_db_creation(resolved_db_path):
         click.echo("Database creation cancelled.")
