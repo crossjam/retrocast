@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, MutableMapping, Optional
 
 from loguru import logger as _logger
-from loguru_config.loguru_config import LoguruConfig
+from loguru_config.loguru_config import LoguruConfig  # type: ignore[import-untyped]
 
 DEFAULT_CONFIG_FILENAME = "logging.json"
 LOG_FORMAT = (
@@ -112,4 +112,3 @@ def get_logger(name: Optional[str] = None):
 
 
 __all__ = ["get_logger", "setup_logging"]
-

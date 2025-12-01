@@ -50,3 +50,8 @@
 
 ## Implementation Summary (2025-12-02 21:57 UTC)
 - Removed the deprecated `init` command in favor of `config initialize` to reduce duplicate entrypoints.
+
+## Implementation Summary (2025-12-03 10:25 UTC)
+- Swapped mypy for Astral ty as the project type checker (pyproject extras, docs, and exports) and regenerated lockfiles.
+- Adjusted typed dict handling in OPML parsing and chapter backfill to satisfy ty’s stricter return typing.
+- Added internal helpers to narrow sqlite-utils table/connection types for clearer type checking and ensured `uv run ty check src` passes.
