@@ -92,7 +92,6 @@ def sync(ctx: click.Context) -> None:
 # Register overcast commands
 sync.add_command(overcast)
 
-
 # Register crawl commands
 cli.add_command(crawl)
 
