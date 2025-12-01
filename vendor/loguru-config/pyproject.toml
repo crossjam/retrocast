@@ -1,0 +1,10 @@
+[project]
+name = "loguru-config"
+version = "0.0.0"
+description = "Local shim for loguru-config to support offline development"
+requires-python = ">=3.9"
+dependencies = ["loguru"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
