@@ -15,24 +15,32 @@
 ## Plan by Issue
 
 ### Issue #19: Implement `config` Command Subgroup
-- [ ] Create a new `config` click group under the top-level CLI to manage the user config directory, using `rich.console.Console` for messaging.
-- [ ] Add `check` command to report initialization status and required steps without mutating state (e.g., whether app dir exists, auth.json/db presence), formatted via `rich.table.Table` similar to existing `init` output.
-- [ ] Add `initialize` command that safely creates the user configuration directory and prompts before overwriting existing files; reuse `get_app_dir()` and consider optional flags for non-interactive confirmation.
-- [ ] Add `archive` command to gzip the configuration directory to a user-specified file or stdout; include safeguards for missing directories and optional compression level/overwrite controls.
-- [ ] Update help text and docs strings to align with the new subgroup and ensure `config` commands are discoverable from `retrocast --help`.
+- [x] Create a new `config` click group under the top-level CLI to manage the user config directory, using `rich.console.Console` for messaging.
+- [x] Add `check` command to report initialization status and required steps without mutating state (e.g., whether app dir exists, auth.json/db presence), formatted via `rich.table.Table` similar to existing `init` output.
+- [x] Add `initialize` command that safely creates the user configuration directory and prompts before overwriting existing files; reuse `get_app_dir()` and consider optional flags for non-interactive confirmation.
+- [x] Add `archive` command to gzip the configuration directory to a user-specified file or stdout; include safeguards for missing directories and optional compression level/overwrite controls.
+- [x] Update help text and docs strings to align with the new subgroup and ensure `config` commands are discoverable from `retrocast --help`.
 
 ### Issue #14: Create `sync` Command Subgroup and Separate Retrieval
-- [ ] Audit existing `overcast` commands under `sync` in `src/retrocast/overcast.py` and identify which focus on metadata ingestion (e.g., OPML/RSS saving, DB setup) versus media downloads (e.g., transcripts or enclosure fetching if present elsewhere).
-- [ ] Restructure the CLI so metadata-related operations live under `sync` (e.g., `retrocast sync overcast ...`) while media-download operations are grouped under a new `retrieve` subgroup; preserve existing functionality and aliases where practical for backward compatibility with deprecation warnings.
-- [ ] Update command descriptions, default paths (`get_default_db_path`, archive locations), and user guidance to reflect the new hierarchy, ensuring the `about`/`init` messaging points to the correct commands.
-- [ ] Expand or adjust tests (unit/CLI) to cover the reorganized command tree, ensuring `DefaultGroup` behavior remains sensible (default `about` or another appropriate default) and that command help output lists the new structure.
+- [x] Audit existing `overcast` commands under `sync` in `src/retrocast/overcast.py` and identify which focus on metadata ingestion (e.g., OPML/RSS saving, DB setup) versus media downloads (e.g., transcripts or enclosure fetching if present elsewhere).
+- [x] Restructure the CLI so metadata-related operations live under `sync` (e.g., `retrocast sync overcast ...`) while media-download operations are grouped under a new `retrieve` subgroup; preserve existing functionality and aliases where practical for backward compatibility with deprecation warnings.
+- [x] Update command descriptions, default paths (`get_default_db_path`, archive locations), and user guidance to reflect the new hierarchy, ensuring the `about`/`init` messaging points to the correct commands.
+- [x] Expand or adjust tests (unit/CLI) to cover the reorganized command tree, ensuring `DefaultGroup` behavior remains sensible (default `about` or another appropriate default) and that command help output lists the new structure.
 
 ### Issue #20: Integrate `loguru-config` for Logging
-- [ ] Add `loguru-config` as a dependency via `uv add git+https://github.com/crossjam/loguru-config` (update `requirements.txt` and `uv.lock` accordingly) and import/configure it at CLI startup to manage logging sinks and formatting.
-- [ ] Define a configuration strategy (e.g., default config file in app dir with overrides via env vars/CLI flags) consistent with `loguru-config` usage; ensure compatibility with existing `rich` console output.
-- [ ] Replace ad-hoc `print` statements with `loguru` logger calls where appropriate, preserving user-facing console tables for status while routing diagnostics through the logger.
-- [ ] Provide sensible defaults for log level and output (e.g., stderr), and document how users can customize logging via the new config.
+- [x] Add `loguru-config` as a dependency via `uv add git+https://github.com/crossjam/loguru-config` (update `requirements.txt` and `uv.lock` accordingly) and import/configure it at CLI startup to manage logging sinks and formatting.
+- [x] Define a configuration strategy (e.g., default config file in app dir with overrides via env vars/CLI flags) consistent with `loguru-config` usage; ensure compatibility with existing `rich` console output.
+- [x] Replace ad-hoc `print` statements with `loguru` logger calls where appropriate, preserving user-facing console tables for status while routing diagnostics through the logger.
+- [x] Provide sensible defaults for log level and output (e.g., stderr), and document how users can customize logging via the new config.
 
 ## Testing Strategy
-- [ ] Add or update automated tests to cover new CLI groups/commands, config directory operations (including archive creation), and logging initialization paths.
-- [ ] Run the full test suite with `uv run pytest` to validate functionality and prevent regressions.
+- [x] Add or update automated tests to cover new CLI groups/commands, config directory operations (including archive creation), and logging initialization paths.
+- [x] Run the full test suite with `uv run pytest` to validate functionality and prevent regressions.
+
+## Implementation Summary (2025-12-01 21:36 UTC)
+- Added the `config` command subgroup with check/initialize/archive commands and reorganized CLI commands under `sync` and `retrieve` groups.
+- Integrated `loguru-config` for centralized logging defaults and aligned app directory utilities with safer creation semantics.
+- Updated tests to cover the new CLI structure and ensured `uv run pytest` passes.
+
+## Implementation Summary (2025-12-01 21:40 UTC)
+- Hardened `config archive` to use context-managed output streams and confirmed CLI changes via tests.

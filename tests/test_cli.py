@@ -1,5 +1,6 @@
 import builtins
 import importlib.util
+import shutil
 import sys
 import tempfile
 import types
@@ -67,3 +68,26 @@ def test_cli_about_command_explicit() -> None:
 
     assert result.exit_code == 0
     assert ABOUT_HEADING in result.output
+
+
+def test_config_check_reports_missing_without_creating(monkeypatch, tmp_path: Path) -> None:
+    app_dir = tmp_path / "retrocast-tests"
+    monkeypatch.setattr(platformdirs, "user_data_dir", lambda *_, **__: str(app_dir))
+    if app_dir.exists():
+        shutil.rmtree(app_dir)
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["config", "check"])
+
+    assert result.exit_code == 1
+    assert "Retrocast Configuration" in result.output
+    assert not app_dir.exists()
+
+
+def test_retrieve_group_exposes_overcast_transcripts_help() -> None:
+    runner = CliRunner()
+
+    result = runner.invoke(cli, ["retrieve", "overcast", "transcripts", "--help"])
+
+    assert result.exit_code == 0
+    assert "Download available transcripts" in result.output
