@@ -8,6 +8,8 @@ from typing import BinaryIO, ContextManager, cast
 
 import click
 from click_default_group import DefaultGroup
+from loguru import logger
+from podcast_archiver.cli import main as podcast_archiver_command
 from rich.console import Console
 from rich.markdown import Markdown
 from rich.table import Table
@@ -258,5 +260,18 @@ retrieve.add_command(overcast_retrieve)
 cli.add_command(crawl)
 cli.add_command(sql_cli.sql)
 
+def _attach_podcast_archiver_passthroughs(main_group: DefaultGroup) -> None:
+    crawl_command = main_group.commands.get("crawl")
+    if not crawl_command:
+        logger.warning("Could not find 'crawl' subcommand for podcast_archiver passthrough")
+        return
+
+    # Type assertion: self_command is a Group (has commands and add_command)
+    crawl_command = cast("click.Group", crawl_command)
+    crawl_command.add_command(podcast_archiver_command, name="podcast-archive")
+    logger.info(f"Attached llm command: {podcast_archiver_command}")
+
+
 if __name__ == "__main__":
+    _attach_podcast_archiver_passthroughs(cli)
     cli()
