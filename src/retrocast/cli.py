@@ -23,6 +23,8 @@ from retrocast.crawl_commands import crawl
 from retrocast.logging_config import setup_logging
 from retrocast.overcast import chapters, overcast, transcripts
 
+from . import sql_cli
+
 
 @click.group(cls=DefaultGroup, default="about", default_if_no_args=True)
 @click.version_option()
@@ -254,7 +256,7 @@ retrieve.add_command(overcast_retrieve)
 
 # Register crawl commands
 cli.add_command(crawl)
-
+cli.add_command(sql_cli.sql)
 
 if __name__ == "__main__":
     cli()
