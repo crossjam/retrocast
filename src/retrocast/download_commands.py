@@ -20,8 +20,8 @@ stderr_console = Console(stderr=True)
 
 @click.group()
 @click.pass_context
-def crawl(ctx: click.Context) -> None:
-    """Commands for fetching remote content with pluggable backends."""
+def download(ctx: click.Context) -> None:
+    """Download episode content with pluggable backends"""
 
     ctx.ensure_object(dict)
 
@@ -48,7 +48,7 @@ def _read_urls_from_source(filename: str) -> tuple[list[str], list[str]]:
     return urls, skipped
 
 
-@crawl.command()
+@download.command()
 @click.argument("filename", required=False, default="-")
 @click.option(
     "-d",
@@ -87,7 +87,7 @@ def aria(
         setup_logging(app_dir, log_file=log_file)
         ctx.obj["verbose"] = True
 
-    logger = get_logger("retrocast.crawl.aria")
+    logger = get_logger("retrocast.download.aria")
 
     try:
         urls, skipped = _read_urls_from_source(filename)
@@ -187,4 +187,4 @@ def _format_size(size_value: str | None) -> str:
     return f"{value:.2f} {units[unit_index]}"
 
 
-__all__ = ["crawl"]
+__all__ = ["download"]

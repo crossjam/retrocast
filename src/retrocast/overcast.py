@@ -217,7 +217,7 @@ def _auth_and_fetch(auth_path: str | None, archive: Path | None) -> str:
 @click.group()
 @click.pass_context
 def overcast(ctx: click.Context) -> None:
-    """Overcast synchronization commands."""
+    """Synchronize subscription metadata via overcast plugin"""
     pass
 
 

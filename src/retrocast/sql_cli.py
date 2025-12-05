@@ -110,7 +110,7 @@ class SqlGroup(click.Group):
         self.format_usage(ctx, formatter)
 
         # Create and write dynamic help text
-        help_text = f"""SQLite database query and inspection commands.
+        help_text = f"""Query and inspect SQLite database
 
 These commands provide read-only access to your scrobbledb database
 using the sqlite-utils CLI. The database path defaults to your
@@ -168,7 +168,7 @@ Examples:
 @click.pass_context
 def sql(ctx, database):
     """
-    SQLite database query and inspection commands.
+    Query and inspect SQLite database
 
     Execute SQL queries, list tables, view schemas, and more using sqlite-utils.
     All commands default to the scrobbledb database in your XDG data directory.
