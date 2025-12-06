@@ -7,7 +7,8 @@ from pathlib import Path
 from typing import Iterable
 from urllib.parse import urlparse
 
-import click
+# import click
+import rich_click as click
 from rich.console import Console
 from rich.table import Table
 
@@ -20,7 +21,7 @@ stderr_console = Console(stderr=True)
 
 @click.group()
 @click.pass_context
-def download(ctx: click.Context) -> None:
+def download(ctx: click.RichContext) -> None:
     """Download episode content with pluggable backends"""
 
     ctx.ensure_object(dict)
@@ -70,7 +71,7 @@ def _read_urls_from_source(filename: str) -> tuple[list[str], list[str]]:
 @click.option("--secret", type=str, default=None, help="RPC secret token for aria2c.")
 @click.pass_context
 def aria(
-    ctx: click.Context,
+    ctx: click.RichContext,
     filename: str,
     directory: Path,
     max_concurrent: int,
