@@ -7,6 +7,8 @@ from pathlib import Path
 from typing import BinaryIO, ContextManager, cast
 
 import click
+import rich_click
+from click.core import ParameterSource
 from click_default_group import DefaultGroup
 from loguru import logger
 from podcast_archiver.cli import main as podcast_archiver_command
@@ -249,14 +251,69 @@ def meta(ctx: click.Context) -> None:
 
 def _attach_podcast_archiver_passthroughs(main_group: DefaultGroup) -> None:
     download_command = main_group.commands.get("download")
+
     if not download_command:
         logger.warning("Could not find 'download' subcommand for podcast_archiver passthrough")
         return
 
     # Type assertion: self_command is a Group (has commands and add_command)
     download_command = cast("click.Group", download_command)
-    download_command.add_command(podcast_archiver_command, name="podcast-archive")
-    logger.info(f"Attached llm command: {podcast_archiver_command}")
+
+    wrapped_context_settings = podcast_archiver_command.context_settings
+    wrapped_context_settings["ignore_unknown_options"] = True
+    wrapped_context_settings["allow_extra_args"] = True
+    logger.debug(f"Wrapped context settings: {wrapped_context_settings}")
+
+    @download_command.command(
+        name="podcast-archiver",
+        help=podcast_archiver_command.help,
+        context_settings=wrapped_context_settings,
+    )
+    @rich_click.pass_context
+    def archiver_wrapped(ctx: rich_click.RichContext, **kwargs):
+        app_dir = get_app_dir()
+        config_file = (app_dir / "podcast_archiver.yaml") if app_dir else None
+        database_path = (app_dir / "episodes.db") if app_dir else None
+        download_path = (app_dir / "episode_downloads") if app_dir else None
+
+        logger.debug(
+            f"Attached app dir, config file, db: {app_dir}, {config_file}, {database_path}"
+        )
+
+        if not ctx.params.get("database"):
+            logger.info(f"Using app dir database parameter: {str(database_path)}")
+            ctx.params["database"] = database_path
+
+        param_source = ctx.get_parameter_source("archive_directory")
+        logger.info(
+            f"archive directory option source, defaulted: {param_source}"
+            f", {param_source in (ParameterSource.DEFAULT, ParameterSource.DEFAULT_MAP)}"
+        )
+
+        if not ctx.params.get("archive_directory") or (
+            param_source in (ParameterSource.DEFAULT, ParameterSource.DEFAULT_MAP)
+        ):
+            logger.info(f"Using app dir download dir parameter: {str(download_path)}")
+            ctx.params["dir"] = download_path
+            ctx.params["archive_directory"] = download_path
+
+        logger.debug(f"ctx.args: {ctx.args}")
+        logger.debug(f"ctx.params: {ctx.params}")
+
+        if not ctx.params["archive_directory"].exists():
+            logger.info(f"Ensuring download dir exists: {ctx.params['archive_directory']}\n")
+            ctx.params["archive_directory"].mkdir(exist_ok=True)
+        else:
+            logger.info(f"Download dir exists: {ctx.params['archive_directory']}")
+
+        for k, v in ctx.params.items():
+            logger.debug(f"Param {k} | {type(v)}: {v}")
+
+        # ctx.invoke(podcast_archiver_command.main)
+        ctx.forward(podcast_archiver_command)
+
+    archiver_wrapped.params = podcast_archiver_command.params.copy()
+    logger.debug(f"Attached llm command: {archiver_wrapped}")
 
 
 # Register overcast commands
