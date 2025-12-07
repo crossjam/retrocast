@@ -16,60 +16,61 @@ schema namespaces separate and avoiding collisions. After work is
 done, the alias can be removed with `DETACH DATABASE <alias>;` to
 clean up the connection.
 
+The `podcast-archiver` CLI tool is wrapped in the `retrocast` under
+the `download` subgroup. The wrapper uses the `retrocast` user app dir
+retrieved via `platformdirs` to supply defaults for the
+podcast-archiver database (`episodes.db`) and file archive directory
+(`episode_downloads`). Separately, `src/retrocast/podcast_archiver_attach.py`
+now provides `get_podcast_archiver_db_path()` (derives the default path
+next to podcast-archiver’s `config.yaml` via
+`podcast_archiver.cli.get_default_config_path()` and
+`constants.DEFAULT_DATABASE_FILENAME`), `ARCHIVER_ALIAS` (default
+`podcast_archiver`), and `attach_podcast_archiver()` which resolves an
+alias (with `_choose_alias`) and returns an `AttachedDatabase` tuple
+including table/view listings. Use those helpers instead of inventing
+new plumbing.
+
 ## Steps
-1. Locate both database files by following the code:
-   `get_default_db_path()` in `src/retrocast/appdir.py` uses
-   `platformdirs.user_data_dir("net.memexponent.retrocast",
-   "retrocast")` and appends `retrocast.db`, so the default file lives
-   in that application data directory (e.g.,
-   `~/.local/share/net.memexponent.retrocast/retrocast.db` on
-   Linux). The `podcast_archiver` CLI (in
-   `.venv/.../podcast_archiver/cli.py`) defaults `--config` to
-   `click.get_app_dir("podcast-archiver") / "config.yaml"`, and
-   `Settings.database` is described as falling back to
-   `constants.DEFAULT_DATABASE_FILENAME` (`podcast-archiver.db`) in
-   the same directory, meaning the secondary DB path is typically
-   `~/.config/podcast-archiver/podcast-archiver.db`. Record those
-   absolute paths before constructing the `ATTACH DATABASE` call so
-   the alias references are unambiguous.
-2. Inspect `retrocast`’s current schema (`.tables`, `SELECT name FROM
-   sqlite_master`) to list tables/views already defined; use that list
-   to ensure the chosen alias for the attachment (e.g., `archiver`,
-   `podcast_archive`) does not conflict with existing namespace names.
-3. Attach the secondary database using the safe alias (`ATTACH
-   DATABASE '<absolute-path>' AS <alias>;`) and document that alias
-   for every future cross-database reference.
-4. Discover all tables/views in `podcast-archiver` by running `SELECT
-   type, name FROM <alias>.sqlite_master WHERE type IN
-   ('table','view');` and note any special objects (e.g., virtual
-   tables, indexes) that will need explicit qualification.
-5. For each discovered table/view, plan how downstream SQL will
-   reference it with the alias (e.g., `SELECT * FROM <alias>.feeds;`),
-   and if necessary, define short helper views in the main schema to
-   surface them without conflict while keeping the alias as part of
-   their definition.
-6. Verify the attachment succeeded (`PRAGMA database_list;`, sample
-   query such as `SELECT name FROM <alias>.sqlite_master LIMIT 1;`)
-   before running subsequent queries that rely on the mounted data.
-7. Record the cleanup step (`DETACH DATABASE <alias>;`) to run when
-   the session is complete or if the alias needs to be reclaimed.
+1. Resolve candidate podcast-archiver database locations: the download
+   wrapper seeds `episodes.db` within the retrocast app dir, while
+   `get_podcast_archiver_db_path()` builds a default path beside
+   podcast-archiver’s config (`DEFAULT_DATABASE_FILENAME`). Check both
+   paths, decide precedence (prefer the retrocast-managed file if it
+   exists), and record absolute paths.
+2. Align with the helper’s alias strategy: `ARCHIVER_ALIAS` defaults to
+   `podcast_archiver` and `_choose_alias()` appends numeric suffixes if
+   already attached. Inspect `PRAGMA database_list` to document current
+   aliases and the one chosen for this attachment.
+3. Attach via `attach_podcast_archiver(conn)` (or `attach_all` when
+   passing explicit alias/path pairs) so alias selection and
+   table/view enumeration happen together; define how missing/unreadable
+   DBs should be reported.
+4. Use the returned `AttachedDatabase.tables` and `.views` to list
+   available objects, compare with the base schema to spot naming
+   collisions, and decide whether alias-only access suffices or helper
+   views are needed.
+5. Lay out verification and cleanup steps: `PRAGMA database_list` plus
+   a lightweight `select name from [{alias}].sqlite_master` after
+   attach, and `detach database [{alias}]` when done; confirm the
+   procedure is safe to re-run if no DB is found.
+6. Outline tests and reporting: plan tests for path discovery
+   precedence, alias-collision handling, and table/view enumeration,
+   and note what outcomes to capture in the implementation report.
 
 ## Checklist
-- [ ] Confirm absolute paths for `retrocast.db` and
-      `podcast-archiver.db` via `appdir.get_default_db_path()` and the
-      podcast-archiver defaults.
-- [ ] Inspect the `retrocast` schema to choose a non-conflicting alias
-      namespace.
-- [ ] Plan the `ATTACH DATABASE` command with resolved paths and a
-      documented alias.
-- [ ] Enumerate every table/view inside `podcast-archiver`, noting any
-      objects requiring special handling.
-- [ ] Map how each attached table/view will be referenced (qualified
-      SQL or helper views) without overlapping existing names.
-- [ ] Specify verification (`PRAGMA database_list;`, alias-scoped
-      `sqlite_master` checks) and cleanup (`DETACH`) steps for the
-      session.
-- [ ] Generate tests to confirm the functionality generated
+- [ ] Confirm absolute paths for both retrocast-managed (`appdir`
+      `episodes.db`) and podcast-archiver default DB locations, noting
+      which will be preferred.
+- [ ] Document the alias selection approach (default
+      `ARCHIVER_ALIAS`/`_choose_alias`) and current attached aliases.
+- [ ] Define the attach flow using `attach_podcast_archiver` (or
+      `attach_all`) including behavior when the DB is missing.
+- [ ] Enumerate attached tables/views via the helper and map how to
+      reference them alongside the base schema.
+- [ ] Specify verification (`PRAGMA database_list`, alias-scoped
+      `sqlite_master`) and cleanup (`DETACH`) steps.
+- [ ] Outline tests covering path discovery precedence, alias-collision
+      handling, and table/view enumeration.
 - [ ] Append an implementation report to this plan
 
 ## Coverage Notes

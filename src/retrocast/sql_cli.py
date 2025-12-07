@@ -6,6 +6,10 @@ automatically defaulting to the scrobbledb database in the XDG data directory.
 """
 
 import re
+import sqlite3
+from contextlib import contextmanager
+from pathlib import Path
+from typing import Sequence
 
 import click
 
@@ -19,6 +23,8 @@ from sqlite_utils.cli import schema as sqlite_schema
 from sqlite_utils.cli import search as sqlite_search
 from sqlite_utils.cli import tables as sqlite_tables
 from sqlite_utils.cli import views as sqlite_views
+
+from .podcast_archiver_attach import attach_all, attach_podcast_archiver
 
 
 def _is_safe_order_clause(order_clause):
@@ -94,6 +100,28 @@ def _is_safe_order_clause(order_clause):
             return False
 
     return True
+
+
+@contextmanager
+def _open_with_podcast_archiver(
+    database_path: str | Path, *, attachments: Sequence[tuple[str, str | Path]] = ()
+):
+    """Return a connection to the main database with podcast-archiver attached."""
+
+    conn = sqlite3.connect(database_path)
+    try:
+        if attachments:
+            attach_all(conn, tuple((alias, Path(path)) for alias, path in attachments))
+        attach_podcast_archiver(conn)
+        yield conn
+    finally:
+        conn.close()
+
+
+def _quote_qualified_identifier(identifier: str) -> str:
+    """Quote dotted identifiers like alias.table or column names."""
+
+    return ".".join(f"[{part}]" for part in identifier.split("."))
 
 
 class SqlGroup(click.Group):
@@ -242,7 +270,9 @@ def query(ctx, sql_query, **kwargs):
         scrobbledb sql query "SELECT * FROM tracks WHERE artist_id = :id LIMIT 10" -p id 123
     """
     path = ctx.obj["database"]
-    ctx.invoke(sqlite_query, path=path, sql=sql_query, **kwargs)
+    user_attachments = kwargs.pop("attach", ())
+    with _open_with_podcast_archiver(path, attachments=user_attachments) as conn:
+        ctx.invoke(sqlite_query, path=conn, sql=sql_query, attach=(), **kwargs)
 
 
 @sql.command()
@@ -384,7 +414,8 @@ def schema(ctx, tables, **kwargs):
         scrobbledb sql schema tracks plays
     """
     path = ctx.obj["database"]
-    ctx.invoke(sqlite_schema, path=path, tables=tables, **kwargs)
+    with _open_with_podcast_archiver(path) as conn:
+        ctx.invoke(sqlite_schema, path=conn, tables=tables, **kwargs)
 
 
 @sql.command()
@@ -471,13 +502,12 @@ def rows(
     # Build the SQL query with proper identifier quoting using square brackets
     # (SQLite standard for identifiers with special characters/spaces)
     if column:
-        # Quote each column name using square brackets to handle special characters
-        columns = ", ".join("[{}]".format(c) for c in column)
+        columns = ", ".join(_quote_qualified_identifier(c) for c in column)
     else:
         columns = "*"
 
     # Quote table name using square brackets
-    sql = "select {} from [{}]".format(columns, table_name)
+    sql = "select {} from {}".format(columns, _quote_qualified_identifier(table_name))
 
     # WHERE clause - kept as-is for flexibility, but user should use --param for untrusted data
     if where:
@@ -499,25 +529,26 @@ def rows(
         sql += " offset {}".format(offset)
 
     # Call query directly with ALL parameters explicitly set
-    ctx.invoke(
-        sqlite_query,
-        path=path,
-        sql=sql,
-        attach=(),
-        nl=nl,
-        arrays=arrays,
-        csv=csv,
-        tsv=tsv,
-        no_headers=no_headers,
-        table=table,
-        fmt=fmt,
-        json_cols=json_cols,
-        raw=False,
-        raw_lines=False,
-        param=param,
-        load_extension=load_extension,
-        functions=None,
-    )
+    with _open_with_podcast_archiver(path) as conn:
+        ctx.invoke(
+            sqlite_query,
+            path=conn,
+            sql=sql,
+            attach=(),
+            nl=nl,
+            arrays=arrays,
+            csv=csv,
+            tsv=tsv,
+            no_headers=no_headers,
+            table=table,
+            fmt=fmt,
+            json_cols=json_cols,
+            raw=False,
+            raw_lines=False,
+            param=param,
+            load_extension=load_extension,
+            functions=None,
+        )
 
 
 @sql.command()
@@ -590,25 +621,26 @@ def indexes(
         sql += " and xinfo.key = 1"
 
     # Call query directly with ALL parameters explicitly set
-    ctx.invoke(
-        sqlite_query,
-        path=path,
-        sql=sql,
-        attach=(),
-        nl=nl,
-        arrays=arrays,
-        csv=csv,
-        tsv=tsv,
-        no_headers=no_headers,
-        table=table,
-        fmt=fmt,
-        json_cols=json_cols,
-        raw=False,
-        raw_lines=False,
-        param=(),
-        load_extension=load_extension,
-        functions=None,
-    )
+    with _open_with_podcast_archiver(path) as conn:
+        ctx.invoke(
+            sqlite_query,
+            path=conn,
+            sql=sql,
+            attach=(),
+            nl=nl,
+            arrays=arrays,
+            csv=csv,
+            tsv=tsv,
+            no_headers=no_headers,
+            table=table,
+            fmt=fmt,
+            json_cols=json_cols,
+            raw=False,
+            raw_lines=False,
+            param=(),
+            load_extension=load_extension,
+            functions=None,
+        )
 
 
 @sql.command()
@@ -675,25 +707,26 @@ def triggers(ctx, tables, nl, arrays, csv, tsv, no_headers, table, fmt, json_col
     sql += " order by name"
 
     # Call query directly with ALL parameters explicitly set
-    ctx.invoke(
-        sqlite_query,
-        path=path,
-        sql=sql,
-        attach=(),
-        nl=nl,
-        arrays=arrays,
-        csv=csv,
-        tsv=tsv,
-        no_headers=no_headers,
-        table=table,
-        fmt=fmt,
-        json_cols=json_cols,
-        raw=False,
-        raw_lines=False,
-        param=(),
-        load_extension=load_extension,
-        functions=None,
-    )
+    with _open_with_podcast_archiver(path) as conn:
+        ctx.invoke(
+            sqlite_query,
+            path=conn,
+            sql=sql,
+            attach=(),
+            nl=nl,
+            arrays=arrays,
+            csv=csv,
+            tsv=tsv,
+            no_headers=no_headers,
+            table=table,
+            fmt=fmt,
+            json_cols=json_cols,
+            raw=False,
+            raw_lines=False,
+            param=(),
+            load_extension=load_extension,
+            functions=None,
+        )
 
 
 @sql.command()
@@ -756,7 +789,8 @@ def search(ctx, dbtable, q, column, **kwargs):
         scrobbledb sql search tracks "rolling stones" --limit 10
     """
     path = ctx.obj["database"]
-    ctx.invoke(sqlite_search, path=path, dbtable=dbtable, q=q, column=column, **kwargs)
+    with _open_with_podcast_archiver(path) as conn:
+        ctx.invoke(sqlite_search, path=conn, dbtable=dbtable, q=q, column=column, **kwargs)
 
 
 @sql.command()
@@ -825,7 +859,8 @@ def analyze_tables(ctx, tables, column, **kwargs):
         scrobbledb sql analyze-tables tracks -c artist_name
     """
     path = ctx.obj["database"]
-    ctx.invoke(sqlite_analyze_tables, path=path, tables=tables, column=column, **kwargs)
+    with _open_with_podcast_archiver(path) as conn:
+        ctx.invoke(sqlite_analyze_tables, path=conn, tables=tables, column=column, **kwargs)
 
 
 @sql.command()
