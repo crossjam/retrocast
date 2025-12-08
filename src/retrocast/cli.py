@@ -244,7 +244,11 @@ class LocationOutput(enum.Enum):
 
 @config.command()
 @click.option(
-    "-f", "--format", "output_format", type=click.Choice(LocationOutput, case_sensitive=False)
+    "-f",
+    "--format",
+    "output_format",
+    type=click.Choice(LocationOutput, case_sensitive=False),
+    default=LocationOutput.CONSOLE,
 )
 @click.pass_context
 def location(ctx: click.Context, output_format) -> None:
