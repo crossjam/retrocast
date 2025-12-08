@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+import enum
+import json
 import sys
 import tarfile
 from contextlib import nullcontext
@@ -233,6 +235,83 @@ def archive(
 
     if output_path is not None:
         console.print(f"[green]Archive written to {output_path}[/green]")
+
+
+class LocationOutput(enum.Enum):
+    CONSOLE = enum.auto()
+    JSON = enum.auto()
+
+
+@config.command()
+@click.option(
+    "-f", "--format", "output_format", type=click.Choice(LocationOutput, case_sensitive=False)
+)
+@click.pass_context
+def location(ctx: click.Context, output_format) -> None:
+    """Output the location of the configuration directory"""
+
+    console = Console()
+    app_dir = get_app_dir(create=False)
+    auth_path = get_auth_path(create=False)
+    db_path = get_default_db_path(create=False)
+
+    app_exists = app_dir.exists()
+    auth_exists = auth_path.exists() if app_exists else False
+    db_exists = db_path.exists() if app_exists else False
+
+    if output_format == LocationOutput.JSON:
+        res = {
+            "app_dir": str(app_dir),
+            "auth_path": str(auth_path),
+            "db_path": str(db_path),
+        }
+
+        json.dump(res, fp=sys.stdout)
+        ctx.exit(0)
+
+    table = Table(
+        title="retrocast Configuration Locations",
+        show_header=True,
+        header_style="bold cyan",
+    )
+
+    table.add_column("Component", style="bold")
+    table.add_column("Path", style="dim")
+    table.add_column("Status", justify="center")
+
+    table.add_row(
+        "App Directory",
+        str(app_dir),
+        "[green]✓ Found[/green]" if app_exists else "[red]✗ Missing[/red]",
+        "" if app_exists else "Run: retrocast config initialize",
+    )
+
+    if app_exists:
+        table.add_row(
+            "Auth File",
+            str(auth_path),
+            "[green]✓ Found[/green]" if auth_exists else "[yellow]⚠ Missing[/yellow]",
+            "retrocast sync overcast auth" if not auth_exists else "",
+        )
+        table.add_row(
+            "Database",
+            str(db_path),
+            "[green]✓ Found[/green]" if db_exists else "[yellow]⚠ Missing[/yellow]",
+            "retrocast sync overcast save" if not db_exists else "",
+        )
+    else:
+        table.add_row("Auth File", str(auth_path), "[dim]n/a[/dim]", "Initialize app directory")
+        table.add_row("Database", str(db_path), "[dim]n/a[/dim]", "Initialize app directory")
+
+    console.print()
+    console.print(table)
+    console.print()
+
+    if app_exists and auth_exists and db_exists:
+        console.print("[bold green]✓ Configuration ready[/bold green]")
+        ctx.exit(0)
+    console.print("[yellow]Setup incomplete; see suggested actions above.[/yellow]")
+    ctx.exit(1)
 
 
 @cli.group()
