@@ -27,27 +27,44 @@ Save listening history and feed/episode info from Overcast to a SQLite database.
 - [Extending and saving full feeds](#extending-and-saving-full-feeds)
 - [Downloading transcripts](#downloading-transcripts)
 
+## Quick run
+    
+	# Install uv -- https://docs.astral.sh/uv/
+    $ uvx git+https://github.com/crossjam/retrocast --help
+
 ## How to install
 
-    $ pip install git+https://github.com/crossjam/retrocast
+    $ pipx install git+https://github.com/crossjam/retrocast
+	# or
+	$ uv tool install git+https://github.com/crossjam/retrocast
 
 Or to upgrade:
 
     $ pip install --upgrade git+https://github.com/crossjam/retrocast
+	# or
+	$ uv tool upgrade git+https://github.com/crossjam/retrocast
 
 ## Authentication
 
 Run this command to login to Overcast (note: neither your password nor email are saved, only the auth cookie):
 
-    $ retrocast auth
+    $ retrocast sync overcast auth
 
-This will create a file called `auth.json` in your current directory containing the required value. To save the file at a different path or filename, use the `--auth=myauth.json` option.
+This will create a file called `auth.json` in an XDG conformant
+platform user directory containing the required value. To save the
+file at a different path or filename, use the `--auth=myauth.json`
+option.
 
-If you do not wish to save this information you can manually download the "All data" file [from the Overcast account page](https://overcast.fm/account) and pass it into the save command as described below.
+If you do not wish to save this information you can manually download
+the "All data" file [from the Overcast account
+page](https://overcast.fm/account) and pass it into the save command
+as described below. 
 
 ## Fetching and saving updates
 
-The `save` command retrieves all Overcast info and stores playlists, podcast feeds, and episodes in their respective tables with a primary key `overcastId`. 
+The `save` command retrieves all Overcast info and stores playlists,
+podcast feeds, and episodes in their respective tables with a primary
+key `overcastId`.
 
     $ retrocast save
 
@@ -79,13 +96,31 @@ It also supports the `-v` flag to print additional information.
 
 There are a few caveats for this functionality:
 
-1. The first time this is invoked will require downloading and parsing an XML file for each feed you are subscribed to. (Subsequent invocations only require  this for new episodes loaded by `save`) Because this command may take a long time to run if you have many feeds, it is recommended to use the `-v` flag to observe progress.
-2. This will increase the size of your database by approximately 2 MB per feed, so may result in a large file if you subscribe to many feeds.
-3. Certain feeds may not load due to e.g. authentication, rate limiting, or other issues. These will be logged to the console and the feed will be skipped. Likewise, an episode may appear in your episodes table but not in the extended information if it is no longer available.
-4. The `_extended` tables use URLs as their primary key. This may potentially lead to unjoinable / orphaned episodes if the enclosure URL (i.e. URL of the audio file) has changed since Overcast stored it.
-5. There is no guarantee of which columns will be present in these tables aside from URL, title, and description. This command attempts to capture and normalize all XML tags contained in the feed so it is likely that many columns will be created and only a few rows will have values for uncommon tags/attributes.
+1. The first time this is invoked will require downloading and parsing
+   an XML file for each feed you are subscribed to. (Subsequent
+   invocations only require this for new episodes loaded by `save`)
+   Because this command may take a long time to run if you have many
+   feeds, it is recommended to use the `-v` flag to observe progress.
+2. This will increase the size of your database by approximately 2 MB
+   per feed, so may result in a large file if you subscribe to many
+   feeds.
+3. Certain feeds may not load due to e.g. authentication, rate
+   limiting, or other issues. These will be logged to the console and
+   the feed will be skipped. Likewise, an episode may appear in your
+   episodes table but not in the extended information if it is no
+   longer available.
+4. The `_extended` tables use URLs as their primary key. This may
+   potentially lead to unjoinable / orphaned episodes if the enclosure
+   URL (i.e. URL of the audio file) has changed since Overcast stored
+   it.
+5. There is no guarantee of which columns will be present in these
+   tables aside from URL, title, and description. This command
+   attempts to capture and normalize all XML tags contained in the
+   feed so it is likely that many columns will be created and only a
+   few rows will have values for uncommon tags/attributes.
 
-Any suggestions for improving on these caveats are welcome, please [open an issue](https://github.com/crossjam/retrocast/issues)!
+Any suggestions for improving on these caveats are welcome, please
+[open an issue](https://github.com/crossjam/retrocast/issues)!
 
 ## Downloading transcripts
 
@@ -114,22 +149,30 @@ There is also a `-s` flag to only download transcripts for starred episodes.
 
 ## Development
 
-Pull requests are very welcome! For major changes, please open an issue first to discuss what you would like to change.
+**Full disclosure, this project is primarily "auditionware".** The
+main goal is to provide something for potential external collaborators
+or employers to view and review. Yup, it’s a bit about me showing
+off. If you have strong opinions feel free to fork this sucker and
+take it where your heart desires.
+
+However, pull requests are welcome, at least as criticism, feedback,
+and inspiration! There might be a lag on responding or acceptance
+though. For major changes, please open an issue first to discuss what
+you would like to change.
 
 ### Setup
 
 ```bash
-git clone git@github.com:crossjam/retrocast.git
+git clone https://github.com/crossjam/retrocast.git
 cd retrocast
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-python -m retrocast.cli all -v
+uv sync
+uv run retrocast all -v
 ```
 
 ### Code Formatting
 
-This project is linted with [ruff](https://docs.astral.sh/ruff/) and uses [Black](https://github.com/ambv/black) code formatting.
+This project is linted with [ruff](https://docs.astral.sh/ruff/) and
+uses [Black](https://github.com/ambv/black) code formatting. 
 
 ## Authors
 

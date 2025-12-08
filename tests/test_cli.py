@@ -2,20 +2,10 @@ import builtins
 import importlib.util
 import shutil
 import sys
-import tempfile
 import types
 from pathlib import Path
 
-try:
-    import platformdirs  # type: ignore
-except ModuleNotFoundError:  # pragma: no cover - fallback for test envs without dependency
-    platformdirs = types.ModuleType("platformdirs")
-
-    def _user_data_dir(app_name: str, app_author: str) -> str:  # noqa: ARG001 - signature per library
-        return str(Path(tempfile.gettempdir()) / "retrocast-tests")
-
-    platformdirs.user_data_dir = _user_data_dir  # type: ignore[attr-defined]
-    sys.modules["platformdirs"] = platformdirs
+import platformdirs
 
 if importlib.util.find_spec("rich.console") is None:
     rich_module = types.ModuleType("rich")
@@ -80,14 +70,14 @@ def test_config_check_reports_missing_without_creating(monkeypatch, tmp_path: Pa
     result = runner.invoke(cli, ["config", "check"])
 
     assert result.exit_code == 1
-    assert "Retrocast Configuration" in result.output
+    assert "retrocast configuration" in result.output.lower()
     assert not app_dir.exists()
 
 
-def test_retrieve_group_exposes_overcast_transcripts_help() -> None:
+def test_meta_group_exposes_overcast_transcripts_help() -> None:
     runner = CliRunner()
 
-    result = runner.invoke(cli, ["retrieve", "overcast", "transcripts", "--help"])
+    result = runner.invoke(cli, ["meta", "overcast", "transcripts", "--help"])
 
     assert result.exit_code == 0
     assert "Download available transcripts" in result.output

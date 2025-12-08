@@ -7,6 +7,8 @@ from rich.console import Console
 
 console = Console()
 
+RETROCAST_APP_NAME = "net.memexponent.retrocast"
+
 
 def get_app_dir(*, create: bool = False) -> Path:
     """Get the application directory for retrocast.
@@ -18,7 +20,7 @@ def get_app_dir(*, create: bool = False) -> Path:
         Path: The application directory path
     """
 
-    app_dir = Path(platformdirs.user_data_dir("net.memexponent.retrocast", "retrocast"))
+    app_dir = Path(platformdirs.user_data_dir(RETROCAST_APP_NAME, "retrocast"))
     if create and not app_dir.exists():
         console.print(f"[bold green]Creating application directory:[/] [blue]{app_dir}[/]")
         app_dir.mkdir(parents=True, exist_ok=True)

@@ -7,7 +7,11 @@ from pathlib import Path
 from typing import BinaryIO, ContextManager, cast
 
 import click
+import rich_click
+from click.core import ParameterSource
 from click_default_group import DefaultGroup
+from loguru import logger
+from podcast_archiver.cli import main as podcast_archiver_command
 from rich.console import Console
 from rich.markdown import Markdown
 from rich.table import Table
@@ -19,9 +23,11 @@ from retrocast.appdir import (
     get_auth_path,
     get_default_db_path,
 )
-from retrocast.crawl_commands import crawl
+from retrocast.download_commands import download
 from retrocast.logging_config import setup_logging
 from retrocast.overcast import chapters, overcast, transcripts
+
+from . import sql_cli
 
 
 @click.group(cls=DefaultGroup, default="about", default_if_no_args=True)
@@ -43,13 +49,13 @@ def cli(ctx: click.Context, verbose: bool) -> None:
 
 @cli.command()
 def about() -> None:
-    """Show information about Retrocast."""
+    """Display information about retrocast"""
     console = Console()
 
     try:
         about_text = load_about_markdown()
     except (FileNotFoundError, OSError):
-        console.print("[bold red]Unable to load Retrocast about information.[/bold red]")
+        console.print("[bold red]Unable to load retrocast about information.[/bold red]")
         return
 
     console.print(Markdown(about_text))
@@ -58,13 +64,13 @@ def about() -> None:
 @cli.group()
 @click.pass_context
 def config(ctx: click.Context) -> None:
-    """Manage the Retrocast configuration directory."""
+    """Manage the retrocast configuration data"""
 
 
 @config.command()
 @click.pass_context
 def check(ctx: click.Context) -> None:
-    """Report configuration status without making changes."""
+    """Report configuration status without making changes"""
 
     console = Console()
     app_dir = get_app_dir(create=False)
@@ -76,7 +82,7 @@ def check(ctx: click.Context) -> None:
     db_exists = db_path.exists() if app_exists else False
 
     table = Table(
-        title="Retrocast Configuration",
+        title="retrocast Configuration",
         show_header=True,
         header_style="bold cyan",
     )
@@ -129,7 +135,7 @@ def check(ctx: click.Context) -> None:
 )
 @click.pass_context
 def config_initialize(ctx: click.Context, yes: bool) -> None:
-    """Create the Retrocast configuration directory."""
+    """Create the retrocast configuration directory"""
 
     console = Console()
     app_dir = get_app_dir(create=False)
@@ -151,7 +157,7 @@ def config_initialize(ctx: click.Context, yes: bool) -> None:
     )
 
     console.print()
-    console.print("[bold cyan]Retrocast Initialization[/bold cyan]")
+    console.print("[bold cyan]retrocast Initialization[/bold cyan]")
     console.print()
 
     table = Table(show_header=False, box=None, padding=(0, 2))
@@ -166,7 +172,7 @@ def config_initialize(ctx: click.Context, yes: bool) -> None:
     console.print("[dim]Next steps:[/dim]")
     console.print("  1. Authenticate: [cyan]retrocast sync overcast auth[/cyan]")
     console.print("  2. Sync data:    [cyan]retrocast sync overcast save[/cyan]")
-    console.print("  3. Download:     [cyan]retrocast retrieve overcast transcripts[/cyan]")
+    console.print("  3. Download:     [cyan]retrocast meta overcast transcripts[/cyan]")
     console.print()
 
 
@@ -194,7 +200,7 @@ def archive(
     compression_level: int,
     force: bool,
 ) -> None:
-    """Archive the configuration directory as a gzipped tarball."""
+    """Archive the configuration directory as a gzipped tarball"""
 
     console = Console(stderr=True)
     app_dir = get_app_dir(create=False)
@@ -232,29 +238,100 @@ def archive(
 @cli.group()
 @click.pass_context
 def sync(ctx: click.Context) -> None:
-    """Metadata synchronization commands."""
+    """Synchronize subscription metadata"""
     pass
 
 
 @cli.group()
 @click.pass_context
-def retrieve(ctx: click.Context) -> None:
-    """Media download commands."""
+def meta(ctx: click.Context) -> None:
+    """Download episode metadata and derived information"""
     pass
+
+
+def _attach_podcast_archiver_passthroughs(main_group: DefaultGroup) -> None:
+    download_command = main_group.commands.get("download")
+
+    if not download_command:
+        logger.warning("Could not find 'download' subcommand for podcast_archiver passthrough")
+        return
+
+    # Type assertion: self_command is a Group (has commands and add_command)
+    download_command = cast("click.Group", download_command)
+
+    wrapped_context_settings = podcast_archiver_command.context_settings
+    wrapped_context_settings["ignore_unknown_options"] = True
+    wrapped_context_settings["allow_extra_args"] = True
+    logger.debug(f"Wrapped context settings: {wrapped_context_settings}")
+
+    @download_command.command(
+        name="podcast-archiver",
+        help=podcast_archiver_command.help,
+        context_settings=wrapped_context_settings,
+    )
+    @rich_click.pass_context
+    def archiver_wrapped(ctx: rich_click.RichContext, **kwargs):
+        app_dir = get_app_dir()
+        config_file = (app_dir / "podcast_archiver.yaml") if app_dir else None
+        database_path = (app_dir / "episodes.db") if app_dir else None
+        download_path = (app_dir / "episode_downloads") if app_dir else None
+
+        logger.debug(
+            f"Attached app dir, config file, db: {app_dir}, {config_file}, {database_path}"
+        )
+
+        if not ctx.params.get("database"):
+            logger.info(f"Using app dir database parameter: {str(database_path)}")
+            ctx.params["database"] = database_path
+
+        param_source = ctx.get_parameter_source("archive_directory")
+        logger.info(
+            f"archive directory option source, defaulted: {param_source}"
+            f", {param_source in (ParameterSource.DEFAULT, ParameterSource.DEFAULT_MAP)}"
+        )
+
+        if not ctx.params.get("archive_directory") or (
+            param_source in (ParameterSource.DEFAULT, ParameterSource.DEFAULT_MAP)
+        ):
+            logger.info(f"Using app dir download dir parameter: {str(download_path)}")
+            ctx.params["dir"] = download_path
+            ctx.params["archive_directory"] = download_path
+
+        logger.debug(f"ctx.args: {ctx.args}")
+        logger.debug(f"ctx.params: {ctx.params}")
+
+        if not ctx.params["archive_directory"].exists():
+            logger.info(f"Ensuring download dir exists: {ctx.params['archive_directory']}\n")
+            ctx.params["archive_directory"].mkdir(exist_ok=True)
+        else:
+            logger.info(f"Download dir exists: {ctx.params['archive_directory']}")
+
+        for k, v in ctx.params.items():
+            logger.debug(f"Param {k} | {type(v)}: {v}")
+
+        # ctx.invoke(podcast_archiver_command.main)
+        ctx.forward(podcast_archiver_command)
+
+    archiver_wrapped.params = podcast_archiver_command.params.copy()
+    logger.debug(f"Attached llm command: {archiver_wrapped}")
 
 
 # Register overcast commands
 sync.add_command(overcast)
 
 # Register retrieval aliases
-overcast_retrieve = click.Group("overcast", help="Overcast media retrieval commands.")
-overcast_retrieve.add_command(transcripts)
-overcast_retrieve.add_command(chapters)
-retrieve.add_command(overcast_retrieve)
+overcast_meta = click.Group(
+    "overcast", help="Retrieve episode metadata and information via overcast plugin"
+)
+overcast_meta.add_command(transcripts)
+overcast_meta.add_command(chapters)
+meta.add_command(overcast_meta)
 
-# Register crawl commands
-cli.add_command(crawl)
+# Register download commands
+cli.add_command(download)
+cli.add_command(sql_cli.sql)
 
+_attach_podcast_archiver_passthroughs(cli)
 
 if __name__ == "__main__":
     cli()
