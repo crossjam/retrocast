@@ -1,5 +1,6 @@
 import builtins
 import importlib.util
+import json
 import shutil
 import sys
 import types
@@ -72,6 +73,51 @@ def test_config_check_reports_missing_without_creating(monkeypatch, tmp_path: Pa
     assert result.exit_code == 1
     assert "retrocast configuration" in result.output.lower()
     assert not app_dir.exists()
+
+
+def test_config_location_json(monkeypatch, tmp_path: Path) -> None:
+    app_dir = tmp_path / "retrocast-tests"
+    monkeypatch.setattr(platformdirs, "user_data_dir", lambda *_, **__: str(app_dir))
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["config", "location", "--format", "json"])
+
+    assert result.exit_code == 0, result.output
+    assert json.loads(result.stdout) == {
+        "app_dir": str(app_dir),
+        "auth_path": str(app_dir / "auth.json"),
+        "db_path": str(app_dir / "retrocast.db"),
+    }
+
+
+def test_config_location_missing(monkeypatch, tmp_path: Path) -> None:
+    app_dir = tmp_path / "retrocast-tests"
+    monkeypatch.setattr(platformdirs, "user_data_dir", lambda *_, **__: str(app_dir))
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["config", "location"])
+
+    assert result.exit_code == 1
+    assert "configuration locations" in result.output.lower()
+    assert "missing" in result.output.lower()
+    assert not app_dir.exists()
+
+
+def test_config_location_ready(monkeypatch, tmp_path: Path) -> None:
+    app_dir = tmp_path / "retrocast-tests"
+    auth_path = app_dir / "auth.json"
+    db_path = app_dir / "retrocast.db"
+    app_dir.mkdir()
+    auth_path.touch()
+    db_path.touch()
+    monkeypatch.setattr(platformdirs, "user_data_dir", lambda *_, **__: str(app_dir))
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["config", "location"])
+
+    assert result.exit_code == 0, result.output
+    assert "configuration ready" in result.output.lower()
+    assert "missing" not in result.output.lower()
 
 
 def test_meta_group_exposes_overcast_transcripts_help() -> None:
