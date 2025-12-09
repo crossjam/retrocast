@@ -31,7 +31,7 @@ uv run ruff format src
 uv run ty check src
 
 # Pre-commit hooks
-prek run
+pre-commit run
 ```
 
 ### Running the Application
@@ -77,7 +77,7 @@ uv run python -m retrocast.cli chapters    # Extract chapters
 ### Style
 - **Formatting**: Black formatter with 100 character line length
 - **Linting**: Ruff with Pycodestyle, Pyflakes, and import order checks
-- **Type Hints**: Use type hints throughout (checked with pytype)
+- **Type Hints**: Use type hints throughout (checked with ty/mypy)
 - **Column Naming**: 
   - camelCase for Overcast-sourced fields (e.g., `userUpdatedDate`, `overcastId`)
   - snake_case for computed/derived fields
