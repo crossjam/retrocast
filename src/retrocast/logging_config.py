@@ -97,7 +97,7 @@ def setup_logging(
         level = "DEBUG"
     else:
         level = "INFO"
-    
+
     _logger.remove()
 
     config_file = os.getenv("RETROCAST_LOG_CONFIG")
