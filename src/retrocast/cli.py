@@ -35,8 +35,9 @@ from . import sql_cli
 @click.group(cls=DefaultGroup, default="about", default_if_no_args=True)
 @click.version_option()
 @click.option("-v", "--verbose", is_flag=True, help="Enable verbose logging output.")
+@click.option("-q", "--quiet", is_flag=True, help="Enable quiet mode (ERROR level logging only).")
 @click.pass_context
-def cli(ctx: click.Context, verbose: bool) -> None:
+def cli(ctx: click.Context, verbose: bool, quiet: bool) -> None:
     """Save listening history and feed/episode info from Overcast to SQLite."""
     # Initialize context object if it doesn't exist
     ctx.ensure_object(dict)
@@ -46,7 +47,8 @@ def cli(ctx: click.Context, verbose: bool) -> None:
     log_file = app_dir / "retrocast.log"
     ctx.obj["log_file"] = log_file
     ctx.obj["verbose"] = verbose
-    setup_logging(app_dir, verbose=verbose, log_file=log_file, enable_file_logging=app_dir.exists())
+    ctx.obj["quiet"] = quiet
+    setup_logging(app_dir, verbose=verbose, quiet=quiet, log_file=log_file, enable_file_logging=app_dir.exists())
 
 
 @cli.command()
@@ -154,6 +156,7 @@ def config_initialize(ctx: click.Context, yes: bool) -> None:
     setup_logging(
         app_dir,
         verbose=ctx.obj.get("verbose", False),
+        quiet=ctx.obj.get("quiet", False),
         log_file=ctx.obj.get("log_file"),
         enable_file_logging=True,
     )

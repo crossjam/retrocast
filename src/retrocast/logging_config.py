@@ -79,6 +79,7 @@ def setup_logging(
     app_dir: Path,
     *,
     verbose: bool = False,
+    quiet: bool = False,
     log_file: Optional[Path] = None,
     enable_file_logging: bool | None = None,
 ) -> None:
@@ -89,7 +90,14 @@ def setup_logging(
     application directory.
     """
 
-    level = "DEBUG" if verbose else "INFO"
+    # Determine log level with precedence: quiet > verbose > default
+    if quiet:
+        level = "ERROR"
+    elif verbose:
+        level = "DEBUG"
+    else:
+        level = "INFO"
+    
     _logger.remove()
 
     config_file = os.getenv("RETROCAST_LOG_CONFIG")
