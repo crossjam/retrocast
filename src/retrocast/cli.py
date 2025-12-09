@@ -48,7 +48,13 @@ def cli(ctx: click.Context, verbose: bool, quiet: bool) -> None:
     ctx.obj["log_file"] = log_file
     ctx.obj["verbose"] = verbose
     ctx.obj["quiet"] = quiet
-    setup_logging(app_dir, verbose=verbose, quiet=quiet, log_file=log_file, enable_file_logging=app_dir.exists())
+    setup_logging(
+        app_dir,
+        verbose=verbose,
+        quiet=quiet,
+        log_file=log_file,
+        enable_file_logging=app_dir.exists(),
+    )
 
 
 @cli.command()
