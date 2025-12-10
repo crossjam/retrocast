@@ -22,7 +22,8 @@ if importlib.util.find_spec("rich.console") is None:
             """Pretend to print output."""
 
             kwargs.pop("highlight", None)
-            builtins.print(*args, **kwargs)
+            # type: ignore used because we're intentionally passing through kwargs
+            builtins.print(*args, **kwargs)  # type: ignore[misc]
 
     rich_console_module.Console = _Console  # type: ignore[attr-defined]
     rich_markdown_module.Markdown = lambda text: text  # type: ignore[assignment]

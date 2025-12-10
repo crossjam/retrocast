@@ -129,9 +129,7 @@ class AriaDownloader:
         proc, port = start_aria2c_ephemeral_rpc(secret=self.secret, extra_args=extra_args)
         self._proc = proc
         self._port = port
-        self._client = xmlrpc.client.ServerProxy(
-            f"http://{LOCALHOST}:{port}/rpc", allow_none=True
-        )
+        self._client = xmlrpc.client.ServerProxy(f"http://{LOCALHOST}:{port}/rpc", allow_none=True)
         self._running = True
         self._logger.debug("aria2c RPC client connected on port {}", port)
 
@@ -329,4 +327,3 @@ class AriaDownloader:
 
 
 __all__ = ["AriaDownloader"]
-

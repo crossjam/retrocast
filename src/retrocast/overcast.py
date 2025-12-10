@@ -751,7 +751,7 @@ def episodes(
         if titles_to_query:
             feed_type = "all" if not all_feeds else "all known"
             click.echo(
-                f"No feed titles specified, " f"using {feed_type} {len(titles_to_query)} feeds",
+                f"No feed titles specified, using {feed_type} {len(titles_to_query)} feeds",
                 err=True,
             )
 
@@ -827,8 +827,7 @@ def episodes(
                 json.dump(episodes_data, output_file, indent=2)
 
         click.echo(
-            f"📝Exported {len(episodes_data)} episodes to {output_path} "
-            f"as {output_format.upper()}",
+            f"📝Exported {len(episodes_data)} episodes to {output_path} as {output_format.upper()}",
         )
 
 

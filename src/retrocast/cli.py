@@ -62,7 +62,7 @@ def cli(ctx: click.Context, verbose: bool, quiet: bool) -> None:
 
     # Attach podcast archiver commands after logging is configured
     if not _podcast_archiver_attached:
-        _attach_podcast_archiver_passthroughs(ctx.command)
+        _attach_podcast_archiver_passthroughs(cast(DefaultGroup, ctx.command))
         _podcast_archiver_attached = True
 
 

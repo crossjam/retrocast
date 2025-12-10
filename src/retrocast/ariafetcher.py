@@ -162,9 +162,7 @@ def main():
     SECRET = None  # set to your --rpc-secret if used
     try:
         proc, port = start_aria2c_ephemeral_rpc(secret=SECRET)
-        LOGGER.info(
-            "aria2c XML-RPC ready at http://{}:{}/rpc (pid={})", LOCALHOST, port, proc.pid
-        )
+        LOGGER.info("aria2c XML-RPC ready at http://{}:{}/rpc (pid={})", LOCALHOST, port, proc.pid)
     except RuntimeError as e:
         LOGGER.error("Failed to start aria2c: {}", e)
         sys.exit(1)

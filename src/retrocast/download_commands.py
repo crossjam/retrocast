@@ -159,8 +159,7 @@ def _render_summary(
 
     console.print(table)
     console.print(
-        f"Completed: [green]{len(completed_list)}[/green]  "
-        f"Failed: [red]{len(failed_list)}[/red]"
+        f"Completed: [green]{len(completed_list)}[/green]  Failed: [red]{len(failed_list)}[/red]"
     )
 
 

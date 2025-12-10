@@ -536,7 +536,7 @@ class Datastore:
             f"{FEEDS_EXTENDED}.{TITLE} as feed_title",
             f"{FEEDS_EXTENDED}.'itunes:image:href' as image_",
             f"{FEEDS_EXTENDED}.link as link_",
-            f"coalesce({EPISODES_EXTENDED}.description, " "'No description') as description",
+            f"coalesce({EPISODES_EXTENDED}.description, 'No description') as description",
             f"{EPISODES_EXTENDED}.pubDate as pubDate",
             f"{EPISODES_EXTENDED}.'itunes:image:href' as 'images.'",
             f"{EPISODES_EXTENDED}.link as 'links.'",
