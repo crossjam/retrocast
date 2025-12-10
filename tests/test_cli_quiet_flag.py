@@ -84,14 +84,14 @@ def test_subcommand_respects_quiet(monkeypatch, tmp_path: Path) -> None:
 
     # Mock setup_logging to capture calls
     mock_setup_logging = MagicMock()
-    
+
     with patch("retrocast.cli.setup_logging", mock_setup_logging):
         with patch("retrocast.download_commands.setup_logging", mock_setup_logging):
             runner = CliRunner()
             # Test with the download aria command (which has its own -v flag)
             # We'll just test that it accepts the command structure
             result = runner.invoke(cli, ["-q", "download", "aria", "--help"])
-            
+
             # The command should run successfully
             assert result.exit_code == 0
             # Verify the initial setup_logging was called with quiet=True
@@ -102,19 +102,19 @@ def test_subcommand_respects_quiet(monkeypatch, tmp_path: Path) -> None:
 def test_quiet_flag_in_logging_config(monkeypatch, tmp_path: Path) -> None:
     """Test that the logging_config.setup_logging function honors the quiet flag."""
     from retrocast.logging_config import setup_logging
-    
+
     app_dir = tmp_path / "test-app"
     app_dir.mkdir()
-    
+
     # Mock the logger to capture configuration
     with patch("retrocast.logging_config._logger") as mock_logger:
         with patch("retrocast.logging_config.LoguruConfig") as mock_config:
             # Test with quiet=True
             setup_logging(app_dir, quiet=True, verbose=False)
-            
+
             # Verify remove was called
             mock_logger.remove.assert_called()
-            
+
             # Verify LoguruConfig.load was called with ERROR level
             load_call_args = mock_config.load.call_args
             if load_call_args:
@@ -126,19 +126,19 @@ def test_quiet_flag_in_logging_config(monkeypatch, tmp_path: Path) -> None:
 def test_verbose_without_quiet(monkeypatch, tmp_path: Path) -> None:
     """Test that verbose flag works when quiet is not set."""
     from retrocast.logging_config import setup_logging
-    
+
     app_dir = tmp_path / "test-app"
     app_dir.mkdir()
-    
+
     # Mock the logger to capture configuration
     with patch("retrocast.logging_config._logger") as mock_logger:
         with patch("retrocast.logging_config.LoguruConfig") as mock_config:
             # Test with verbose=True, quiet=False
             setup_logging(app_dir, verbose=True, quiet=False)
-            
+
             # Verify remove was called
             mock_logger.remove.assert_called()
-            
+
             # Verify LoguruConfig.load was called with DEBUG level
             load_call_args = mock_config.load.call_args
             if load_call_args:
@@ -150,19 +150,19 @@ def test_verbose_without_quiet(monkeypatch, tmp_path: Path) -> None:
 def test_default_logging_level(monkeypatch, tmp_path: Path) -> None:
     """Test that default logging level is INFO when neither quiet nor verbose is set."""
     from retrocast.logging_config import setup_logging
-    
+
     app_dir = tmp_path / "test-app"
     app_dir.mkdir()
-    
+
     # Mock the logger to capture configuration
     with patch("retrocast.logging_config._logger") as mock_logger:
         with patch("retrocast.logging_config.LoguruConfig") as mock_config:
             # Test with default settings
             setup_logging(app_dir, verbose=False, quiet=False)
-            
+
             # Verify remove was called
             mock_logger.remove.assert_called()
-            
+
             # Verify LoguruConfig.load was called with INFO level
             load_call_args = mock_config.load.call_args
             if load_call_args:
