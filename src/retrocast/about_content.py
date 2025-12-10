@@ -32,4 +32,3 @@ def load_about_markdown() -> str:
 
 
 __all__ = ["load_about_markdown"]
-

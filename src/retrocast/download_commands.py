@@ -82,10 +82,11 @@ def aria(
 
     ctx.ensure_object(dict)
     base_verbose = ctx.obj.get("verbose", False)
+    base_quiet = ctx.obj.get("quiet", False)
     log_file = ctx.obj.get("log_file")
     app_dir = ctx.obj.get("app_dir", Path.cwd())
     if verbose and not base_verbose:
-        setup_logging(app_dir, log_file=log_file)
+        setup_logging(app_dir, verbose=True, quiet=base_quiet, log_file=log_file)
         ctx.obj["verbose"] = True
 
     logger = get_logger("retrocast.download.aria")
@@ -158,8 +159,7 @@ def _render_summary(
 
     console.print(table)
     console.print(
-        f"Completed: [green]{len(completed_list)}[/green]  "
-        f"Failed: [red]{len(failed_list)}[/red]"
+        f"Completed: [green]{len(completed_list)}[/green]  Failed: [red]{len(failed_list)}[/red]"
     )
 
 
