@@ -31,7 +31,6 @@ from retrocast.overcast import chapters, overcast, transcripts
 
 from . import sql_cli
 
-
 _podcast_archiver_attached = False
 
 
