@@ -32,6 +32,9 @@ from retrocast.overcast import chapters, overcast, transcripts
 from . import sql_cli
 
 
+_podcast_archiver_attached = False
+
+
 @click.group(cls=DefaultGroup, default="about", default_if_no_args=True)
 @click.version_option()
 @click.option("-v", "--verbose", is_flag=True, help="Enable verbose logging output.")
@@ -39,6 +42,8 @@ from . import sql_cli
 @click.pass_context
 def cli(ctx: click.Context, verbose: bool, quiet: bool) -> None:
     """Save listening history and feed/episode info from Overcast to SQLite."""
+    global _podcast_archiver_attached
+    
     # Initialize context object if it doesn't exist
     ctx.ensure_object(dict)
     # Store app directory in context
@@ -55,6 +60,11 @@ def cli(ctx: click.Context, verbose: bool, quiet: bool) -> None:
         log_file=log_file,
         enable_file_logging=app_dir.exists(),
     )
+    
+    # Attach podcast archiver commands after logging is configured
+    if not _podcast_archiver_attached:
+        _attach_podcast_archiver_passthroughs(ctx.command)
+        _podcast_archiver_attached = True
 
 
 @cli.command()
@@ -423,7 +433,8 @@ meta.add_command(overcast_meta)
 cli.add_command(download)
 cli.add_command(sql_cli.sql)
 
-_attach_podcast_archiver_passthroughs(cli)
+# Note: _attach_podcast_archiver_passthroughs is now called lazily
+# from within the cli() function after logging is configured
 
 if __name__ == "__main__":
     cli()
