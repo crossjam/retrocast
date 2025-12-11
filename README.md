@@ -26,6 +26,7 @@ Save listening history and feed/episode info from Overcast to a SQLite database.
 - [Fetching and saving updates](#fetching-and-saving-updates)
 - [Extending and saving full feeds](#extending-and-saving-full-feeds)
 - [Downloading transcripts](#downloading-transcripts)
+- [Episode Download Database](#episode-download-database)
 
 ## Quick run
     
@@ -139,6 +140,89 @@ A different path can be set with the `-p`/`--path` flag.
 It also supports the `-v` flag to print additional information.
 
 There is also a `-s` flag to only download transcripts for starred episodes.
+
+## Episode Download Database
+
+The episode download database feature allows you to index and search podcast episodes downloaded via [podcast-archiver](https://github.com/janw/podcast-archiver). This creates a searchable database of your downloaded episode collection.
+
+### Downloading Episodes
+
+Use the `download podcast-archiver` command to download podcast episodes:
+
+    $ retrocast download podcast-archiver --feed https://example.com/feed.xml
+
+By default, episodes are downloaded to `~/.local/share/net.memexponent.retrocast/episode_downloads/` (or equivalent on your platform) with `.info.json` metadata files created automatically.
+
+For more options, see:
+
+    $ retrocast download podcast-archiver --help
+
+### Indexing Downloaded Episodes
+
+Initialize the episode database (one-time setup):
+
+    $ retrocast download db init
+
+Scan your downloaded episodes and populate the database:
+
+    $ retrocast download db update
+
+This will:
+- Discover all media files in your downloads directory
+- Extract metadata from `.info.json` files
+- Index episode titles, descriptions, and show notes for full-text search
+- Track file locations, sizes, and timestamps
+
+Options:
+- `--rescan`: Delete existing records and rebuild from scratch
+- `--verify`: Check for missing files and mark them in the database
+
+### Searching Episodes
+
+Search your downloaded episodes using full-text search:
+
+    $ retrocast download db search "machine learning"
+    $ retrocast download db search "python" --podcast "Talk Python To Me"
+    $ retrocast download db search "interview" --limit 10
+
+The search looks across:
+- Episode titles
+- Descriptions
+- Summaries
+- Show notes
+- Podcast titles
+
+Results are displayed in a formatted table with episode details.
+
+### Workflow Example
+
+Complete workflow for downloading and indexing podcasts:
+
+```bash
+# One-time setup
+retrocast download db init
+
+# Download episodes (creates .info.json files automatically)
+retrocast download podcast-archiver --feed https://example.com/feed.xml
+
+# Index the downloaded episodes
+retrocast download db update
+
+# Search your collection
+retrocast download db search "topic you're interested in"
+```
+
+### Database Schema
+
+Downloaded episodes are stored in the `episode_downloads` table within `retrocast.db` with the following information:
+
+- Media file path and metadata
+- Episode title, description, summary, and show notes
+- Publication date and duration
+- Full `.info.json` metadata as JSON
+- File existence tracking
+
+Full-text search is enabled via SQLite FTS5 for fast searching across all text fields.
 
 ## See also
 
