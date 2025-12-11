@@ -343,7 +343,9 @@ def search(
     table.add_column("Duration", justify="right")
 
     for result in results:
-        episode_title = result.get("episode_title") or result.get("episode_filename")
+        episode_title = (
+            result.get("episode_title") or result.get("episode_filename") or "Unknown Episode"
+        )
         podcast_title = result.get("podcast_title") or "Unknown"
         pub_date = result.get("publication_date") or ""
         if pub_date:

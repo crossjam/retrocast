@@ -266,9 +266,7 @@ class EpisodeScanner:
                 pass
 
         # Handle Unix timestamp (int or string)
-        if isinstance(date_value, int) or (
-            isinstance(date_value, str) and date_value.isdigit()
-        ):
+        if isinstance(date_value, int) or (isinstance(date_value, str) and date_value.isdigit()):
             try:
                 timestamp = int(date_value)
                 dt = datetime.fromtimestamp(timestamp)
