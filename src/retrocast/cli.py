@@ -408,6 +408,16 @@ def _attach_podcast_archiver_passthroughs(main_group: DefaultGroup) -> None:
         else:
             logger.info(f"Download dir exists: {ctx.params['archive_directory']}")
 
+        # Inject --write-info-json by default if not explicitly set
+        # This enables the episode database feature to index metadata
+        has_info_json_flag = any(
+            arg in ctx.args
+            for arg in ["--write-info-json", "--no-write-info-json"]
+        )
+        if not has_info_json_flag:
+            logger.debug("Injecting --write-info-json for episode database compatibility")
+            ctx.args = list(ctx.args) + ["--write-info-json"]
+
         for k, v in ctx.params.items():
             logger.debug(f"Param {k} | {type(v)}: {v}")
 
