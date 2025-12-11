@@ -17,23 +17,34 @@ Phase 4 successfully implemented automatic `.info.json` metadata file generation
 
 **Code Addition:**
 ```python
-# Inject --write-info-json by default if not explicitly set
+# Set --write-info-json to True by default if not explicitly set by user
 # This enables the episode database feature to index metadata
-has_info_json_flag = any(
-    arg in ctx.args
-    for arg in ["--write-info-json", "--no-write-info-json"]
-)
-if not has_info_json_flag:
-    logger.debug("Injecting --write-info-json for episode database compatibility")
-    ctx.args = list(ctx.args) + ["--write-info-json"]
+# The original podcast-archiver command has this parameter with default=False,
+# but we want to change the default to True in the wrapped version
+if "write_info_json" in ctx.params:
+    param_source = ctx.get_parameter_source("write_info_json")
+    logger.debug(f"write_info_json parameter source: {param_source}")
+    if param_source in (ParameterSource.DEFAULT, ParameterSource.DEFAULT_MAP):
+        # User didn't explicitly set it, so enable it by default
+        logger.info("Setting write_info_json=True for episode database compatibility")
+        ctx.params["write_info_json"] = True
 ```
 
 ### How It Works
 
-1. **Detection:** Before forwarding arguments to podcast-archiver, check if user explicitly set `--write-info-json` or `--no-write-info-json`
-2. **Injection:** If neither flag is present, automatically add `--write-info-json` to the arguments
-3. **Logging:** Debug message logged for transparency
-4. **Override:** Users can still use `--no-write-info-json` to opt out
+1. **Detection:** Check if `write_info_json` parameter exists in `ctx.params` (Click's parameter dictionary)
+2. **Source Check:** Use `ctx.get_parameter_source()` to determine if the user explicitly set the parameter
+3. **Default Override:** If the parameter is using its default value (not explicitly set by user), change it from `False` to `True`
+4. **Logging:** Info message logged when the default is changed for transparency
+5. **Override:** Users can still explicitly use `--no-write-info-json` to opt out
+
+### Why This Approach
+
+The implementation properly modifies the Click parameter's value in `ctx.params` rather than appending to `ctx.args`. This is the correct way to change parameter defaults because:
+- Click parameters (options/flags) are stored in `ctx.params`, not `ctx.args`
+- `ctx.args` contains unparsed/extra arguments
+- Using `ctx.get_parameter_source()` correctly identifies if the user explicitly set the value
+- Modifying `ctx.params` before `ctx.forward()` ensures the new value is passed to the wrapped command
 
 ### Backward Compatibility
 
