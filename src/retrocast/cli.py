@@ -26,6 +26,7 @@ from retrocast.appdir import (
     get_default_db_path,
 )
 from retrocast.download_commands import download
+from retrocast.episode_db_commands import episode_db
 from retrocast.logging_config import setup_logging
 from retrocast.overcast import chapters, overcast, transcripts
 
@@ -399,13 +400,25 @@ def _attach_podcast_archiver_passthroughs(main_group: DefaultGroup) -> None:
             ctx.params["archive_directory"] = download_path
 
         logger.debug(f"ctx.args: {ctx.args}")
-        logger.debug(f"ctx.params: {ctx.params}")
+        logger.debug(f"ctx.params (before modification): {ctx.params}")
 
         if not ctx.params["archive_directory"].exists():
             logger.info(f"Ensuring download dir exists: {ctx.params['archive_directory']}\n")
             ctx.params["archive_directory"].mkdir(exist_ok=True)
         else:
             logger.info(f"Download dir exists: {ctx.params['archive_directory']}")
+
+        # Set --write-info-json to True by default if not explicitly set by user
+        # This enables the episode database feature to index metadata
+        # The original podcast-archiver command has this parameter with default=False,
+        # but we want to change the default to True in the wrapped version
+        if "write_info_json" in ctx.params:
+            param_source = ctx.get_parameter_source("write_info_json")
+            logger.debug(f"write_info_json parameter source: {param_source}")
+            if param_source in (ParameterSource.DEFAULT, ParameterSource.DEFAULT_MAP):
+                # User didn't explicitly set it, so enable it by default
+                logger.info("Setting write_info_json=True for episode database compatibility")
+                ctx.params["write_info_json"] = True
 
         for k, v in ctx.params.items():
             logger.debug(f"Param {k} | {type(v)}: {v}")
@@ -430,6 +443,10 @@ meta.add_command(overcast_meta)
 
 # Register download commands
 cli.add_command(download)
+
+# Register episode database commands under download group
+download.add_command(episode_db)
+
 cli.add_command(sql_cli.sql)
 
 # Note: _attach_podcast_archiver_passthroughs is now called lazily

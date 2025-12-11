@@ -37,6 +37,12 @@ uv run python -m retrocast.cli chapters             # Extract chapter informatio
 uv run python -m retrocast.cli episodes             # Export episodes as CSV/JSON
 uv run python -m retrocast.cli subscriptions        # List subscribed feeds
 uv run python -m retrocast.cli html                 # Generate HTML output
+
+# Episode download database commands
+uv run python -m retrocast.cli download podcast-archiver  # Download episodes via podcast-archiver
+uv run python -m retrocast.cli download db init           # Initialize episode database
+uv run python -m retrocast.cli download db update         # Index downloaded episodes
+uv run python -m retrocast.cli download db search "query" # Search downloaded episodes
 ```
 
 ### Linting & Type Checking
@@ -85,16 +91,18 @@ The application follows a multi-stage ETL pipeline:
 3. **Extend** (`cli.py:extend`): Download full XML feeds for all podcasts, extract rich metadata (tables: `feeds_extended`, `episodes_extended`)
 4. **Transcripts** (`cli.py:transcripts`): Download transcript files from `podcast:transcript:url` tags
 5. **Chapters** (`cli.py:chapters`): Extract chapter markers from feeds (table: `chapters`)
+6. **Episode Downloads** (`download_commands.py`, `episode_db_commands.py`): Download episodes via podcast-archiver and index them in a searchable database (table: `episode_downloads`)
 
 ### Core Components
 
 **`datastore.py`**: Central database abstraction layer
 - Single `Datastore` class wraps sqlite-utils `Database`
 - Responsible for all table creation, schema management, queries
-- Creates tables: `feeds`, `feeds_extended`, `episodes`, `episodes_extended`, `playlists`, `chapters`
+- Creates tables: `feeds`, `feeds_extended`, `episodes`, `episodes_extended`, `playlists`, `chapters`, `episode_downloads`
 - Creates views: `episodes_played`, `episodes_deleted`, `episodes_starred`
 - Full-text search enabled on feed/episode titles and descriptions
 - Uses foreign keys to maintain referential integrity between tables
+- Episode downloads methods: `upsert_episode_downloads_batch()`, `search_episode_downloads()`, `mark_missing_episodes()`
 
 **`cli.py`**: Click-based CLI interface
 - Each subcommand maps to a pipeline stage
@@ -129,11 +137,36 @@ The application follows a multi-stage ETL pipeline:
 - `htmltagfixer.py`: Sanitizes HTML in episode descriptions
 - Includes bundled CSS (`mvp.css`) and JavaScript (`search.js`)
 
+**`download_commands.py`**: Download-related CLI commands
+- `download` command group for episode downloading
+- `aria` command: Download URLs using aria2c fetcher
+- Integrates with podcast-archiver via CLI passthrough in `cli.py`
+
+**`episode_scanner.py`**: Filesystem scanner for downloaded episodes
+- `EpisodeScanner` class scans `episode_downloads/` directory for media files
+- Discovers and pairs media files with `.info.json` metadata
+- `scan()`: Walks directory tree, identifies podcasts and episodes
+- `read_metadata()`: Parses .info.json files with error handling
+- `extract_fields()`: Maps various metadata formats to database columns
+- Supports multiple audio formats (.mp3, .m4a, .ogg, .opus, .wav, .flac)
+- Date normalization for ISO8601, YYYYMMDD, Unix timestamps, RFC 2822
+
+**`episode_db_commands.py`**: Episode database CLI commands
+- `episode_db` command group under `download db`
+- `init`: Initialize episode_downloads table and FTS indexes
+- `update`: Scan filesystem and populate database with metadata
+  - Supports `--rescan` (rebuild from scratch) and `--verify` (check file existence)
+  - Uses Rich progress bars for user feedback
+- `search`: Full-text search across downloaded episodes
+  - Supports `--podcast` filter and `--limit` options
+  - Displays formatted results table with episode details
+
 ### Database Schema Strategy
 
 **Primary Keys:**
 - Base tables (`feeds`, `episodes`): Use Overcast's `overcastId` integers
 - Extended tables (`feeds_extended`, `episodes_extended`): Use URLs (xmlUrl, enclosureUrl)
+- Episode downloads (`episode_downloads`): Use file path (`media_path`) as primary key
 - This dual-key strategy allows joining Overcast metadata with full feed data even when URLs change
 
 **Column Naming:**
@@ -143,6 +176,15 @@ The application follows a multi-stage ETL pipeline:
 **Dynamic Schema:**
 - Extended tables use `alter=True` during inserts to accommodate arbitrary RSS tags
 - Any XML tag becomes a column, so schemas vary per feed
+
+**Episode Downloads Schema:**
+- `episode_downloads` table tracks downloaded podcast episodes with full-text search
+- Core fields: media_path (PK), podcast_title, episode_filename, file_size, timestamps
+- Metadata fields: episode_title, episode_description, episode_summary, episode_shownotes, episode_url, publication_date, duration
+- Full .info.json stored in metadata_json column as TEXT
+- FTS5 virtual table (`episode_downloads_fts`) for full-text search across text fields
+- Indexes on podcast_title, publication_date, and modified_time for efficient queries
+- Tracks file existence with media_exists and metadata_exists flags
 
 ### Threading Model
 
