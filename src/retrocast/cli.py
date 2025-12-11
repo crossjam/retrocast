@@ -26,6 +26,7 @@ from retrocast.appdir import (
     get_default_db_path,
 )
 from retrocast.download_commands import download
+from retrocast.episode_db_commands import episode_db
 from retrocast.logging_config import setup_logging
 from retrocast.overcast import chapters, overcast, transcripts
 
@@ -430,6 +431,10 @@ meta.add_command(overcast_meta)
 
 # Register download commands
 cli.add_command(download)
+
+# Register episode database commands under download group
+download.add_command(episode_db)
+
 cli.add_command(sql_cli.sql)
 
 # Note: _attach_podcast_archiver_passthroughs is now called lazily

@@ -437,9 +437,10 @@ Alternative approach:
 
 ### Phase 5: Integration & Documentation
 **Estimated Complexity:** Low-Medium
+**Status:** 🔄 IN PROGRESS
 
-- [ ] Integrate `episode_db` group into main CLI
-- [ ] Register commands in `cli.py`
+- [x] Integrate `episode_db` group into main CLI
+- [x] Register commands in `cli.py`
 - [ ] Test complete workflow:
   - [ ] Download episodes with podcast-archiver
   - [ ] Run `download db init`
