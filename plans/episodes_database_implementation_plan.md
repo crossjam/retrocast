@@ -370,32 +370,43 @@ Alternative approach:
 
 ### Phase 3: CLI Commands
 **Estimated Complexity:** Medium
+**Status:** ✅ COMPLETED
 
-- [ ] Create `src/retrocast/episode_db_commands.py`
-- [ ] Implement `episode_db` group
-- [ ] Implement `init` command:
-  - [ ] Call `Datastore.ensure_episode_downloads_table()`
-  - [ ] Display schema confirmation
-  - [ ] Support --dry-run flag
-  - [ ] Show table/index creation messages
-- [ ] Implement `update` command:
-  - [ ] Get app_dir and downloads path
-  - [ ] Instantiate `EpisodeScanner`
-  - [ ] Scan filesystem for episodes
-  - [ ] Batch insert/update to database
-  - [ ] Mark missing episodes
-  - [ ] Display progress (use rich progress bar)
-  - [ ] Show summary statistics
-  - [ ] Support --rescan (delete and rebuild)
-  - [ ] Support --verify (check file existence)
-- [ ] Implement `search` command:
-  - [ ] Accept search query
-  - [ ] Call `Datastore.search_episode_downloads()`
-  - [ ] Display results in table format (use rich.Table)
-  - [ ] Support --podcast filter
-  - [ ] Support --limit
+- [x] Create `src/retrocast/episode_db_commands.py`
+- [x] Implement `episode_db` group
+- [x] Implement `init` command:
+  - [x] Call `Datastore.ensure_episode_downloads_table()`
+  - [x] Display schema confirmation
+  - [x] Support --dry-run flag
+  - [x] Show table/index creation messages
+- [x] Implement `update` command:
+  - [x] Get app_dir and downloads path
+  - [x] Instantiate `EpisodeScanner`
+  - [x] Scan filesystem for episodes
+  - [x] Batch insert/update to database
+  - [x] Mark missing episodes
+  - [x] Display progress (use rich progress bar)
+  - [x] Show summary statistics
+  - [x] Support --rescan (delete and rebuild)
+  - [x] Support --verify (check file existence)
+- [x] Implement `search` command:
+  - [x] Accept search query
+  - [x] Call `Datastore.search_episode_downloads()`
+  - [x] Display results in table format (use rich.Table)
+  - [x] Support --podcast filter
+  - [x] Support --limit
 - [ ] Write CLI integration tests
 - [ ] Update help text and documentation
+
+**Implementation Notes (2025-12-11):**
+- Created episode_db_commands.py with three commands: init, update, search
+- All commands follow existing CLI patterns using rich_click
+- init command is idempotent and supports --dry-run
+- update command uses rich Progress bars for user feedback
+- update command supports --rescan and --verify flags
+- search command displays results in formatted table with truncation
+- All commands include comprehensive error handling and helpful hints
+- Commands integrate with existing app directory and logging infrastructure
 
 **Acceptance Criteria:**
 - `retrocast download db init` creates schema
