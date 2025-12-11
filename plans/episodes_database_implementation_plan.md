@@ -328,27 +328,38 @@ Alternative approach:
 
 ### Phase 2: Filesystem Scanner
 **Estimated Complexity:** Medium
+**Status:** ✅ COMPLETED
 
-- [ ] Create `src/retrocast/episode_scanner.py`
-- [ ] Implement `EpisodeFileInfo` dataclass
-- [ ] Implement `EpisodeScanner.scan()`:
-  - [ ] Walk `episode_downloads/` directory tree
-  - [ ] Identify podcast folders (depth 1)
-  - [ ] Find media files (.mp3, .m4a, etc.)
-  - [ ] Pair media with .info.json files
-  - [ ] Extract file metadata (size, mtime)
-  - [ ] Handle missing/malformed metadata gracefully
-- [ ] Implement `EpisodeScanner.read_metadata()`:
-  - [ ] Parse JSON files
-  - [ ] Handle encoding issues
-  - [ ] Validate JSON structure
-- [ ] Implement `EpisodeScanner.extract_fields()`:
-  - [ ] Map info.json fields to database columns (title, description, summary, shownotes, url, date, duration)
-  - [ ] Handle various metadata field name variations (see Metadata Field Mapping section)
-  - [ ] Normalize dates to ISO8601
-  - [ ] Sanitize HTML in text fields where needed
+- [x] Create `src/retrocast/episode_scanner.py`
+- [x] Implement `EpisodeFileInfo` dataclass
+- [x] Implement `EpisodeScanner.scan()`:
+  - [x] Walk `episode_downloads/` directory tree
+  - [x] Identify podcast folders (depth 1)
+  - [x] Find media files (.mp3, .m4a, etc.)
+  - [x] Pair media with .info.json files
+  - [x] Extract file metadata (size, mtime)
+  - [x] Handle missing/malformed metadata gracefully
+- [x] Implement `EpisodeScanner.read_metadata()`:
+  - [x] Parse JSON files
+  - [x] Handle encoding issues
+  - [x] Validate JSON structure
+- [x] Implement `EpisodeScanner.extract_fields()`:
+  - [x] Map info.json fields to database columns (title, description, summary, shownotes, url, date, duration)
+  - [x] Handle various metadata field name variations (see Metadata Field Mapping section)
+  - [x] Normalize dates to ISO8601
+  - [x] Sanitize HTML in text fields where needed
 - [ ] Write unit tests with fixture files
 - [ ] Test with actual downloaded episodes
+
+**Implementation Notes (2025-12-11):**
+- Created EpisodeFileInfo dataclass with all required fields
+- Implemented EpisodeScanner class with configurable supported extensions
+- scan() method walks directory tree and discovers media/metadata pairs
+- read_metadata() handles JSON parsing with proper error handling
+- extract_fields() supports multiple field name variations for compatibility
+- Date normalization handles ISO8601, YYYYMMDD, Unix timestamps, and RFC 2822
+- Comprehensive logging throughout for debugging
+- All methods include detailed docstrings
 
 **Acceptance Criteria:**
 - Scanner discovers all media files in test directory
