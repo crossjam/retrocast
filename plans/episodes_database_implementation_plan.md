@@ -298,19 +298,27 @@ Alternative approach:
 
 ### Phase 1: Database Schema & Core Models
 **Estimated Complexity:** Low-Medium
+**Status:** ✅ COMPLETED
 
-- [ ] Extend `Datastore._prepare_db()` to create `episode_downloads` table
-- [ ] Add FTS virtual table and triggers
-- [ ] Add indexes for common queries
-- [ ] Add new methods to `Datastore` class:
-  - [ ] `ensure_episode_downloads_table()`
-  - [ ] `upsert_episode_download()`
-  - [ ] `upsert_episode_downloads_batch()`
-  - [ ] `get_episode_downloads()`
-  - [ ] `mark_missing_episodes()`
-  - [ ] `search_episode_downloads()`
+- [x] Extend `Datastore._prepare_db()` to create `episode_downloads` table
+- [x] Add FTS virtual table and triggers
+- [x] Add indexes for common queries
+- [x] Add new methods to `Datastore` class:
+  - [x] `ensure_episode_downloads_table()`
+  - [x] `upsert_episode_download()`
+  - [x] `upsert_episode_downloads_batch()`
+  - [x] `get_episode_downloads()`
+  - [x] `mark_missing_episodes()`
+  - [x] `search_episode_downloads()`
 - [ ] Write unit tests for database operations
 - [ ] Verify schema with manual SQL queries
+
+**Implementation Notes (2025-12-11):**
+- Added `episode_downloads` table creation to `Datastore._prepare_db()` method
+- Implemented FTS5 virtual table with triggers for automatic sync
+- Created indexes on podcast_title, publication_date, and modified_time
+- Added all 6 required methods to Datastore class
+- All methods follow existing codebase patterns and conventions
 
 **Acceptance Criteria:**
 - `episode_downloads` table created on database init

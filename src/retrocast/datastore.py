@@ -166,6 +166,53 @@ class Datastore:
                 create_triggers=True,
             )
             self._table(CHAPTERS).create_index([ENCLOSURE_URL, GUID, SOURCE])
+
+        # Create episode_downloads table for tracking downloaded episodes
+        if "episode_downloads" not in self.db.table_names():
+            self._table("episode_downloads").create(
+                {
+                    "media_path": str,
+                    "podcast_title": str,
+                    "episode_filename": str,
+                    "file_size": int,
+                    "modified_time": str,
+                    "discovered_time": str,
+                    "last_verified_time": str,
+                    "metadata_json": str,
+                    "episode_title": str,
+                    "episode_description": str,
+                    "episode_summary": str,
+                    "episode_shownotes": str,
+                    "episode_url": str,
+                    "publication_date": str,
+                    "duration": int,
+                    "metadata_exists": int,
+                    "media_exists": int,
+                },
+                pk="media_path",
+            )
+            # Enable FTS on text fields
+            self._table("episode_downloads").enable_fts(
+                [
+                    "episode_title",
+                    "episode_description",
+                    "episode_summary",
+                    "episode_shownotes",
+                    "podcast_title",
+                ],
+                create_triggers=True,
+            )
+            # Create indexes for common queries
+            self._table("episode_downloads").create_index(["podcast_title"])
+            self._table("episode_downloads").create_index(
+                ["publication_date"],
+                if_not_exists=True,
+            )
+            self._table("episode_downloads").create_index(
+                ["modified_time"],
+                if_not_exists=True,
+            )
+
         self.db.create_view(
             "episodes_played",
             (
@@ -567,3 +614,131 @@ class Datastore:
             }
             for result in results
         ]
+
+    # EPISODE DOWNLOADS
+
+    def ensure_episode_downloads_table(self) -> None:
+        """Create episode_downloads table and indexes if not exists.
+
+        This method is idempotent and safe to call multiple times.
+        The table creation is handled in _prepare_db(), so this method
+        simply verifies the table exists.
+        """
+        # Table creation happens in _prepare_db()
+        # This method exists for explicit initialization in CLI commands
+        if "episode_downloads" not in self.db.table_names():
+            # Re-run prepare_db to create the table
+            self._prepare_db()
+
+    def upsert_episode_download(self, episode_info: dict) -> None:
+        """Insert or update episode download record.
+
+        Args:
+            episode_info: Dictionary containing episode metadata fields.
+                Required fields: media_path
+                Optional fields: podcast_title, episode_filename, file_size,
+                    modified_time, discovered_time, last_verified_time,
+                    metadata_json, episode_title, episode_description,
+                    episode_summary, episode_shownotes, episode_url,
+                    publication_date, duration, metadata_exists, media_exists
+        """
+        self._table("episode_downloads").upsert(episode_info, pk="media_path")
+
+    def upsert_episode_downloads_batch(self, episodes: list[dict]) -> None:
+        """Batch insert/update episode downloads.
+
+        Args:
+            episodes: List of episode info dictionaries.
+                Each dict should have the same structure as upsert_episode_download.
+        """
+        if not episodes:
+            return
+        self._table("episode_downloads").upsert_all(episodes, pk="media_path")
+
+    def get_episode_downloads(
+        self,
+        podcast_title: str | None = None,
+        limit: int | None = None,
+    ) -> list[dict]:
+        """Query episode downloads with optional filters.
+
+        Args:
+            podcast_title: Optional filter by podcast title.
+            limit: Optional limit on number of results.
+
+        Returns:
+            List of episode download records as dictionaries.
+        """
+        query = "SELECT * FROM episode_downloads"
+        params = []
+
+        if podcast_title:
+            query += " WHERE podcast_title = ?"
+            params.append(podcast_title)
+
+        query += " ORDER BY publication_date DESC"
+
+        if limit:
+            query += f" LIMIT {limit}"
+
+        results = self.db.execute(query, params).fetchall()
+
+        # Get column names
+        cursor = self.db.execute("SELECT * FROM episode_downloads LIMIT 0")
+        columns = [description[0] for description in cursor.description]
+
+        # Convert to list of dicts
+        return [dict(zip(columns, row)) for row in results]
+
+    def mark_missing_episodes(self, existing_paths: set[str]) -> int:
+        """Mark episodes as media_exists=0 if not in existing_paths.
+
+        Args:
+            existing_paths: Set of media file paths that currently exist on disk.
+
+        Returns:
+            Number of episodes marked as missing.
+        """
+        # Get all media paths from database
+        all_paths = self.db.execute(
+            "SELECT media_path FROM episode_downloads WHERE media_exists = 1",
+        ).fetchall()
+
+        missing_count = 0
+        for (path,) in all_paths:
+            if path not in existing_paths:
+                self._table("episode_downloads").update(
+                    path,
+                    {"media_exists": 0},
+                )
+                missing_count += 1
+
+        return missing_count
+
+    def search_episode_downloads(self, query: str) -> list[dict]:
+        """Full-text search across episode titles/descriptions.
+
+        Args:
+            query: Search query string.
+
+        Returns:
+            List of matching episode download records.
+        """
+        # Use FTS table for search
+        sql_query = """
+            SELECT episode_downloads.*
+            FROM episode_downloads
+            JOIN episode_downloads_fts
+            ON episode_downloads.rowid = episode_downloads_fts.rowid
+            WHERE episode_downloads_fts MATCH ?
+            ORDER BY rank
+        """
+
+        results = self.db.execute(sql_query, [query]).fetchall()
+
+        # Get column names
+        cursor = self.db.execute("SELECT * FROM episode_downloads LIMIT 0")
+        columns = [description[0] for description in cursor.description]
+
+        # Convert to list of dicts
+        return [dict(zip(columns, row)) for row in results]
