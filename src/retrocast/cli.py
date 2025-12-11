@@ -400,7 +400,7 @@ def _attach_podcast_archiver_passthroughs(main_group: DefaultGroup) -> None:
             ctx.params["archive_directory"] = download_path
 
         logger.debug(f"ctx.args: {ctx.args}")
-        logger.debug(f"ctx.params: {ctx.params}")
+        logger.debug(f"ctx.params (before modification): {ctx.params}")
 
         if not ctx.params["archive_directory"].exists():
             logger.info(f"Ensuring download dir exists: {ctx.params['archive_directory']}\n")
@@ -408,15 +408,17 @@ def _attach_podcast_archiver_passthroughs(main_group: DefaultGroup) -> None:
         else:
             logger.info(f"Download dir exists: {ctx.params['archive_directory']}")
 
-        # Inject --write-info-json by default if not explicitly set
+        # Set --write-info-json to True by default if not explicitly set by user
         # This enables the episode database feature to index metadata
-        has_info_json_flag = any(
-            arg in ctx.args
-            for arg in ["--write-info-json", "--no-write-info-json"]
-        )
-        if not has_info_json_flag:
-            logger.debug("Injecting --write-info-json for episode database compatibility")
-            ctx.args = list(ctx.args) + ["--write-info-json"]
+        # The original podcast-archiver command has this parameter with default=False,
+        # but we want to change the default to True in the wrapped version
+        if "write_info_json" in ctx.params:
+            param_source = ctx.get_parameter_source("write_info_json")
+            logger.debug(f"write_info_json parameter source: {param_source}")
+            if param_source in (ParameterSource.DEFAULT, ParameterSource.DEFAULT_MAP):
+                # User didn't explicitly set it, so enable it by default
+                logger.info("Setting write_info_json=True for episode database compatibility")
+                ctx.params["write_info_json"] = True
 
         for k, v in ctx.params.items():
             logger.debug(f"Param {k} | {type(v)}: {v}")
