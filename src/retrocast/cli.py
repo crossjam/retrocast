@@ -372,7 +372,9 @@ def _attach_podcast_archiver_passthroughs(main_group: DefaultGroup) -> None:
         context_settings=wrapped_context_settings,
     )
     @rich_click.pass_context
-    def archiver_wrapped(ctx: rich_click.RichContext, **kwargs):
+    def archiver_wrapped(ctx: rich_click.RichContext, force_download: bool = False, **kwargs):
+        from pathlib import Path
+
         app_dir = get_app_dir()
         config_file = (app_dir / "podcast_archiver.yaml") if app_dir else None
         database_path = (app_dir / "episodes.db") if app_dir else None
@@ -408,6 +410,51 @@ def _attach_podcast_archiver_passthroughs(main_group: DefaultGroup) -> None:
         else:
             logger.info(f"Download dir exists: {ctx.params['archive_directory']}")
 
+        # Handle --force-download: prompt and enable ignore_database
+        if force_download:
+            archive_dir = Path(ctx.params["archive_directory"])
+            if archive_dir.exists():
+                # Count existing media files
+                media_extensions = {".mp3", ".m4a", ".ogg", ".opus", ".wav", ".flac"}
+                existing_files = [
+                    f
+                    for f in archive_dir.rglob("*")
+                    if f.is_file() and f.suffix.lower() in media_extensions
+                ]
+                if existing_files:
+                    Console(stderr=True).print(
+                        f"\n[bold red]⚠️  WARNING: Force download is enabled![/bold red]\n"
+                        f"This will DELETE {len(existing_files)} existing episode file(s) "
+                        f"in [cyan]{archive_dir}[/cyan]\n"
+                        f"before re-downloading them.\n"
+                    )
+                    if not click.confirm(
+                        "Are you sure you want to delete existing files and re-download?",
+                        default=False,
+                    ):
+                        Console(stderr=True).print("[yellow]Aborted.[/yellow]")
+                        ctx.exit(0)
+
+                    # Delete existing media files
+                    Console().print(
+                        f"[yellow]Deleting {len(existing_files)} existing files...[/yellow]"
+                    )
+                    for file_path in existing_files:
+                        try:
+                            file_path.unlink()
+                            # Also delete corresponding .info.json if it exists
+                            info_json = file_path.with_suffix(file_path.suffix + ".info.json")
+                            if info_json.exists():
+                                info_json.unlink()
+                            logger.debug(f"Deleted: {file_path}")
+                        except OSError as e:
+                            logger.warning(f"Failed to delete {file_path}: {e}")
+                    Console().print("[green]✓ Existing files deleted[/green]\n")
+
+            # Enable ignore_database to bypass podcast-archiver's database check
+            logger.info("Force download: enabling ignore_database")
+            ctx.params["ignore_database"] = True
+
         # Set --write-info-json to True by default if not explicitly set by user
         # This enables the episode database feature to index metadata
         # The original podcast-archiver command has this parameter with default=False,
@@ -426,8 +473,20 @@ def _attach_podcast_archiver_passthroughs(main_group: DefaultGroup) -> None:
         # ctx.invoke(podcast_archiver_command.main)
         ctx.forward(podcast_archiver_command)
 
-    archiver_wrapped.params = podcast_archiver_command.params.copy()
-    logger.debug(f"Attached llm command: {archiver_wrapped}")
+    # Copy podcast-archiver params and prepend our custom --force-download option
+    # Need to prepend so it shows up in help before the podcast-archiver options
+    force_download_option = click.Option(
+        ["--force-download"],
+        is_flag=True,
+        default=False,
+        help=(
+            "Force re-download of episodes even if they already exist on disk. "
+            "WARNING: This will delete existing episode files before downloading. "
+            "You will be prompted for confirmation."
+        ),
+    )
+    archiver_wrapped.params = [force_download_option] + podcast_archiver_command.params.copy()
+    logger.debug(f"Attached podcast-archiver command: {archiver_wrapped}")
 
 
 # Register overcast commands
