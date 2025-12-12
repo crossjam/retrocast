@@ -152,6 +152,10 @@ cmd = "pytest --cov=retrocast --cov-report=term-missing --cov-report=html"
 help = "Run pytest and stop on first failure"
 cmd = "pytest -x"
 
+[tool.poe.tasks."test:collect"]
+help = "Collect tests without running them (dry-run)"
+cmd = "pytest --collect-only -q"
+
 # Combined QA - run all checks
 [tool.poe.tasks.qa]
 help = "Run all QA checks (lint, type, test)"
