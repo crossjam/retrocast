@@ -253,6 +253,26 @@ uv sync
 uv run retrocast all -v
 ```
 
+### Running QA Tasks
+
+This project uses [PoeThePoet](https://poethepoet.natn.io/) for task automation. Available tasks:
+
+```bash
+# Run all QA checks (lint, type check, test)
+uv run poe qa
+
+# Individual tasks
+uv run poe lint        # Run ruff linter
+uv run poe lint:fix    # Run ruff and auto-fix issues
+uv run poe type        # Run ty type checker
+uv run poe test        # Run pytest with verbose output
+uv run poe test:cov    # Run pytest with coverage report
+uv run poe test:quick  # Run pytest and stop on first failure
+
+# List all available tasks
+uv run poe --help
+```
+
 ### Code Formatting
 
 This project is linted with [ruff](https://docs.astral.sh/ruff/) and
