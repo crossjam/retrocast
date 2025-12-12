@@ -28,6 +28,7 @@ def test_poe_tasks_are_configured():
         "test",
         "test:cov",
         "test:quick",
+        "test:collect",
         "qa",
     ]
 
@@ -63,12 +64,14 @@ def test_type_task_executes():
 
 def test_test_task_executes():
     """Test that the test task can be executed."""
+    # Use test:collect instead of test to avoid recursion
+    # (test would run all tests including this one)
     result = subprocess.run(
-        [sys.executable, "-m", "poethepoet", "test"],
+        [sys.executable, "-m", "poethepoet", "test:collect"],
         capture_output=True,
         text=True,
         cwd=PROJECT_ROOT,
     )
 
     # Should pass or fail, but not error out
-    assert result.returncode in [0, 1], "Test task should execute without errors"
+    assert result.returncode in [0, 1], "Test collection task should execute without errors"
