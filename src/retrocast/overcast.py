@@ -420,13 +420,13 @@ def save(
     for feed, episodes in extract_feed_and_episodes_from_opml(root):
         if not episodes:
             if verbose:
-                logger.warning("⚠️ Skipping %s (no episodes)", feed[TITLE])
+                logger.warning("⚠️ Skipping {feed_title} (no episodes)", feed_title=feed[TITLE])
             continue
         if verbose:
             logger.info(
-                "⤵️ Saving %s (latest: %s)",
-                feed[TITLE],
-                episodes[0][TITLE],
+                "⤵️ Saving {feed_title} (latest: {episode_title})",
+                feed_title=feed[TITLE],
+                episode_title=episodes[0][TITLE],
             )
         ingested_feed_ids.add(feed["overcastId"])
         db.save_feed_and_episodes(feed, episodes)
@@ -477,12 +477,16 @@ def extend(
         )
         if not episodes:
             if verbose:
-                logger.warning("⚠️ Skipping %s (no episodes)", title)
+                logger.warning("⚠️ Skipping {title} (no episodes)", title=title)
         else:
             if verbose:
-                logger.info("⏩️ Extending %s (latest: %s)", title, episodes[0][TITLE])
+                logger.info(
+                    "⏩️ Extending {title} (latest: {episode_title})",
+                    title=title,
+                    episode_title=episodes[0][TITLE],
+                )
             if "errorCode" in feed:
-                logger.error("⛔️ Found error: %s", feed["errorCode"])
+                logger.error("⛔️ Found error: {error_code}", error_code=feed["errorCode"])
         return feed, episodes
 
     with ThreadPoolExecutor(max_workers=BATCH_SIZE) as executor:
@@ -555,24 +559,28 @@ def transcripts(  # noqa: C901
     ) -> tuple[str, str] | None:
         title, url, mimetype, enclosure, feed_title = transcript
         if verbose:
-            logger.info("⬇️ Downloading %s @ %s", title, url)
+            logger.info("⬇️ Downloading {title} @ {url}", title=title, url=url)
         try:
             response = requests.get(url, headers=_headers_ua())
         except requests.exceptions.RequestException as e:
-            logger.error("⛔ Error downloading %s: %s", url, e)
+            logger.error("⛔ Error downloading {url}: {error}", url=url, error=e)
             return None
 
         if not response.ok:
-            logger.error("⛔ Error code %s downloading %s", response.status_code, url)
+            logger.error(
+                "⛔ Error code {status_code} downloading {url}",
+                status_code=response.status_code,
+                url=url,
+            )
             if verbose:
-                logger.debug("Response headers: %s", response.headers)
+                logger.debug("Response headers: {headers}", headers=response.headers)
             return None
         feed_path = transcripts_path / _sanitize_for_path(feed_title)
         feed_path.mkdir(exist_ok=True)
         file_ext = _file_extension_for_type(response.headers, mimetype)
         file_path = feed_path / (_sanitize_for_path(title) + file_ext)
         if verbose:
-            logger.info("📝 Saving %s", file_path)
+            logger.info("📝 Saving {file_path}", file_path=file_path)
         with file_path.open(mode="wb") as file:
             file.write(response.content)
         return enclosure, str(file_path.absolute())
@@ -671,7 +679,7 @@ def html(
         html_output_path = app_dir / "retrocast-played.html"
     html_output_path.parent.mkdir(parents=True, exist_ok=True)
     generate_html_played(resolved_db_path, html_output_path)
-    logger.info("📝 Saved HTML to: file://%s", html_output_path.absolute())
+    logger.info("📝 Saved HTML to: file://{html_path}", html_path=html_output_path.absolute())
 
 
 @overcast.command()
