@@ -461,7 +461,7 @@ def extend(
 
     db = Datastore(resolved_db_path)
     feeds_to_extend = db.get_feeds_to_extend()
-    logger.info("➡️ Extending %d feeds", len(feeds_to_extend))
+    logger.info("➡️ Extending {count} feeds", count=len(feeds_to_extend))
 
     archive_dir = None if no_archive else _archive_path(resolved_db_path, "feeds")
 
@@ -493,7 +493,7 @@ def extend(
         results = list(executor.map(_fetch_feed_extend_save, feeds_to_extend))
 
     if verbose:
-        logger.info("Saving %d feeds to database", len(results))
+        logger.info("Saving {count} feeds to database", count=len(results))
     for feed, episodes in results:
         db.save_extended_feed_and_episodes(feed, episodes)
 
@@ -552,7 +552,7 @@ def transcripts(  # noqa: C901
     )
 
     if verbose:
-        logger.info("🔉 Downloading %d transcripts...", len(transcripts_to_download))
+        logger.info("🔉 Downloading {count} transcripts...", count=len(transcripts_to_download))
 
     def _fetch_and_write_transcript(
         transcript: tuple[str, str, str, str, str],
@@ -591,7 +591,7 @@ def transcripts(  # noqa: C901
         )
 
     if verbose:
-        logger.info("Saving %d transcripts to database", len(results))
+        logger.info("Saving {count} transcripts to database", count=len(results))
     for row in results:
         if row is not None:
             enclosure, file_path = row
