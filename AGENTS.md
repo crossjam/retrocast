@@ -70,16 +70,51 @@ uv run pytest
 ```
 
 ### Pre-commit Hooks
+
 This project uses pre-commit hooks configured in `.pre-commit-config.yaml`:
 - Black code formatter
 - Ruff linter and formatter
 - isort import sorting
 - nbstripout for Jupyter notebooks
 
+We prefer the `prek` tool for executing pre-commit hooks. Install it
+like so:
+
+```bash
+uv tool install prek
+```
+
+Run it like this
 ```bash
 # Run pre-commit linting
 prek run
 ```
+
+Here’s the help for `prek`
+
+```bash
+~/repos/retrocast ❯ prek --help
+Better pre-commit, re-engineered in Rust
+
+Usage: prek [OPTIONS] [HOOK|PROJECT]... [COMMAND]
+
+Commands:
+  install            Install the prek git hook
+  install-hooks      Create hook environments for all hooks used in the config file
+  run                Run hooks
+  list               List available hooks
+  uninstall          Uninstall the prek git hook
+  validate-config    Validate `.pre-commit-config.yaml` files
+  validate-manifest  Validate `.pre-commit-hooks.yaml` files
+  sample-config      Produce a sample `.pre-commit-config.yaml` file
+  auto-update        Auto-update pre-commit config to the latest repos' versions
+  gc                 Clean unused cached repos
+  clean              Clean out pre-commit files
+  init-template-dir  Install hook script in a directory intended for use with `git config init.templateDir`
+  try-repo           Try the pre-commit hooks in the current repo
+  self               `prek` self management
+```
+
 ## Architecture
 
 ### Data Flow Pipeline

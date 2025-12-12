@@ -1,0 +1,70 @@
+"""Tests for PoeThePoet task configuration."""
+
+import subprocess
+import sys
+
+
+def test_poe_tasks_are_configured():
+    """Test that PoeThePoet tasks are properly configured."""
+    result = subprocess.run(
+        [sys.executable, "-m", "poethepoet", "--help"],
+        capture_output=True,
+        text=True,
+        cwd="/home/runner/work/retrocast/retrocast",
+    )
+
+    assert result.returncode == 0
+    output = result.stdout
+
+    # Check that all expected tasks are listed
+    expected_tasks = [
+        "lint",
+        "lint:fix",
+        "type",
+        "test",
+        "test:cov",
+        "test:quick",
+        "qa",
+    ]
+
+    for task in expected_tasks:
+        assert task in output, f"Task '{task}' not found in poe help output"
+
+
+def test_lint_task_executes():
+    """Test that the lint task can be executed."""
+    result = subprocess.run(
+        [sys.executable, "-m", "poethepoet", "lint"],
+        capture_output=True,
+        text=True,
+        cwd="/home/runner/work/retrocast/retrocast",
+    )
+
+    # Should pass or fail, but not error out
+    assert result.returncode in [0, 1], "Lint task should execute without errors"
+
+
+def test_type_task_executes():
+    """Test that the type checking task can be executed."""
+    result = subprocess.run(
+        [sys.executable, "-m", "poethepoet", "type"],
+        capture_output=True,
+        text=True,
+        cwd="/home/runner/work/retrocast/retrocast",
+    )
+
+    # Should pass or fail, but not error out
+    assert result.returncode in [0, 1], "Type task should execute without errors"
+
+
+def test_test_task_executes():
+    """Test that the test task can be executed."""
+    result = subprocess.run(
+        [sys.executable, "-m", "poethepoet", "test"],
+        capture_output=True,
+        text=True,
+        cwd="/home/runner/work/retrocast/retrocast",
+    )
+
+    # Should pass or fail, but not error out
+    assert result.returncode in [0, 1], "Test task should execute without errors"

@@ -22,13 +22,23 @@ uv run python -m retrocast.cli --help
 ```bash
 # Run tests
 uv run pytest
+# or using PoeThePoet
+uv run poe test
 
 # Lint code
 uv run ruff check src
 uv run ruff format src
+# or using PoeThePoet
+uv run poe lint
+uv run poe lint:fix
 
 # Type checking
 uv run ty check src
+# or using PoeThePoet
+uv run poe type
+
+# Run all QA checks (lint, type, test)
+uv run poe qa
 
 # Pre-commit hooks
 pre-commit run
