@@ -15,8 +15,9 @@ LOG_FORMAT = (
     "<green>{time:YYYY-MM-DD HH:mm:ss}</green> | "
     "<level>{level: <8}</level> | "
     "<cyan>{extra[logger_name]}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - "
-    "<level>{message}</level>"
+    "<level>{message}</level>\n{exception}"
 )
+
 
 if TYPE_CHECKING:
     from loguru import Record
