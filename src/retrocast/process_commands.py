@@ -14,7 +14,7 @@ from rich.progress import (
 )
 from rich.table import Table
 
-from retrocast.appdir import get_app_dir
+from retrocast.appdir import get_app_dir, get_default_db_path
 from retrocast.datastore import Datastore
 from retrocast.transcription import TranscriptionManager
 
@@ -79,7 +79,7 @@ def process(ctx: click.RichContext) -> None:
     "db_path",
     type=click.Path(path_type=Path),
     default=None,
-    help="Path to database file (defaults to app_dir/overcast.db).",
+    help="Path to database file (defaults to app_dir/retrocast.db).",
 )
 @click.pass_context
 def transcribe(
@@ -118,7 +118,7 @@ def transcribe(
     output_dir.mkdir(parents=True, exist_ok=True)
 
     if db_path is None:
-        db_path = app_dir / "overcast.db"
+        db_path = get_default_db_path(create=True)
 
     # Initialize datastore
     datastore = Datastore(db_path)
@@ -349,7 +349,7 @@ def test_backend(backend_name: str) -> None:
     "db_path",
     type=click.Path(path_type=Path),
     default=None,
-    help="Path to database file (defaults to app_dir/overcast.db).",
+    help="Path to database file (defaults to app_dir/retrocast.db).",
 )
 def search(
     query: str,
@@ -373,9 +373,8 @@ def search(
         retrocast process search --limit 5 "python"
     """
     # Setup
-    app_dir = get_app_dir(create=True)
     if db_path is None:
-        db_path = app_dir / "overcast.db"
+        db_path = get_default_db_path(create=True)
 
     if not db_path.exists():
         console.print(f"[red]Database not found: {db_path}[/red]")
