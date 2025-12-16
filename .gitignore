@@ -237,3 +237,4 @@ dmypy.json
 cython_debug/
 .aider*
 /.claude/
+/.mp3/
