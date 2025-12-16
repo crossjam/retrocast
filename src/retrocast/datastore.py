@@ -213,6 +213,75 @@ class Datastore:
                 if_not_exists=True,
             )
 
+        # Create transcription tables for tracking transcribed episodes
+        if "transcriptions" not in self.db.table_names():
+            self._table("transcriptions").create(
+                {
+                    "transcription_id": int,
+                    "audio_content_hash": str,
+                    "media_path": str,
+                    "file_size": int,
+                    "transcription_path": str,
+                    "episode_url": str,
+                    "podcast_title": str,
+                    "episode_title": str,
+                    "backend": str,
+                    "model_size": str,
+                    "language": str,
+                    "duration": float,
+                    "transcription_time": float,
+                    "has_diarization": int,
+                    "speaker_count": int,
+                    "word_count": int,
+                    "created_time": str,
+                    "updated_time": str,
+                    "metadata_json": str,
+                },
+                pk="transcription_id",
+            )
+            # Create unique index on content hash to prevent duplicate transcriptions
+            self._table("transcriptions").create_index(
+                ["audio_content_hash"],
+                unique=True,
+                if_not_exists=True,
+            )
+            # Create index on media_path for lookups by file location
+            self._table("transcriptions").create_index(
+                ["media_path"],
+                if_not_exists=True,
+            )
+            # Create index on episode_url for linking to episode metadata
+            self._table("transcriptions").create_index(
+                ["episode_url"],
+                if_not_exists=True,
+            )
+
+        # Create transcription_segments table for storing individual segments
+        if "transcription_segments" not in self.db.table_names():
+            self._table("transcription_segments").create(
+                {
+                    "transcription_id": int,
+                    "segment_index": int,
+                    "start_time": float,
+                    "end_time": float,
+                    "text": str,
+                    "speaker": str,
+                },
+                foreign_keys=[
+                    ("transcription_id", "transcriptions", "transcription_id"),
+                ],
+            )
+            # Create composite index for efficient segment lookups
+            self._table("transcription_segments").create_index(
+                ["transcription_id", "segment_index"],
+                if_not_exists=True,
+            )
+            # Enable full-text search on segment text
+            self._table("transcription_segments").enable_fts(
+                ["text"],
+                create_triggers=True,
+            )
+
         self.db.create_view(
             "episodes_played",
             (
@@ -741,4 +810,256 @@ class Datastore:
         columns = [description[0] for description in cursor.description]
 
         # Convert to list of dicts
+        return [dict(zip(columns, row)) for row in results]
+
+    # TRANSCRIPTIONS
+
+    def upsert_transcription(
+        self,
+        audio_content_hash: str,
+        media_path: str,
+        file_size: int,
+        transcription_path: str | None,
+        episode_url: str | None,
+        podcast_title: str,
+        episode_title: str,
+        backend: str,
+        model_size: str,
+        language: str,
+        duration: float,
+        transcription_time: float,
+        has_diarization: bool,
+        speaker_count: int,
+        word_count: int,
+        segments: list,
+    ) -> int:
+        """Insert or update transcription record with segments.
+
+        Args:
+            audio_content_hash: SHA256 hash of audio content
+            media_path: Path to audio file
+            file_size: File size in bytes
+            transcription_path: Path to transcription output file
+            episode_url: Optional episode URL for linking
+            podcast_title: Podcast title
+            episode_title: Episode title
+            backend: Backend used (mlx-whisper, faster-whisper, etc.)
+            model_size: Model size (tiny, base, small, medium, large)
+            language: Language code (e.g., "en")
+            duration: Audio duration in seconds
+            transcription_time: Time taken to transcribe
+            has_diarization: Whether diarization was applied
+            speaker_count: Number of speakers detected
+            word_count: Total word count
+            segments: List of TranscriptionSegment objects
+
+        Returns:
+            Transcription ID
+        """
+        import json
+
+        now = datetime.datetime.now(tz=datetime.UTC).isoformat()
+
+        # Prepare metadata
+        metadata = {
+            "backend": backend,
+            "model_size": model_size,
+            "transcription_time": transcription_time,
+        }
+
+        # Prepare transcription record
+        transcription_record = {
+            "audio_content_hash": audio_content_hash,
+            "media_path": media_path,
+            "file_size": file_size,
+            "transcription_path": transcription_path,
+            "episode_url": episode_url,
+            "podcast_title": podcast_title,
+            "episode_title": episode_title,
+            "backend": backend,
+            "model_size": model_size,
+            "language": language,
+            "duration": duration,
+            "transcription_time": transcription_time,
+            "has_diarization": 1 if has_diarization else 0,
+            "speaker_count": speaker_count,
+            "word_count": word_count,
+            "created_time": now,
+            "updated_time": now,
+            "metadata_json": json.dumps(metadata),
+        }
+
+        # Check if transcription exists
+        existing = list(
+            self._table("transcriptions").rows_where(
+                "audio_content_hash = ?",
+                [audio_content_hash],
+                limit=1,
+            )
+        )
+
+        if existing:
+            # Update existing record
+            transcription_id = existing[0]["transcription_id"]
+            transcription_record["transcription_id"] = transcription_id
+            transcription_record["created_time"] = existing[0][
+                "created_time"
+            ]  # Keep original
+            self._table("transcriptions").update(
+                transcription_id,
+                transcription_record,
+            )
+        else:
+            # Insert new record
+            self._table("transcriptions").insert(transcription_record)
+            transcription_id = self._table("transcriptions").last_pk
+
+        # Save segments
+        self._upsert_transcription_segments(transcription_id, segments)
+
+        return transcription_id
+
+    def _upsert_transcription_segments(
+        self,
+        transcription_id: int,
+        segments: list,
+    ) -> None:
+        """Insert or update transcription segments.
+
+        Args:
+            transcription_id: ID of parent transcription
+            segments: List of TranscriptionSegment objects
+        """
+        # Delete existing segments for this transcription
+        self.db.execute(
+            "DELETE FROM transcription_segments WHERE transcription_id = ?",
+            [transcription_id],
+        )
+
+        # Prepare segment records
+        segment_records = []
+        for i, segment in enumerate(segments):
+            segment_records.append(
+                {
+                    "transcription_id": transcription_id,
+                    "segment_index": i,
+                    "start_time": segment.start,
+                    "end_time": segment.end,
+                    "text": segment.text,
+                    "speaker": segment.speaker,
+                }
+            )
+
+        # Insert all segments
+        if segment_records:
+            self._table("transcription_segments").insert_all(segment_records)
+
+    def get_transcription_by_hash(
+        self,
+        audio_hash: str,
+    ) -> dict | None:
+        """Get transcription by audio content hash.
+
+        Args:
+            audio_hash: SHA256 hash of audio content
+
+        Returns:
+            Transcription record dict or None if not found
+        """
+        rows = list(
+            self._table("transcriptions").rows_where(
+                "audio_content_hash = ?",
+                [audio_hash],
+                limit=1,
+            )
+        )
+        return dict(rows[0]) if rows else None
+
+    def get_transcription_by_path(
+        self,
+        media_path: str,
+    ) -> dict | None:
+        """Get transcription by media file path.
+
+        Args:
+            media_path: Path to media file
+
+        Returns:
+            Transcription record dict or None if not found
+        """
+        rows = list(
+            self._table("transcriptions").rows_where(
+                "media_path = ?",
+                [media_path],
+                limit=1,
+            )
+        )
+        return dict(rows[0]) if rows else None
+
+    def search_transcriptions(
+        self,
+        query: str,
+        podcast_title: str | None = None,
+        limit: int | None = None,
+    ) -> list[dict]:
+        """Full-text search across transcription segments.
+
+        Args:
+            query: Search query string
+            podcast_title: Optional filter by podcast title
+            limit: Optional limit on number of results
+
+        Returns:
+            List of matching segments with transcription metadata
+        """
+        # Build query
+        sql_query = """
+            SELECT
+                transcriptions.transcription_id,
+                transcriptions.podcast_title,
+                transcriptions.episode_title,
+                transcriptions.media_path,
+                transcriptions.language,
+                transcriptions.duration,
+                transcription_segments.segment_index,
+                transcription_segments.start_time,
+                transcription_segments.end_time,
+                transcription_segments.text,
+                transcription_segments.speaker
+            FROM transcription_segments
+            JOIN transcription_segments_fts
+                ON transcription_segments.rowid = transcription_segments_fts.rowid
+            JOIN transcriptions
+                ON transcription_segments.transcription_id = transcriptions.transcription_id
+            WHERE transcription_segments_fts MATCH ?
+        """
+
+        params = [query]
+
+        if podcast_title:
+            sql_query += " AND transcriptions.podcast_title = ?"
+            params.append(podcast_title)
+
+        sql_query += " ORDER BY rank"
+
+        if limit:
+            sql_query += f" LIMIT {limit}"
+
+        results = self.db.execute(sql_query, params).fetchall()
+
+        # Convert to list of dicts
+        columns = [
+            "transcription_id",
+            "podcast_title",
+            "episode_title",
+            "media_path",
+            "language",
+            "duration",
+            "segment_index",
+            "start_time",
+            "end_time",
+            "text",
+            "speaker",
+        ]
+
         return [dict(zip(columns, row)) for row in results]
