@@ -898,6 +898,7 @@ class Datastore:
             )
         )
 
+        transcription_id: int
         if existing:
             # Update existing record
             transcription_id = existing[0]["transcription_id"]
@@ -912,7 +913,10 @@ class Datastore:
         else:
             # Insert new record
             self._table("transcriptions").insert(transcription_record)
-            transcription_id = self._table("transcriptions").last_pk
+            last_pk = self._table("transcriptions").last_pk
+            if last_pk is None:
+                raise RuntimeError("Failed to insert transcription record")
+            transcription_id = int(last_pk)
 
         # Save segments
         self._upsert_transcription_segments(transcription_id, segments)
