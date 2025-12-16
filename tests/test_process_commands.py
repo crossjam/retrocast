@@ -1,0 +1,70 @@
+"""Tests for process commands (transcription CLI)."""
+
+
+import pytest
+from click.testing import CliRunner
+
+from retrocast.cli import cli
+
+
+class TestProcessCommands:
+    """Tests for process command group."""
+
+    @pytest.fixture
+    def runner(self):
+        """Create CLI test runner."""
+        return CliRunner()
+
+    def test_process_help(self, runner):
+        """Test process command help."""
+        result = runner.invoke(cli, ["process", "--help"])
+        assert result.exit_code == 0
+        assert "Process podcast audio files" in result.output
+        assert "transcribe" in result.output
+        assert "list-backends" in result.output
+
+    def test_list_backends(self, runner):
+        """Test list-backends command."""
+        result = runner.invoke(cli, ["process", "list-backends"])
+        assert result.exit_code == 0
+        assert "Backend" in result.output
+        assert "mlx-whisper" in result.output
+
+    def test_test_backend_unknown(self, runner):
+        """Test test-backend with unknown backend."""
+        result = runner.invoke(cli, ["process", "test-backend", "nonexistent"])
+        assert result.exit_code == 0
+        assert "Unknown backend" in result.output
+
+    def test_test_backend_mlx(self, runner):
+        """Test test-backend with MLX backend."""
+        result = runner.invoke(cli, ["process", "test-backend", "mlx-whisper"])
+        assert result.exit_code == 0
+        assert "mlx-whisper" in result.output
+        # Should show not available on non-macOS or without mlx_whisper installed
+        assert ("not available" in result.output.lower()) or (
+            "available and ready" in result.output.lower()
+        )
+
+    def test_transcribe_no_paths(self, runner):
+        """Test transcribe command with no paths."""
+        result = runner.invoke(cli, ["process", "transcribe"])
+        assert result.exit_code != 0
+        # Should error because no paths provided
+
+    def test_transcribe_help(self, runner):
+        """Test transcribe command help."""
+        result = runner.invoke(cli, ["process", "transcribe", "--help"])
+        assert result.exit_code == 0
+        assert "Transcribe audio files" in result.output
+        assert "--backend" in result.output
+        assert "--model" in result.output
+        assert "--format" in result.output
+
+    def test_search_help(self, runner):
+        """Test search command help."""
+        result = runner.invoke(cli, ["process", "search", "--help"])
+        assert result.exit_code == 0
+        assert "Search transcribed content" in result.output
+        assert "--podcast" in result.output
+        assert "--limit" in result.output
