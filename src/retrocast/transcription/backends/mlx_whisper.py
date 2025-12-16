@@ -97,14 +97,21 @@ class MLXWhisperBackend(TranscriptionBackend):
             f"Transcribing {audio_path.name} with MLX Whisper ({model_size} model)"
         )
 
-        # Transcribe with mlx_whisper
+        # Transcribe with mlx_whisper (suppress progress output)
         try:
-            result = mlx_whisper.transcribe(
-                str(audio_path),
-                path_or_hf_repo=model_path,
-                language=language,
-                verbose=False,
-            )
+            import contextlib
+            import io
+
+            # Suppress stdout/stderr to hide MLX Whisper's progress bars
+            with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(
+                io.StringIO()
+            ):
+                result = mlx_whisper.transcribe(
+                    str(audio_path),
+                    path_or_hf_repo=model_path,
+                    language=language,
+                    verbose=False,
+                )
         except Exception as e:
             raise RuntimeError(f"MLX Whisper transcription failed: {e}") from e
 

@@ -158,74 +158,83 @@ def transcribe(
         console.print(f"[red]Error initializing transcription: {e}[/red]")
         ctx.exit(1)
 
-    # Process files with progress bar
-    with Progress(
-        SpinnerColumn(),
-        TextColumn("[progress.description]{task.description}"),
-        BarColumn(),
-        TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
-        TimeElapsedColumn(),
-        console=console,
-    ) as progress:
-        main_task = progress.add_task(
-            "[cyan]Transcribing audio files...", total=len(audio_files)
-        )
+    # Temporarily suppress INFO logs during transcription to avoid cluttering progress
+    from loguru import logger
 
-        success_count = 0
-        skip_count = 0
-        error_count = 0
+    logger_id = logger.add(lambda _: None, level="WARNING", filter=lambda r: True)
 
-        for audio_file in audio_files:
-            # Update progress
-            progress.update(
-                main_task,
-                description=f"[cyan]Transcribing {audio_file.name}...",
+    try:
+        # Process files with progress bar
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+            TimeElapsedColumn(),
+            console=console,
+        ) as progress:
+            main_task = progress.add_task(
+                "[cyan]Transcribing audio files...", total=len(audio_files)
             )
 
-            try:
-                # Transcribe
-                result = manager.transcribe_file(
-                    audio_path=audio_file,
-                    podcast_title=audio_file.parent.name,
-                    episode_title=audio_file.stem,
-                    language=language,
-                    output_format=output_format,
-                    force=force,
+            success_count = 0
+            skip_count = 0
+            error_count = 0
+
+            for audio_file in audio_files:
+                # Update progress
+                progress.update(
+                    main_task,
+                    description=f"[cyan]Transcribing {audio_file.name}...",
                 )
 
-                console.print(
-                    f"[green]✓[/green] {audio_file.name}: "
-                    f"{result.word_count()} words, "
-                    f"{result.duration:.1f}s, "
-                    f"language: {result.language}"
-                )
-                success_count += 1
-
-            except RuntimeError as e:
-                if "already exists" in str(e):
-                    console.print(
-                        f"[yellow]⊘[/yellow] {audio_file.name}: "
-                        f"Already transcribed (use --force to re-transcribe)"
+                try:
+                    # Transcribe
+                    result = manager.transcribe_file(
+                        audio_path=audio_file,
+                        podcast_title=audio_file.parent.name,
+                        episode_title=audio_file.stem,
+                        language=language,
+                        output_format=output_format,
+                        force=force,
                     )
-                    skip_count += 1
-                else:
+
+                    console.print(
+                        f"[green]✓[/green] {audio_file.name}: "
+                        f"{result.word_count()} words, "
+                        f"{result.duration:.1f}s, "
+                        f"language: {result.language}"
+                    )
+                    success_count += 1
+
+                except RuntimeError as e:
+                    if "already exists" in str(e):
+                        console.print(
+                            f"[yellow]⊘[/yellow] {audio_file.name}: "
+                            f"Already transcribed (use --force to re-transcribe)"
+                        )
+                        skip_count += 1
+                    else:
+                        console.print(f"[red]✗[/red] {audio_file.name}: {e}")
+                        error_count += 1
+
+                except Exception as e:
                     console.print(f"[red]✗[/red] {audio_file.name}: {e}")
                     error_count += 1
 
-            except Exception as e:
-                console.print(f"[red]✗[/red] {audio_file.name}: {e}")
-                error_count += 1
+                # Update progress
+                progress.update(main_task, advance=1)
 
-            # Update progress
-            progress.update(main_task, advance=1)
-
-    # Summary
-    console.print(
-        f"\n[bold]Transcription complete:[/bold] "
-        f"[green]{success_count} succeeded[/green], "
-        f"[yellow]{skip_count} skipped[/yellow], "
-        f"[red]{error_count} failed[/red]\n"
-    )
+        # Summary
+        console.print(
+            f"\n[bold]Transcription complete:[/bold] "
+            f"[green]{success_count} succeeded[/green], "
+            f"[yellow]{skip_count} skipped[/yellow], "
+            f"[red]{error_count} failed[/red]\n"
+        )
+    finally:
+        # Restore normal logging
+        logger.remove(logger_id)
 
 
 @process.command(name="list-backends")
