@@ -26,7 +26,7 @@ MLX Whisper provides the best performance on M1/M2/M3 Macs:
 poe install:transcription-mlx
 
 # Alternative: Direct installation
-pip install 'mlx-whisper>=0.4.0'
+uv pip install 'mlx-whisper>=0.4.0'
 ```
 
 ### For Linux with CUDA
@@ -38,8 +38,8 @@ For systems with NVIDIA GPUs and CUDA support:
 poe install:transcription-cuda
 
 # Alternative: Manual installation
-pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
-pip install 'faster-whisper>=1.0.0'
+uv pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+uv pip install 'faster-whisper>=1.0.0'
 ```
 
 ### For CPU-Only (Any Platform)
@@ -51,7 +51,7 @@ For systems without GPU acceleration:
 poe install:transcription-cpu
 
 # Alternative: Direct installation
-pip install 'faster-whisper>=1.0.0' 'torch>=2.0.0'
+uv pip install 'faster-whisper>=1.0.0' 'torch>=2.0.0'
 ```
 
 ### Verify Installation

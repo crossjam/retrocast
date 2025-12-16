@@ -189,18 +189,18 @@ ignore_fail = false
 # Transcription backend installation
 [tool.poe.tasks."install:transcription-mlx"]
 help = "Install MLX Whisper backend for Apple Silicon (macOS only)"
-cmd = "pip install 'mlx-whisper>=0.4.0'"
+cmd = "uv pip install 'mlx-whisper>=0.4.0'"
 
 [tool.poe.tasks."install:transcription-cuda"]
 help = "Install faster-whisper with CUDA support (Linux with NVIDIA GPU)"
 sequence = [
-  "pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121",
-  "pip install 'faster-whisper>=1.0.0'"
+  "uv pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121",
+  "uv pip install 'faster-whisper>=1.0.0'"
 ]
 
 [tool.poe.tasks."install:transcription-cpu"]
 help = "Install faster-whisper for CPU-only (any platform)"
-cmd = "pip install 'faster-whisper>=1.0.0' 'torch>=2.0.0'"
+cmd = "uv pip install 'faster-whisper>=1.0.0' 'torch>=2.0.0'"
 
 [tool.uv.sources]
 loguru-config = { git = "https://github.com/crossjam/loguru-config" }
