@@ -24,11 +24,17 @@ def get_all_backends() -> list[Type[TranscriptionBackend]]:
     Returns:
         List of backend classes
     """
-    # Import backends here to trigger registration
-    # As backends are implemented in Phase 2+, they will be imported here
-    # Example:
-    # from retrocast.transcription.backends.mlx_whisper import MLXWhisperBackend
+    # Import and register backends
+    try:
+        from retrocast.transcription.backends.mlx_whisper import MLXWhisperBackend
+
+        register_backend(MLXWhisperBackend)
+    except ImportError:
+        pass  # MLX backend dependencies not available
+
+    # Future backends will be imported here:
     # from retrocast.transcription.backends.faster_whisper import FasterWhisperBackend
+    # register_backend(FasterWhisperBackend)
 
     return _BACKENDS.copy()
 
