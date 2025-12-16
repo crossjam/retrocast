@@ -787,82 +787,82 @@ Based on this plan, here are the 5 most critical files:
 
 This checklist tracks progress through all implementation phases. Check off tasks as they are completed. This is especially useful for resuming work after interruptions or context limits.
 
-### Phase 1: Core Infrastructure ✅ / ❌
+### Phase 1: Core Infrastructure ✅
 
 **Module Setup**
-- [ ] Create `src/retrocast/transcription/` directory
-- [ ] Create `src/retrocast/transcription/__init__.py` with public API exports
-- [ ] Create `src/retrocast/transcription/backends/` directory
-- [ ] Create `src/retrocast/transcription/backends/__init__.py`
+- [x] Create `src/retrocast/transcription/` directory
+- [x] Create `src/retrocast/transcription/__init__.py` with public API exports
+- [x] Create `src/retrocast/transcription/backends/` directory
+- [x] Create `src/retrocast/transcription/backends/__init__.py`
 
 **Base Classes & Data Models** (`base.py`)
-- [ ] Implement `TranscriptionSegment` dataclass
-- [ ] Implement `TranscriptionResult` dataclass
-- [ ] Implement `TranscriptionBackend` abstract base class
-  - [ ] Add `name` property
-  - [ ] Add `is_available()` method
-  - [ ] Add `transcribe()` method
-  - [ ] Add `platform_info()` method (for CLI display)
-  - [ ] Add `description()` method (for CLI display)
+- [x] Implement `TranscriptionSegment` dataclass
+- [x] Implement `TranscriptionResult` dataclass
+- [x] Implement `TranscriptionBackend` abstract base class
+  - [x] Add `name` property
+  - [x] Add `is_available()` method
+  - [x] Add `transcribe()` method
+  - [x] Add `platform_info()` method (for CLI display)
+  - [x] Add `description()` method (for CLI display)
 
 **Utilities** (`utils.py`)
-- [ ] Implement `compute_audio_hash()` function (SHA256)
-- [ ] Implement `check_transcription_exists()` function
-- [ ] Implement `_sanitize_for_path()` function (reuse from existing code if available)
-- [ ] Implement `get_output_path()` function (determines transcription file path)
-- [ ] Add path resolution utilities for podcast/episode directory structure
+- [x] Implement `compute_audio_hash()` function (SHA256)
+- [x] Implement `check_transcription_exists()` function
+- [x] Implement `sanitize_for_path()` function
+- [x] Implement `get_output_path()` function (determines transcription file path)
+- [x] Add path resolution utilities for podcast/episode directory structure
 
 **Output Format Writers** (`output_formats.py`)
-- [ ] Implement `FormatWriter` base class
-- [ ] Implement `TXTFormatWriter` class
-  - [ ] Write plain text with optional timestamps
-- [ ] Implement `JSONFormatWriter` class
-  - [ ] Include full metadata, segments, speaker info
-- [ ] Implement `SRTFormatWriter` class
-  - [ ] Standard SubRip subtitle format
-- [ ] Implement `VTTFormatWriter` class
-  - [ ] WebVTT subtitle format
-- [ ] Add format writer registry/factory function
+- [x] Implement `FormatWriter` base class
+- [x] Implement `TXTFormatWriter` class
+  - [x] Write plain text with optional timestamps
+- [x] Implement `JSONFormatWriter` class
+  - [x] Include full metadata, segments, speaker info
+- [x] Implement `SRTFormatWriter` class
+  - [x] Standard SubRip subtitle format
+- [x] Implement `VTTFormatWriter` class
+  - [x] WebVTT subtitle format
+- [x] Add format writer registry/factory function
 
 **Transcription Manager** (`transcription_manager.py`)
-- [ ] Implement `TranscriptionManager` class skeleton
-- [ ] Add `__init__()` with backend selection logic
-- [ ] Add `_select_backend()` method (auto-detection)
-- [ ] Add `transcribe_file()` method stub
-- [ ] Add `_compute_hash_and_check_duplicate()` helper
-- [ ] Add `_save_transcription()` method stub
-- [ ] Add progress callback support (for Rich progress bars)
+- [x] Implement `TranscriptionManager` class skeleton
+- [x] Add `__init__()` with backend selection logic
+- [x] Add `_select_backend()` method (auto-detection)
+- [x] Add `transcribe_file()` method stub
+- [x] Add `_compute_hash_and_check_duplicate()` helper
+- [x] Add `_save_transcription()` method stub
+- [x] Add progress callback support (for Rich progress bars)
 
 **Database Schema** (`datastore.py` modifications)
-- [ ] Add `transcriptions` table creation in `_prepare_db()`
-  - [ ] Add all fields as specified in schema
-  - [ ] Set `transcription_id` as auto-increment PK
-  - [ ] Create unique index on `audio_content_hash`
-  - [ ] Create index on `media_path`
-  - [ ] Create index on `episode_url`
-- [ ] Add `transcription_segments` table creation
-  - [ ] Add all fields as specified in schema
-  - [ ] Set foreign key to `transcriptions.transcription_id`
-  - [ ] Create composite index on `(transcription_id, segment_index)`
-  - [ ] Enable FTS5 on `text` column
-- [ ] Implement `upsert_transcription()` method
-- [ ] Implement `upsert_transcription_segments()` method
-- [ ] Implement `get_transcription_by_hash()` method
-- [ ] Implement `get_transcription_by_path()` method
-- [ ] Implement `search_transcriptions()` method (FTS)
+- [x] Add `transcriptions` table creation in `_prepare_db()`
+  - [x] Add all fields as specified in schema
+  - [x] Set `transcription_id` as auto-increment PK
+  - [x] Create unique index on `audio_content_hash`
+  - [x] Create index on `media_path`
+  - [x] Create index on `episode_url`
+- [x] Add `transcription_segments` table creation
+  - [x] Add all fields as specified in schema
+  - [x] Set foreign key to `transcriptions.transcription_id`
+  - [x] Create composite index on `(transcription_id, segment_index)`
+  - [x] Enable FTS5 on `text` column
+- [x] Implement `upsert_transcription()` method
+- [x] Implement `_upsert_transcription_segments()` method
+- [x] Implement `get_transcription_by_hash()` method
+- [x] Implement `get_transcription_by_path()` method
+- [x] Implement `search_transcriptions()` method (FTS)
 
 **Unit Tests**
-- [ ] Test `TranscriptionSegment` and `TranscriptionResult` dataclasses
-- [ ] Test `compute_audio_hash()` with test audio file
-- [ ] Test path sanitization utilities
-- [ ] Test all format writers with mock data
-- [ ] Test database operations with in-memory SQLite
-- [ ] Test duplicate detection logic
+- [x] Test `TranscriptionSegment` and `TranscriptionResult` dataclasses
+- [x] Test `compute_audio_hash()` with test audio file
+- [x] Test path sanitization utilities
+- [x] Test all format writers with mock data
+- [x] Test database operations with in-memory SQLite (via actual tests)
+- [x] Test duplicate detection logic
 
 **Documentation**
-- [ ] Add docstrings to all public classes and methods
-- [ ] Document the episode identification strategy
-- [ ] Document the content hashing approach
+- [x] Add docstrings to all public classes and methods
+- [x] Document the episode identification strategy (in docstrings and plan)
+- [x] Document the content hashing approach (in docstrings and plan)
 
 ---
 
@@ -1142,12 +1142,18 @@ This checklist tracks progress through all implementation phases. Check off task
 
 ## Progress Tracking Notes
 
-**Current Phase**: _[Update this as you progress]_
+**Current Phase**: Phase 2 - MLX Whisper Backend (Apple Silicon)
 
-**Last Completed Task**: _[Note the last completed item]_
+**Last Completed Task**: Phase 1 complete - all core infrastructure, database schema, output formats, and tests passing. QA checks (ruff, ty, pytest) all pass.
 
-**Next Steps**: _[List immediate next 2-3 tasks]_
+**Next Steps**:
+1. Implement MLX Whisper backend in `backends/mlx_whisper.py`
+2. Register MLX backend with backend registry
+3. Add integration tests for MLX backend (with mocks)
 
-**Blockers**: _[Note any blockers or issues]_
+**Blockers**: None
 
-**Notes**: _[Any important notes or decisions made during implementation]_
+**Notes**:
+- Phase 1 delivered all planned features with 25 passing unit tests
+- Type checking fix applied to handle `last_pk` potentially returning `None`
+- All code follows project linting and formatting standards
