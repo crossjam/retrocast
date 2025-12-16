@@ -492,3 +492,213 @@ class TestBackendRegistry:
         # Should not duplicate
         after_backends = get_all_backends()
         assert len(after_backends) == len(initial_backends)
+
+
+class TestTranscriptionDatabase:
+    """Tests for transcription database operations."""
+
+    def test_upsert_transcription_success(self):
+        """Test successful transcription insertion."""
+        from retrocast.datastore import Datastore
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            db_path = Path(tmpdir) / "test.db"
+            ds = Datastore(db_path)
+
+            # Create test segments
+            segments = [
+                {"start": 0.0, "end": 5.0, "text": "Hello world", "speaker": None},
+                {"start": 5.0, "end": 10.0, "text": "Test segment", "speaker": None},
+            ]
+
+            # Insert transcription
+            transcription_id = ds.upsert_transcription(
+                audio_content_hash="abc123",
+                media_path="/path/to/test.mp3",
+                file_size=1024,
+                transcription_path="/path/to/test.json",
+                episode_url="http://example.com/episode",
+                podcast_title="Test Podcast",
+                episode_title="Test Episode",
+                backend="mlx-whisper",
+                model_size="base",
+                language="en",
+                duration=10.0,
+                transcription_time=5.0,
+                has_diarization=False,
+                speaker_count=0,
+                word_count=10,
+                segments=segments,
+            )
+
+            assert isinstance(transcription_id, int)
+            assert transcription_id > 0
+
+            # Verify record exists
+            record = ds.db["transcriptions"].get(transcription_id)
+            assert record["audio_content_hash"] == "abc123"
+            assert record["podcast_title"] == "Test Podcast"
+            assert record["backend"] == "mlx-whisper"
+
+            # Verify segments were saved
+            segment_count = ds.db.execute(
+                "SELECT COUNT(*) FROM transcription_segments WHERE transcription_id = ?",
+                [transcription_id],
+            ).fetchone()[0]
+            assert segment_count == 2
+
+    def test_upsert_transcription_update_existing(self):
+        """Test updating an existing transcription."""
+        from retrocast.datastore import Datastore
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            db_path = Path(tmpdir) / "test.db"
+            ds = Datastore(db_path)
+
+            segments = [
+                {"start": 0.0, "end": 5.0, "text": "First version", "speaker": None}
+            ]
+
+            # Insert initial transcription
+            transcription_id_1 = ds.upsert_transcription(
+                audio_content_hash="same_hash",
+                media_path="/path/to/test.mp3",
+                file_size=1024,
+                transcription_path="/path/to/test.json",
+                episode_url="http://example.com/episode",
+                podcast_title="Test Podcast",
+                episode_title="Test Episode",
+                backend="mlx-whisper",
+                model_size="base",
+                language="en",
+                duration=5.0,
+                transcription_time=2.0,
+                has_diarization=False,
+                speaker_count=0,
+                word_count=5,
+                segments=segments,
+            )
+
+            # Update with same hash but different model
+            segments_v2 = [
+                {"start": 0.0, "end": 5.0, "text": "Updated version", "speaker": None}
+            ]
+
+            transcription_id_2 = ds.upsert_transcription(
+                audio_content_hash="same_hash",  # Same hash
+                media_path="/path/to/test.mp3",
+                file_size=1024,
+                transcription_path="/path/to/test.json",
+                episode_url="http://example.com/episode",
+                podcast_title="Test Podcast",
+                episode_title="Test Episode",
+                backend="mlx-whisper",
+                model_size="large",  # Different model
+                language="en",
+                duration=5.0,
+                transcription_time=10.0,  # Different time
+                has_diarization=False,
+                speaker_count=0,
+                word_count=6,
+                segments=segments_v2,
+            )
+
+            # Should return same ID (updated, not inserted)
+            assert transcription_id_1 == transcription_id_2
+
+            # Verify record was updated
+            record = ds.db["transcriptions"].get(transcription_id_2)
+            assert record["model_size"] == "large"
+            assert record["transcription_time"] == 10.0
+
+            # Verify only one record exists for this hash
+            count = ds.db.execute(
+                "SELECT COUNT(*) FROM transcriptions WHERE audio_content_hash = ?",
+                ["same_hash"],
+            ).fetchone()[0]
+            assert count == 1
+
+
+    def test_search_transcriptions(self):
+        """Test full-text search of transcriptions."""
+        from retrocast.datastore import Datastore
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            db_path = Path(tmpdir) / "test.db"
+            ds = Datastore(db_path)
+
+            # Insert test transcription
+            segments = [
+                {"start": 0.0, "end": 5.0, "text": "Machine learning is amazing", "speaker": None},
+                {"start": 5.0, "end": 10.0, "text": "Python programming tutorial", "speaker": None},
+            ]
+
+            ds.upsert_transcription(
+                audio_content_hash="search_test",
+                media_path="/path/to/test.mp3",
+                file_size=1024,
+                transcription_path="/path/to/test.json",
+                episode_url="http://example.com/episode",
+                podcast_title="Tech Podcast",
+                episode_title="ML Episode",
+                backend="mlx-whisper",
+                model_size="base",
+                language="en",
+                duration=10.0,
+                transcription_time=5.0,
+                has_diarization=False,
+                speaker_count=0,
+                word_count=20,
+                segments=segments,
+            )
+
+            # Search for "machine learning"
+            results = ds.search_transcriptions("machine learning", limit=10)
+            assert len(results) > 0
+
+            # Verify result contains expected fields
+            result = results[0]
+            assert "text" in result
+            assert "podcast_title" in result
+            assert "episode_title" in result
+            assert "machine learning" in result["text"].lower()
+
+    def test_search_transcriptions_with_podcast_filter(self):
+        """Test searching with podcast filter."""
+        from retrocast.datastore import Datastore
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            db_path = Path(tmpdir) / "test.db"
+            ds = Datastore(db_path)
+
+            # Insert transcriptions for different podcasts
+            for i, podcast in enumerate(["Podcast A", "Podcast B"]):
+                segments = [
+                    {"start": 0.0, "end": 5.0, "text": f"Python tutorial {i}", "speaker": None}
+                ]
+                ds.upsert_transcription(
+                    audio_content_hash=f"hash_{i}",
+                    media_path=f"/path/to/test{i}.mp3",
+                    file_size=1024,
+                    transcription_path=f"/path/to/test{i}.json",
+                    episode_url=f"http://example.com/episode{i}",
+                    podcast_title=podcast,
+                    episode_title=f"Episode {i}",
+                    backend="mlx-whisper",
+                    model_size="base",
+                    language="en",
+                    duration=5.0,
+                    transcription_time=2.0,
+                    has_diarization=False,
+                    speaker_count=0,
+                    word_count=10,
+                    segments=segments,
+                )
+
+            # Search only in Podcast A
+            results = ds.search_transcriptions("Python", podcast_title="Podcast A", limit=10)
+            assert len(results) > 0
+
+            # All results should be from Podcast A
+            for result in results:
+                assert result["podcast_title"] == "Podcast A"

@@ -914,13 +914,10 @@ class Datastore:
             # Insert new record
             try:
                 self._table("transcriptions").insert(transcription_record)
-                last_pk = self._table("transcriptions").last_pk
-                if last_pk is None:
-                    raise RuntimeError(
-                        "Failed to insert transcription record: last_pk is None. "
-                        "This may indicate a database constraint violation or insert failure."
-                    )
-                transcription_id = int(last_pk)
+                # Get the last inserted row ID using SQL
+                transcription_id = self.db.execute(
+                    "SELECT last_insert_rowid()"
+                ).fetchone()[0]
             except Exception as e:
                 # Provide detailed error information
                 raise RuntimeError(
@@ -954,14 +951,26 @@ class Datastore:
         # Prepare segment records
         segment_records = []
         for i, segment in enumerate(segments):
+            # Handle both dict and TranscriptionSegment object
+            if isinstance(segment, dict):
+                start = segment["start"]
+                end = segment["end"]
+                text = segment["text"]
+                speaker = segment.get("speaker")
+            else:
+                start = segment.start
+                end = segment.end
+                text = segment.text
+                speaker = segment.speaker
+
             segment_records.append(
                 {
                     "transcription_id": transcription_id,
                     "segment_index": i,
-                    "start_time": segment.start,
-                    "end_time": segment.end,
-                    "text": segment.text,
-                    "speaker": segment.speaker,
+                    "start_time": start,
+                    "end_time": end,
+                    "text": text,
+                    "speaker": speaker,
                 }
             )
 
