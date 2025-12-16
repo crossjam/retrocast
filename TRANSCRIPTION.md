@@ -15,33 +15,55 @@ The retrocast transcription module enables you to transcribe podcast audio files
 
 ## Installation
 
+retrocast provides convenient poe tasks to install transcription backends for different platforms.
+
 ### For Apple Silicon (macOS)
 
 MLX Whisper provides the best performance on M1/M2/M3 Macs:
 
 ```bash
-# Install retrocast with MLX backend
-uv pip install -e ".[transcription-mlx]"
+# Recommended: Use poe task
+poe install:transcription-mlx
 
-# Or install mlx-whisper separately
-pip install mlx-whisper
+# Alternative: Direct installation
+uv pip install 'mlx-whisper>=0.4.0'
 ```
 
 ### For Linux with CUDA
 
-```bash
-# Install PyTorch with CUDA support first
-pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+For systems with NVIDIA GPUs and CUDA support:
 
-# Then install retrocast with CUDA transcription
-uv pip install -e ".[transcription-cuda]"
+```bash
+# Recommended: Use poe task (installs PyTorch with CUDA + faster-whisper)
+poe install:transcription-cuda
+
+# Alternative: Manual installation
+uv pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+uv pip install 'faster-whisper>=1.0.0'
 ```
 
 ### For CPU-Only (Any Platform)
 
+For systems without GPU acceleration:
+
 ```bash
-# Install with CPU-only support
-uv pip install -e ".[transcription-cpu]"
+# Recommended: Use poe task
+poe install:transcription-cpu
+
+# Alternative: Direct installation
+uv pip install 'faster-whisper>=1.0.0' 'torch>=2.0.0'
+```
+
+### Verify Installation
+
+After installing a backend, verify it's working:
+
+```bash
+# List available backends
+retrocast process list-backends
+
+# Test specific backend
+retrocast process test-backend mlx-whisper
 ```
 
 ## Quick Start
@@ -436,11 +458,14 @@ retrocast process transcribe --force --model large important_episode.mp3
 
 **Solution**:
 ```bash
-# For MLX on macOS
-pip install mlx-whisper
+# For MLX on macOS (Apple Silicon)
+poe install:transcription-mlx
 
-# For faster-whisper
-pip install faster-whisper torch
+# For faster-whisper with CUDA (Linux with GPU)
+poe install:transcription-cuda
+
+# For faster-whisper CPU-only (any platform)
+poe install:transcription-cpu
 
 # Verify installation
 retrocast process test-backend mlx-whisper
