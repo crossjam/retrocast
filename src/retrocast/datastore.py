@@ -912,11 +912,22 @@ class Datastore:
             )
         else:
             # Insert new record
-            self._table("transcriptions").insert(transcription_record)
-            last_pk = self._table("transcriptions").last_pk
-            if last_pk is None:
-                raise RuntimeError("Failed to insert transcription record")
-            transcription_id = int(last_pk)
+            try:
+                self._table("transcriptions").insert(transcription_record)
+                last_pk = self._table("transcriptions").last_pk
+                if last_pk is None:
+                    raise RuntimeError(
+                        "Failed to insert transcription record: last_pk is None. "
+                        "This may indicate a database constraint violation or insert failure."
+                    )
+                transcription_id = int(last_pk)
+            except Exception as e:
+                # Provide detailed error information
+                raise RuntimeError(
+                    f"Failed to insert transcription record for {media_path}. "
+                    f"Audio hash: {audio_content_hash}. "
+                    f"Error: {type(e).__name__}: {e}"
+                ) from e
 
         # Save segments
         self._upsert_transcription_segments(transcription_id, segments)
