@@ -158,10 +158,10 @@ def transcribe(
         console.print(f"[red]Error initializing transcription: {e}[/red]")
         ctx.exit(1)
 
-    # Temporarily suppress INFO logs during transcription to avoid cluttering progress
+    # Temporarily disable loguru during transcription to clean up progress output
     from loguru import logger
 
-    logger_id = logger.add(lambda _: None, level="WARNING", filter=lambda r: True)
+    logger.disable("retrocast")
 
     try:
         # Process files with progress bar
@@ -234,7 +234,7 @@ def transcribe(
         )
     finally:
         # Restore normal logging
-        logger.remove(logger_id)
+        logger.enable("retrocast")
 
 
 @process.command(name="list-backends")
