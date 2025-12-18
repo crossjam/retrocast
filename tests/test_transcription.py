@@ -32,9 +32,7 @@ class TestTranscriptionSegment:
 
     def test_segment_creation(self):
         """Test creating a transcription segment."""
-        segment = TranscriptionSegment(
-            start=0.0, end=5.0, text="Hello world", speaker=None
-        )
+        segment = TranscriptionSegment(start=0.0, end=5.0, text="Hello world", speaker=None)
         assert segment.start == 0.0
         assert segment.end == 5.0
         assert segment.text == "Hello world"
@@ -47,9 +45,7 @@ class TestTranscriptionSegment:
 
     def test_segment_with_speaker(self):
         """Test segment with speaker diarization."""
-        segment = TranscriptionSegment(
-            start=0.0, end=5.0, text="Hello", speaker="SPEAKER_1"
-        )
+        segment = TranscriptionSegment(start=0.0, end=5.0, text="Hello", speaker="SPEAKER_1")
         assert segment.speaker == "SPEAKER_1"
         assert "[SPEAKER_1]" in str(segment)
 
@@ -246,9 +242,7 @@ class TestFormatWriters:
 
     def test_txt_format_writer(self, sample_result):
         """Test TXT format writer."""
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".txt", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
             output_path = Path(f.name)
 
         try:
@@ -265,9 +259,7 @@ class TestFormatWriters:
 
     def test_txt_format_writer_no_timestamps(self, sample_result):
         """Test TXT format writer without timestamps."""
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".txt", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
             output_path = Path(f.name)
 
         try:
@@ -282,9 +274,7 @@ class TestFormatWriters:
 
     def test_json_format_writer(self, sample_result):
         """Test JSON format writer."""
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".json", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             output_path = Path(f.name)
 
         try:
@@ -305,9 +295,7 @@ class TestFormatWriters:
 
     def test_srt_format_writer(self, sample_result):
         """Test SRT format writer."""
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".srt", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".srt", delete=False) as f:
             output_path = Path(f.name)
 
         try:
@@ -325,9 +313,7 @@ class TestFormatWriters:
 
     def test_vtt_format_writer(self, sample_result):
         """Test VTT format writer."""
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".vtt", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".vtt", delete=False) as f:
             output_path = Path(f.name)
 
         try:
@@ -428,9 +414,9 @@ class TestMLXWhisperBackend:
 
         backend = MLXWhisperBackend()
 
-        # mlx_whisper not installed, so this should raise ImportError
-        # (not FileNotFoundError which comes after the import check)
-        with pytest.raises(ImportError, match="mlx_whisper is not installed"):
+        # If mlx_whisper is not installed, should raise ImportError
+        # If mlx_whisper IS installed, should raise FileNotFoundError
+        with pytest.raises((ImportError, FileNotFoundError)):
             backend.transcribe(Path("/nonexistent/file.mp3"))
 
     def test_convert_result(self):
@@ -555,9 +541,7 @@ class TestTranscriptionDatabase:
             db_path = Path(tmpdir) / "test.db"
             ds = Datastore(db_path)
 
-            segments = [
-                {"start": 0.0, "end": 5.0, "text": "First version", "speaker": None}
-            ]
+            segments = [{"start": 0.0, "end": 5.0, "text": "First version", "speaker": None}]
 
             # Insert initial transcription
             transcription_id_1 = ds.upsert_transcription(
@@ -580,9 +564,7 @@ class TestTranscriptionDatabase:
             )
 
             # Update with same hash but different model
-            segments_v2 = [
-                {"start": 0.0, "end": 5.0, "text": "Updated version", "speaker": None}
-            ]
+            segments_v2 = [{"start": 0.0, "end": 5.0, "text": "Updated version", "speaker": None}]
 
             transcription_id_2 = ds.upsert_transcription(
                 audio_content_hash="same_hash",  # Same hash
@@ -617,7 +599,6 @@ class TestTranscriptionDatabase:
                 ["same_hash"],
             ).fetchone()[0]
             assert count == 1
-
 
     def test_search_transcriptions(self):
         """Test full-text search of transcriptions."""
