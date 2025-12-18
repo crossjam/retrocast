@@ -21,24 +21,24 @@ class TestProcessCommands:
         assert result.exit_code == 0
         assert "Process podcast audio files" in result.output
         assert "transcribe" in result.output
-        assert "list-backends" in result.output
+        assert "backends" in result.output
 
     def test_list_backends(self, runner):
-        """Test list-backends command."""
-        result = runner.invoke(cli, ["process", "list-backends"])
+        """Test backends list command."""
+        result = runner.invoke(cli, ["process", "backends", "list"])
         assert result.exit_code == 0
         assert "Backend" in result.output
         assert "mlx-whisper" in result.output
 
     def test_test_backend_unknown(self, runner):
-        """Test test-backend with unknown backend."""
-        result = runner.invoke(cli, ["process", "test-backend", "nonexistent"])
+        """Test backends test with unknown backend."""
+        result = runner.invoke(cli, ["process", "backends", "test", "nonexistent"])
         assert result.exit_code == 0
         assert "Unknown backend" in result.output
 
     def test_test_backend_mlx(self, runner):
-        """Test test-backend with MLX backend."""
-        result = runner.invoke(cli, ["process", "test-backend", "mlx-whisper"])
+        """Test backends test with MLX backend."""
+        result = runner.invoke(cli, ["process", "backends", "test", "mlx-whisper"])
         assert result.exit_code == 0
         assert "mlx-whisper" in result.output
         # Should show not available on non-macOS or without mlx_whisper installed

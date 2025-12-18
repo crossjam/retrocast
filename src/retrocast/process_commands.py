@@ -237,11 +237,23 @@ def transcribe(
         logger.enable("retrocast")
 
 
-@process.command(name="list-backends")
+@process.group(name="backends")
+def backends() -> None:
+    """Manage transcription backends.
+
+    Commands for listing, testing, and managing transcription backends.
+    """
+    pass
+
+
+@backends.command(name="list")
 def list_backends() -> None:
     """List available transcription backends.
 
     Shows which backends are installed and available on your system.
+
+    Example:
+        retrocast process backends list
     """
     from retrocast.transcription.backends import get_all_backends
 
@@ -289,7 +301,7 @@ def list_backends() -> None:
                 console.print("  • faster-whisper: pip install faster-whisper torch")
 
 
-@process.command(name="test-backend")
+@backends.command(name="test")
 @click.argument("backend_name", type=str)
 def test_backend(backend_name: str) -> None:
     """Test if a specific backend is available.
@@ -297,7 +309,7 @@ def test_backend(backend_name: str) -> None:
     BACKEND_NAME: Name of backend to test (e.g., 'mlx-whisper')
 
     Example:
-        retrocast process test-backend mlx-whisper
+        retrocast process backends test mlx-whisper
     """
     from retrocast.transcription.backends import get_all_backends
 

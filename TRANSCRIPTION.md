@@ -59,10 +59,10 @@ After installing a backend, verify it's working:
 
 ```bash
 # List available backends
-retrocast process list-backends
+retrocast process backends list
 
 # Test specific backend
-retrocast process test-backend mlx-whisper
+retrocast process backends test mlx-whisper
 ```
 
 ## Quick Start
@@ -72,7 +72,7 @@ retrocast process test-backend mlx-whisper
 Before transcribing, check which backends are available on your system:
 
 ```bash
-retrocast process list-backends
+retrocast process backends list
 ```
 
 Example output:
@@ -88,7 +88,7 @@ Example output:
 ### 2. Test a Specific Backend
 
 ```bash
-retrocast process test-backend mlx-whisper
+retrocast process backends test mlx-whisper
 ```
 
 ### 3. Transcribe Your First File
@@ -145,23 +145,23 @@ List all available transcription backends with their status.
 
 **Usage:**
 ```bash
-retrocast process list-backends
+retrocast process backends list
 ```
 
 Shows a table with backend name, availability status, platform requirements, and description.
 
-### `retrocast process test-backend`
+### `retrocast process backends test`
 
 Test if a specific backend is available and properly configured.
 
 **Usage:**
 ```bash
-retrocast process test-backend BACKEND_NAME
+retrocast process backends test BACKEND_NAME
 ```
 
 **Example:**
 ```bash
-retrocast process test-backend mlx-whisper
+retrocast process backends test mlx-whisper
 ```
 
 ### `retrocast process search`
@@ -453,7 +453,7 @@ retrocast process transcribe --force --model large important_episode.mp3
 
 ### Backend Not Available
 
-**Problem**: `retrocast process list-backends` shows backend as "Not Available"
+**Problem**: `retrocast process backends list` shows backend as "Not Available"
 
 **Solution**:
 ```bash
@@ -467,7 +467,7 @@ poe install:transcription-cuda
 poe install:transcription-cpu
 
 # Verify installation
-retrocast process test-backend mlx-whisper
+retrocast process backends test mlx-whisper
 ```
 
 ### CUDA Not Detected
