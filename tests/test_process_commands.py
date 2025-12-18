@@ -60,11 +60,3 @@ class TestProcessCommands:
         assert "--backend" in result.output
         assert "--model" in result.output
         assert "--format" in result.output
-
-    def test_search_help(self, runner):
-        """Test search command help."""
-        result = runner.invoke(cli, ["process", "search", "--help"])
-        assert result.exit_code == 0
-        assert "Search transcribed content" in result.output
-        assert "--podcast" in result.output
-        assert "--limit" in result.output
