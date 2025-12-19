@@ -294,5 +294,3 @@ def test_sync_overcast_init_idempotent(monkeypatch, tmp_path: Path) -> None:
     # Database should still be valid
     db_path = app_dir / "retrocast.db"
     assert db_path.exists()
-
-

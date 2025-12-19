@@ -34,28 +34,43 @@ The database schema initialization only happens when a command like `save` is ru
 
 ### Task Checklist
 
-- [ ] **Phase 1: Fix `overcast init` command**
-  - [ ] Modify `overcast.py:init()` to create a Datastore instance
-  - [ ] This will ensure all schemas are initialized when the command runs
-  - [ ] Update success messages to reflect schema initialization
+- [x] **Phase 1: Fix `overcast init` command**
+  - [x] Modify `overcast.py:init()` to create a Datastore instance
+  - [x] This will ensure all schemas are initialized when the command runs
+  - [x] Update success messages to reflect schema initialization
 
-- [ ] **Phase 2: Update `config initialize` command**
-  - [ ] Modify `cli.py:config_initialize()` to initialize database schemas
-  - [ ] Create a Datastore instance after creating app directory
-  - [ ] Update success messages to indicate database is initialized
+- [x] **Phase 2: Update `config initialize` command**
+  - [x] Modify `cli.py:config_initialize()` to initialize database schemas
+  - [x] Create a Datastore instance after creating app directory
+  - [x] Update success messages to indicate database is initialized
 
-- [ ] **Phase 3: Create tests**
-  - [ ] Add test for `config initialize` that verifies database tables exist
-  - [ ] Add test for `overcast init` that verifies database tables exist
-  - [ ] Verify transcription tables are created
-  - [ ] Verify views are created
+- [x] **Phase 3: Create tests**
+  - [x] Add test for `config initialize` that verifies database tables exist
+  - [x] Add test for `overcast init` that verifies database tables exist
+  - [x] Verify transcription tables are created
+  - [x] Verify views are created
 
-- [ ] **Phase 4: Validate changes**
-  - [ ] Run linter on modified files
-  - [ ] Run type checker on modified files
-  - [ ] Run existing tests to ensure no regressions
-  - [ ] Run new tests to verify functionality
-  - [ ] Manually test both commands
+- [x] **Phase 4: Validate changes**
+  - [x] Run linter on modified files
+  - [x] Run type checker on modified files
+  - [x] Run existing tests to ensure no regressions
+  - [x] Run new tests to verify functionality
+  - [x] Manually test both commands
+
+## Implementation Summary
+
+### Changes Made
+
+1. **src/retrocast/overcast.py** - Added single line to create Datastore instance in `init()` function
+2. **src/retrocast/cli.py** - Added Datastore initialization to `config_initialize()` function  
+3. **tests/test_cli.py** - Added 4 comprehensive tests for both init commands
+
+### Test Results
+
+- All 11 tests in test_cli.py pass
+- Total of 70 tests pass across entire test suite
+- Manual testing confirmed both commands create all expected tables, views, and FTS indexes
+- Commands are idempotent and safe to run multiple times
 
 ## Minimal Changes Required
 
