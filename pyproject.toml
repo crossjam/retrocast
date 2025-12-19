@@ -66,6 +66,30 @@ lint = [
     "types-pygments>=2.19.0.20250809",
 ]
 
+# Transcription backends - installed separately by user based on platform
+transcription-mlx = [
+    "mlx-whisper>=0.4.0; platform_system=='Darwin'",
+]
+
+transcription-cuda = [
+    "faster-whisper>=1.0.0",
+    "torch>=2.0.0",  # With CUDA support
+]
+
+transcription-cpu = [
+    "faster-whisper>=1.0.0",
+    "torch>=2.0.0",  # CPU-only
+]
+
+transcription-diarization = [
+    "pyannote.audio>=3.0.0",
+]
+
+# Convenience metapackage for all transcription features
+transcription-full = [
+    "retrocast[transcription-mlx,transcription-cuda,transcription-diarization]",
+]
+
 [project.scripts]
 retrocast = "retrocast.cli:cli"
 
@@ -161,6 +185,19 @@ cmd = "pytest --collect-only -q"
 help = "Run all QA checks (lint, type, test)"
 sequence = ["lint", "type", "test"]
 ignore_fail = false
+
+# Transcription backend installation
+[tool.poe.tasks."install:transcription-mlx"]
+help = "Install MLX Whisper backend for Apple Silicon (macOS only)"
+cmd = "uv sync --extra transcription-mlx"
+
+[tool.poe.tasks."install:transcription-cuda"]
+help = "Install faster-whisper with CUDA support (Linux with NVIDIA GPU)"
+cmd = "uv sync --extra transcription-cuda"
+
+[tool.poe.tasks."install:transcription-cpu"]
+help = "Install faster-whisper for CPU-only (any platform)"
+cmd = "uv sync --extra transcription-cpu"
 
 [tool.uv.sources]
 loguru-config = { git = "https://github.com/crossjam/loguru-config" }
