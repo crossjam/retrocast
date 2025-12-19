@@ -2,6 +2,7 @@ import builtins
 import importlib.util
 import json
 import shutil
+import sqlite3
 import sys
 import types
 from pathlib import Path
@@ -42,6 +43,25 @@ def _first_markdown_heading(markdown_text: str) -> str:
 
 
 ABOUT_HEADING = _first_markdown_heading(load_about_markdown())
+
+# Expected database schema components
+EXPECTED_TABLES = {
+    "feeds",
+    "feeds_extended",
+    "episodes",
+    "episodes_extended",
+    "playlists",
+    "chapters",
+    "episode_downloads",
+    "transcriptions",
+    "transcription_segments",
+}
+
+EXPECTED_VIEWS = {
+    "episodes_played",
+    "episodes_deleted",
+    "episodes_starred",
+}
 
 
 def test_cli_default_runs_about() -> None:
@@ -146,8 +166,6 @@ def test_config_initialize_creates_database_with_schemas(monkeypatch, tmp_path: 
     assert db_path.exists()
 
     # Verify database has the expected tables
-    import sqlite3
-
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 
@@ -155,34 +173,15 @@ def test_config_initialize_creates_database_with_schemas(monkeypatch, tmp_path: 
     cursor.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
     tables = {row[0] for row in cursor.fetchall()}
 
-    # Expected tables from Datastore._prepare_db()
-    expected_tables = {
-        "feeds",
-        "feeds_extended",
-        "episodes",
-        "episodes_extended",
-        "playlists",
-        "chapters",
-        "episode_downloads",
-        "transcriptions",
-        "transcription_segments",
-    }
-
     # Check that all expected tables exist
-    for table in expected_tables:
+    for table in EXPECTED_TABLES:
         assert table in tables, f"Table '{table}' not found in database"
 
     # Check that views were created
     cursor.execute("SELECT name FROM sqlite_master WHERE type='view' ORDER BY name")
     views = {row[0] for row in cursor.fetchall()}
 
-    expected_views = {
-        "episodes_played",
-        "episodes_deleted",
-        "episodes_starred",
-    }
-
-    for view in expected_views:
+    for view in EXPECTED_VIEWS:
         assert view in views, f"View '{view}' not found in database"
 
     conn.close()
@@ -228,8 +227,6 @@ def test_sync_overcast_init_creates_database_with_schemas(monkeypatch, tmp_path:
     assert db_path.exists()
 
     # Verify database has the expected tables
-    import sqlite3
-
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 
@@ -237,34 +234,15 @@ def test_sync_overcast_init_creates_database_with_schemas(monkeypatch, tmp_path:
     cursor.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
     tables = {row[0] for row in cursor.fetchall()}
 
-    # Expected tables from Datastore._prepare_db()
-    expected_tables = {
-        "feeds",
-        "feeds_extended",
-        "episodes",
-        "episodes_extended",
-        "playlists",
-        "chapters",
-        "episode_downloads",
-        "transcriptions",
-        "transcription_segments",
-    }
-
     # Check that all expected tables exist
-    for table in expected_tables:
+    for table in EXPECTED_TABLES:
         assert table in tables, f"Table '{table}' not found in database"
 
     # Check that views were created
     cursor.execute("SELECT name FROM sqlite_master WHERE type='view' ORDER BY name")
     views = {row[0] for row in cursor.fetchall()}
 
-    expected_views = {
-        "episodes_played",
-        "episodes_deleted",
-        "episodes_starred",
-    }
-
-    for view in expected_views:
+    for view in EXPECTED_VIEWS:
         assert view in views, f"View '{view}' not found in database"
 
     conn.close()
