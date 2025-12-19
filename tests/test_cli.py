@@ -128,3 +128,171 @@ def test_meta_group_exposes_overcast_transcripts_help() -> None:
 
     assert result.exit_code == 0
     assert "Download available transcripts" in result.output
+
+
+def test_config_initialize_creates_database_with_schemas(monkeypatch, tmp_path: Path) -> None:
+    """Test that config initialize creates database with all required schemas."""
+    app_dir = tmp_path / "retrocast-tests"
+    monkeypatch.setattr(platformdirs, "user_data_dir", lambda *_, **__: str(app_dir))
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["config", "initialize", "-y"])
+
+    assert result.exit_code == 0, result.output
+    assert app_dir.exists()
+
+    # Check that database was created
+    db_path = app_dir / "retrocast.db"
+    assert db_path.exists()
+
+    # Verify database has the expected tables
+    import sqlite3
+
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+
+    # Get all table names
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
+    tables = {row[0] for row in cursor.fetchall()}
+
+    # Expected tables from Datastore._prepare_db()
+    expected_tables = {
+        "feeds",
+        "feeds_extended",
+        "episodes",
+        "episodes_extended",
+        "playlists",
+        "chapters",
+        "episode_downloads",
+        "transcriptions",
+        "transcription_segments",
+    }
+
+    # Check that all expected tables exist
+    for table in expected_tables:
+        assert table in tables, f"Table '{table}' not found in database"
+
+    # Check that views were created
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='view' ORDER BY name")
+    views = {row[0] for row in cursor.fetchall()}
+
+    expected_views = {
+        "episodes_played",
+        "episodes_deleted",
+        "episodes_starred",
+    }
+
+    for view in expected_views:
+        assert view in views, f"View '{view}' not found in database"
+
+    conn.close()
+
+    # Verify output shows initialization success
+    assert "Database schemas:" in result.output
+    assert "Initialized" in result.output
+
+
+def test_config_initialize_idempotent(monkeypatch, tmp_path: Path) -> None:
+    """Test that config initialize can be run multiple times safely."""
+    app_dir = tmp_path / "retrocast-tests"
+    monkeypatch.setattr(platformdirs, "user_data_dir", lambda *_, **__: str(app_dir))
+
+    runner = CliRunner()
+
+    # First initialization
+    result1 = runner.invoke(cli, ["config", "initialize", "-y"])
+    assert result1.exit_code == 0
+
+    # Second initialization (should succeed without errors)
+    result2 = runner.invoke(cli, ["config", "initialize", "-y"])
+    assert result2.exit_code == 0
+
+    # Database should still be valid
+    db_path = app_dir / "retrocast.db"
+    assert db_path.exists()
+
+
+def test_sync_overcast_init_creates_database_with_schemas(monkeypatch, tmp_path: Path) -> None:
+    """Test that sync overcast init creates database with all required schemas."""
+    app_dir = tmp_path / "retrocast-tests"
+    monkeypatch.setattr(platformdirs, "user_data_dir", lambda *_, **__: str(app_dir))
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["sync", "overcast", "init"])
+
+    assert result.exit_code == 0, result.output
+    assert app_dir.exists()
+
+    # Check that database was created
+    db_path = app_dir / "retrocast.db"
+    assert db_path.exists()
+
+    # Verify database has the expected tables
+    import sqlite3
+
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+
+    # Get all table names
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
+    tables = {row[0] for row in cursor.fetchall()}
+
+    # Expected tables from Datastore._prepare_db()
+    expected_tables = {
+        "feeds",
+        "feeds_extended",
+        "episodes",
+        "episodes_extended",
+        "playlists",
+        "chapters",
+        "episode_downloads",
+        "transcriptions",
+        "transcription_segments",
+    }
+
+    # Check that all expected tables exist
+    for table in expected_tables:
+        assert table in tables, f"Table '{table}' not found in database"
+
+    # Check that views were created
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='view' ORDER BY name")
+    views = {row[0] for row in cursor.fetchall()}
+
+    expected_views = {
+        "episodes_played",
+        "episodes_deleted",
+        "episodes_starred",
+    }
+
+    for view in expected_views:
+        assert view in views, f"View '{view}' not found in database"
+
+    conn.close()
+
+    # Verify output shows initialization success
+    assert "Overcast Database Initialization" in result.output
+    assert "Created" in result.output or "Already exists" in result.output
+
+
+def test_sync_overcast_init_idempotent(monkeypatch, tmp_path: Path) -> None:
+    """Test that sync overcast init can be run multiple times safely."""
+    app_dir = tmp_path / "retrocast-tests"
+    monkeypatch.setattr(platformdirs, "user_data_dir", lambda *_, **__: str(app_dir))
+
+    runner = CliRunner()
+
+    # First initialization
+    result1 = runner.invoke(cli, ["sync", "overcast", "init"])
+    assert result1.exit_code == 0
+    assert "Created" in result1.output
+
+    # Second initialization (should succeed and report already exists)
+    result2 = runner.invoke(cli, ["sync", "overcast", "init"])
+    assert result2.exit_code == 0
+    assert "Already exists" in result2.output
+
+    # Database should still be valid
+    db_path = app_dir / "retrocast.db"
+    assert db_path.exists()
+
+

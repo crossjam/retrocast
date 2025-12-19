@@ -178,6 +178,12 @@ def config_initialize(ctx: click.Context, yes: bool) -> None:
         enable_file_logging=True,
     )
 
+    # Initialize database schemas
+    from retrocast.datastore import Datastore
+
+    db_path = get_default_db_path(create=True)
+    db = Datastore(db_path)  # noqa: F841 - Instantiation triggers schema initialization
+
     console.print()
     console.print("[bold cyan]retrocast Initialization[/bold cyan]")
     console.print()
@@ -187,7 +193,8 @@ def config_initialize(ctx: click.Context, yes: bool) -> None:
     table.add_column("Value")
     table.add_row("Config directory:", str(app_dir))
     table.add_row("Auth path:", str(get_auth_path(create=True)))
-    table.add_row("Database path:", str(get_default_db_path(create=True)))
+    table.add_row("Database path:", str(db_path))
+    table.add_row("Database schemas:", "[green]✓ Initialized[/green]")
 
     console.print(table)
     console.print()
