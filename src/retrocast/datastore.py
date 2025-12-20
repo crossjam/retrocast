@@ -392,25 +392,31 @@ class Datastore:
         # Get all schema objects
         schema_info = self.get_schema_info()
         
+        # Helper function to safely quote identifiers
+        def quote_identifier(name: str) -> str:
+            """Quote SQL identifier to prevent injection."""
+            # SQLite uses double quotes for identifiers
+            return f'"{name.replace('"', '""')}"'
+        
         # Drop triggers first (they depend on tables)
         for trigger in schema_info["triggers"]:
-            conn.execute(f"DROP TRIGGER IF EXISTS {trigger}")
+            conn.execute(f"DROP TRIGGER IF EXISTS {quote_identifier(trigger)}")
         
         # Drop views (they depend on tables)
         for view in schema_info["views"]:
-            conn.execute(f"DROP VIEW IF EXISTS {view}")
+            conn.execute(f"DROP VIEW IF EXISTS {quote_identifier(view)}")
         
         # Drop indices (some are associated with FTS)
         for index in schema_info["indices"]:
-            conn.execute(f"DROP INDEX IF EXISTS {index}")
+            conn.execute(f"DROP INDEX IF EXISTS {quote_identifier(index)}")
         
         # Drop FTS tables
         for fts_table in schema_info["fts_tables"]:
-            conn.execute(f"DROP TABLE IF EXISTS {fts_table}")
+            conn.execute(f"DROP TABLE IF EXISTS {quote_identifier(fts_table)}")
         
         # Drop regular tables
         for table in schema_info["tables"]:
-            conn.execute(f"DROP TABLE IF EXISTS {table}")
+            conn.execute(f"DROP TABLE IF EXISTS {quote_identifier(table)}")
         
         conn.commit()
         

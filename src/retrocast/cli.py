@@ -355,6 +355,14 @@ def location(ctx: click.Context, output_format) -> None:
 def reset_db(ctx: click.Context, dry_run: bool, yes: bool) -> None:
     """Reset the database schema (WARNING: destroys all data)"""
     
+    def format_truncated_list(items: list[str], max_items: int) -> str:
+        """Format a list with truncation indicator if needed."""
+        if len(items) <= max_items:
+            return ", ".join(items)
+        shown = ", ".join(items[:max_items])
+        remaining = len(items) - max_items
+        return f"{shown} ... (+{remaining} more)"
+    
     console = Console()
     db_path = get_default_db_path(create=False)
     
@@ -395,8 +403,7 @@ def reset_db(ctx: click.Context, dry_run: bool, yes: bool) -> None:
     table.add_row(
         "Tables",
         str(len(schema_info["tables"])),
-        ", ".join(schema_info["tables"][:5]) + 
-        (f" ... (+{len(schema_info['tables']) - 5} more)" if len(schema_info["tables"]) > 5 else ""),
+        format_truncated_list(schema_info["tables"], 5),
     )
     table.add_row(
         "Views",
@@ -411,8 +418,7 @@ def reset_db(ctx: click.Context, dry_run: bool, yes: bool) -> None:
     table.add_row(
         "FTS Tables",
         str(len(schema_info["fts_tables"])),
-        ", ".join(schema_info["fts_tables"][:3]) + 
-        (f" ... (+{len(schema_info['fts_tables']) - 3} more)" if len(schema_info["fts_tables"]) > 3 else ""),
+        format_truncated_list(schema_info["fts_tables"], 3),
     )
     table.add_row(
         "Triggers",
