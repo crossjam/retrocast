@@ -232,6 +232,9 @@ def init(ctx: click.Context) -> None:
     # Check if database already exists
     already_exists = Datastore.exists(db_path)
 
+    # Create the database by instantiating Datastore (this initializes all schemas)
+    db = Datastore(db_path)  # noqa: F841 - Instantiation triggers schema initialization
+
     console.print()
     console.print("[bold cyan]Overcast Database Initialization[/bold cyan]")
     console.print()
@@ -247,7 +250,6 @@ def init(ctx: click.Context) -> None:
     if already_exists:
         table.add_row("Status:", "[yellow]✓ Already exists[/yellow]")
     else:
-        # Create the database by instantiating Datastore
         table.add_row("Status:", "[green]✓ Created[/green]")
 
     console.print(table)

@@ -92,6 +92,7 @@ def config(ctx: click.Context) -> None:
 @click.pass_context
 def check(ctx: click.Context) -> None:
     """Report configuration status without making changes"""
+    from retrocast.datastore import Datastore
 
     console = Console()
     app_dir = get_app_dir(create=False)
@@ -101,6 +102,7 @@ def check(ctx: click.Context) -> None:
     app_exists = app_dir.exists()
     auth_exists = auth_path.exists() if app_exists else False
     db_exists = db_path.exists() if app_exists else False
+    db_initialized = Datastore.is_initialized(db_path) if app_exists else False
 
     table = Table(
         title="retrocast Configuration",
@@ -126,11 +128,23 @@ def check(ctx: click.Context) -> None:
             "[green]✓ Found[/green]" if auth_exists else "[yellow]⚠ Missing[/yellow]",
             "retrocast sync overcast auth" if not auth_exists else "",
         )
+
+        # Database row with initialization status
+        if db_initialized:
+            db_status = "[green]✓ Initialized[/green]"
+            db_action = ""
+        elif db_exists:
+            db_status = "[yellow]⚠ Not initialized[/yellow]"
+            db_action = "retrocast config initialize"
+        else:
+            db_status = "[yellow]⚠ Missing[/yellow]"
+            db_action = "retrocast config initialize"
+
         table.add_row(
             "Database",
             str(db_path),
-            "[green]✓ Found[/green]" if db_exists else "[yellow]⚠ Missing[/yellow]",
-            "retrocast sync overcast save" if not db_exists else "",
+            db_status,
+            db_action,
         )
     else:
         table.add_row("Auth File", str(auth_path), "[dim]n/a[/dim]", "Initialize app directory")
@@ -140,7 +154,7 @@ def check(ctx: click.Context) -> None:
     console.print(table)
     console.print()
 
-    if app_exists and auth_exists and db_exists:
+    if app_exists and auth_exists and db_initialized:
         console.print("[bold green]✓ Configuration ready[/bold green]")
         ctx.exit(0)
     console.print("[yellow]Setup incomplete; see suggested actions above.[/yellow]")
@@ -178,6 +192,12 @@ def config_initialize(ctx: click.Context, yes: bool) -> None:
         enable_file_logging=True,
     )
 
+    # Initialize database schemas
+    from retrocast.datastore import Datastore
+
+    db_path = get_default_db_path(create=True)
+    db = Datastore(db_path)  # noqa: F841 - Instantiation triggers schema initialization
+
     console.print()
     console.print("[bold cyan]retrocast Initialization[/bold cyan]")
     console.print()
@@ -187,7 +207,8 @@ def config_initialize(ctx: click.Context, yes: bool) -> None:
     table.add_column("Value")
     table.add_row("Config directory:", str(app_dir))
     table.add_row("Auth path:", str(get_auth_path(create=True)))
-    table.add_row("Database path:", str(get_default_db_path(create=True)))
+    table.add_row("Database path:", str(db_path))
+    table.add_row("Database schemas:", "[green]✓ Initialized[/green]")
 
     console.print(table)
     console.print()
