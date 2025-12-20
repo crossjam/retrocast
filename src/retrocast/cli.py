@@ -25,6 +25,7 @@ from retrocast.appdir import (
     get_auth_path,
     get_default_db_path,
 )
+from retrocast.datastore import Datastore
 from retrocast.download_commands import download
 from retrocast.episode_db_commands import episode_db
 from retrocast.logging_config import setup_logging
@@ -357,6 +358,140 @@ def location(ctx: click.Context, output_format) -> None:
         ctx.exit(0)
     console.print("[yellow]Setup incomplete; see suggested actions above.[/yellow]")
     ctx.exit(1)
+
+
+@config.command(name="reset-db")
+@click.option(
+    "--dry-run",
+    is_flag=True,
+    help="Show what would be reset without actually performing the reset.",
+)
+@click.option(
+    "-y",
+    "--yes",
+    is_flag=True,
+    help="Skip confirmation prompt and proceed with reset.",
+)
+@click.pass_context
+def reset_db(ctx: click.Context, dry_run: bool, yes: bool) -> None:
+    """Reset the database schema (WARNING: destroys all data)"""
+
+    def format_truncated_list(items: list[str], max_items: int) -> str:
+        """Format a list with truncation indicator if needed."""
+        if len(items) <= max_items:
+            return ", ".join(items)
+        shown = ", ".join(items[:max_items])
+        remaining = len(items) - max_items
+        return f"{shown} ... (+{remaining} more)"
+
+    console = Console()
+    db_path = get_default_db_path(create=False)
+
+    if not db_path.exists():
+        console.print("[yellow]Database does not exist. Nothing to reset.[/yellow]")
+        console.print(f"Database path: {db_path}")
+        ctx.exit(0)
+
+    # Open database connection to get schema info
+    try:
+        datastore = Datastore(db_path)
+        schema_info = datastore.get_schema_info()
+    except Exception as e:
+        console.print(f"[red]Error accessing database: {e}[/red]")
+        ctx.exit(1)
+
+    # Display what will be reset
+    console.print()
+    console.print("[bold cyan]Database Schema Reset[/bold cyan]")
+    console.print()
+    console.print(f"[bold]Database:[/bold] {db_path}")
+    console.print()
+
+    if dry_run:
+        console.print("[bold yellow]DRY RUN MODE - No changes will be made[/bold yellow]")
+        console.print()
+
+    # Create summary table
+    table = Table(
+        title="Schema Objects to Reset",
+        show_header=True,
+        header_style="bold cyan",
+    )
+    table.add_column("Object Type", style="bold")
+    table.add_column("Count", justify="right")
+    table.add_column("Names", style="dim")
+
+    table.add_row(
+        "Tables",
+        str(len(schema_info["tables"])),
+        format_truncated_list(schema_info["tables"], 5),
+    )
+    table.add_row(
+        "Views",
+        str(len(schema_info["views"])),
+        ", ".join(schema_info["views"]),
+    )
+    table.add_row(
+        "Indices",
+        str(len(schema_info["indices"])),
+        f"{len(schema_info['indices'])} indices will be recreated",
+    )
+    table.add_row(
+        "FTS Tables",
+        str(len(schema_info["fts_tables"])),
+        format_truncated_list(schema_info["fts_tables"], 3),
+    )
+    table.add_row(
+        "Triggers",
+        str(len(schema_info["triggers"])),
+        f"{len(schema_info['triggers'])} triggers will be recreated",
+    )
+
+    console.print(table)
+    console.print()
+
+    if dry_run:
+        console.print("[bold]Actions that would be performed:[/bold]")
+        console.print("  1. Drop all triggers")
+        console.print("  2. Drop all views")
+        console.print("  3. Drop all indices")
+        console.print("  4. Drop all FTS tables")
+        console.print("  5. Drop all tables")
+        console.print("  6. Recreate schema from scratch")
+        console.print()
+        console.print("[green]✓ Dry run complete. No changes made.[/green]")
+        ctx.exit(0)
+
+    # Warn about data loss
+    console.print(
+        "[bold red]⚠ WARNING: This will permanently delete ALL data "
+        "in the database![/bold red]"
+    )
+    console.print()
+
+    # Confirm with user unless -y flag is provided
+    if not yes:
+        if not click.confirm(
+            "Are you sure you want to reset the database schema?",
+            default=False,
+        ):
+            console.print("[yellow]Reset cancelled.[/yellow]")
+            ctx.exit(0)
+
+    # Perform the reset
+    console.print()
+    console.print("[bold]Resetting database schema...[/bold]")
+
+    try:
+        datastore.reset_schema()
+        console.print("[green]✓ Database schema reset successfully![/green]")
+        console.print()
+        console.print("[dim]The database has been reset to a clean state with empty tables.[/dim]")
+        console.print("[dim]Run 'retrocast sync overcast save' to populate with data.[/dim]")
+    except Exception as e:
+        console.print(f"[red]✗ Error resetting database: {e}[/red]")
+        logger.exception("Database reset failed")
+        ctx.exit(1)
 
 
 @cli.group()
