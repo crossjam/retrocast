@@ -354,7 +354,7 @@ def location(ctx: click.Context, output_format) -> None:
 @click.pass_context
 def reset_db(ctx: click.Context, dry_run: bool, yes: bool) -> None:
     """Reset the database schema (WARNING: destroys all data)"""
-    
+
     def format_truncated_list(items: list[str], max_items: int) -> str:
         """Format a list with truncation indicator if needed."""
         if len(items) <= max_items:
@@ -362,15 +362,15 @@ def reset_db(ctx: click.Context, dry_run: bool, yes: bool) -> None:
         shown = ", ".join(items[:max_items])
         remaining = len(items) - max_items
         return f"{shown} ... (+{remaining} more)"
-    
+
     console = Console()
     db_path = get_default_db_path(create=False)
-    
+
     if not db_path.exists():
         console.print("[yellow]Database does not exist. Nothing to reset.[/yellow]")
         console.print(f"Database path: {db_path}")
         ctx.exit(0)
-    
+
     # Open database connection to get schema info
     try:
         datastore = Datastore(db_path)
@@ -378,18 +378,18 @@ def reset_db(ctx: click.Context, dry_run: bool, yes: bool) -> None:
     except Exception as e:
         console.print(f"[red]Error accessing database: {e}[/red]")
         ctx.exit(1)
-    
+
     # Display what will be reset
     console.print()
     console.print("[bold cyan]Database Schema Reset[/bold cyan]")
     console.print()
     console.print(f"[bold]Database:[/bold] {db_path}")
     console.print()
-    
+
     if dry_run:
         console.print("[bold yellow]DRY RUN MODE - No changes will be made[/bold yellow]")
         console.print()
-    
+
     # Create summary table
     table = Table(
         title="Schema Objects to Reset",
@@ -399,7 +399,7 @@ def reset_db(ctx: click.Context, dry_run: bool, yes: bool) -> None:
     table.add_column("Object Type", style="bold")
     table.add_column("Count", justify="right")
     table.add_column("Names", style="dim")
-    
+
     table.add_row(
         "Tables",
         str(len(schema_info["tables"])),
@@ -425,10 +425,10 @@ def reset_db(ctx: click.Context, dry_run: bool, yes: bool) -> None:
         str(len(schema_info["triggers"])),
         f"{len(schema_info['triggers'])} triggers will be recreated",
     )
-    
+
     console.print(table)
     console.print()
-    
+
     if dry_run:
         console.print("[bold]Actions that would be performed:[/bold]")
         console.print("  1. Drop all triggers")
@@ -440,11 +440,14 @@ def reset_db(ctx: click.Context, dry_run: bool, yes: bool) -> None:
         console.print()
         console.print("[green]✓ Dry run complete. No changes made.[/green]")
         ctx.exit(0)
-    
+
     # Warn about data loss
-    console.print("[bold red]⚠ WARNING: This will permanently delete ALL data in the database![/bold red]")
+    console.print(
+        "[bold red]⚠ WARNING: This will permanently delete ALL data "
+        "in the database![/bold red]"
+    )
     console.print()
-    
+
     # Confirm with user unless -y flag is provided
     if not yes:
         if not click.confirm(
@@ -453,11 +456,11 @@ def reset_db(ctx: click.Context, dry_run: bool, yes: bool) -> None:
         ):
             console.print("[yellow]Reset cancelled.[/yellow]")
             ctx.exit(0)
-    
+
     # Perform the reset
     console.print()
     console.print("[bold]Resetting database schema...[/bold]")
-    
+
     try:
         datastore.reset_schema()
         console.print("[green]✓ Database schema reset successfully![/green]")

@@ -322,12 +322,12 @@ class Datastore:
 
     def get_schema_info(self) -> dict[str, list[str]]:
         """Get information about database schema objects for display.
-        
+
         Returns:
             Dictionary with keys 'tables', 'views', 'indices', 'triggers'
         """
         conn = self._connection()
-        
+
         # Get tables (excluding sqlite internal tables and FTS tables)
         tables = [
             row[0] for row in conn.execute(
@@ -336,7 +336,7 @@ class Datastore:
                 "ORDER BY name"
             ).fetchall()
         ]
-        
+
         # Get views
         views = [
             row[0] for row in conn.execute(
@@ -344,7 +344,7 @@ class Datastore:
                 "ORDER BY name"
             ).fetchall()
         ]
-        
+
         # Get indices (excluding auto-generated ones)
         indices = [
             row[0] for row in conn.execute(
@@ -353,7 +353,7 @@ class Datastore:
                 "ORDER BY name"
             ).fetchall()
         ]
-        
+
         # Get triggers
         triggers = [
             row[0] for row in conn.execute(
@@ -361,7 +361,7 @@ class Datastore:
                 "ORDER BY name"
             ).fetchall()
         ]
-        
+
         # Get FTS tables
         fts_tables = [
             row[0] for row in conn.execute(
@@ -370,7 +370,7 @@ class Datastore:
                 "ORDER BY name"
             ).fetchall()
         ]
-        
+
         return {
             "tables": tables,
             "views": views,
@@ -381,49 +381,49 @@ class Datastore:
 
     def reset_schema(self) -> None:
         """Drop all tables, views, indices and recreate the schema.
-        
+
         WARNING: This is a destructive operation that deletes all data.
         """
         conn = self._connection()
-        
+
         # Disable foreign keys temporarily
         conn.execute("PRAGMA foreign_keys = OFF")
-        
+
         # Get all schema objects
         schema_info = self.get_schema_info()
-        
+
         # Helper function to safely quote identifiers
         def quote_identifier(name: str) -> str:
             """Quote SQL identifier to prevent injection."""
             # SQLite uses double quotes for identifiers
-            return f'"{name.replace('"', '""')}"'
-        
+            return '"{}"'.format(name.replace('"', '""'))
+
         # Drop triggers first (they depend on tables)
         for trigger in schema_info["triggers"]:
             conn.execute(f"DROP TRIGGER IF EXISTS {quote_identifier(trigger)}")
-        
+
         # Drop views (they depend on tables)
         for view in schema_info["views"]:
             conn.execute(f"DROP VIEW IF EXISTS {quote_identifier(view)}")
-        
+
         # Drop indices (some are associated with FTS)
         for index in schema_info["indices"]:
             conn.execute(f"DROP INDEX IF EXISTS {quote_identifier(index)}")
-        
+
         # Drop FTS tables
         for fts_table in schema_info["fts_tables"]:
             conn.execute(f"DROP TABLE IF EXISTS {quote_identifier(fts_table)}")
-        
+
         # Drop regular tables
         for table in schema_info["tables"]:
             conn.execute(f"DROP TABLE IF EXISTS {quote_identifier(table)}")
-        
+
         conn.commit()
-        
+
         # Re-enable foreign keys
         conn.execute("PRAGMA foreign_keys = ON")
         conn.commit()
-        
+
         # Recreate schema
         self._prepare_db()
 
