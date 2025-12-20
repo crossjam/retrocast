@@ -320,6 +320,107 @@ class Datastore:
             ignore=True,
         )
 
+    def get_schema_info(self) -> dict[str, list[str]]:
+        """Get information about database schema objects for display.
+        
+        Returns:
+            Dictionary with keys 'tables', 'views', 'indices', 'triggers'
+        """
+        conn = self._connection()
+        
+        # Get tables (excluding sqlite internal tables and FTS tables)
+        tables = [
+            row[0] for row in conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' "
+                "AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '%_fts%' "
+                "ORDER BY name"
+            ).fetchall()
+        ]
+        
+        # Get views
+        views = [
+            row[0] for row in conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='view' "
+                "ORDER BY name"
+            ).fetchall()
+        ]
+        
+        # Get indices (excluding auto-generated ones)
+        indices = [
+            row[0] for row in conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='index' "
+                "AND name NOT LIKE 'sqlite_%' "
+                "ORDER BY name"
+            ).fetchall()
+        ]
+        
+        # Get triggers
+        triggers = [
+            row[0] for row in conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='trigger' "
+                "ORDER BY name"
+            ).fetchall()
+        ]
+        
+        # Get FTS tables
+        fts_tables = [
+            row[0] for row in conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' "
+                "AND name LIKE '%_fts%' "
+                "ORDER BY name"
+            ).fetchall()
+        ]
+        
+        return {
+            "tables": tables,
+            "views": views,
+            "indices": indices,
+            "triggers": triggers,
+            "fts_tables": fts_tables,
+        }
+
+    def reset_schema(self) -> None:
+        """Drop all tables, views, indices and recreate the schema.
+        
+        WARNING: This is a destructive operation that deletes all data.
+        """
+        conn = self._connection()
+        
+        # Disable foreign keys temporarily
+        conn.execute("PRAGMA foreign_keys = OFF")
+        
+        # Get all schema objects
+        schema_info = self.get_schema_info()
+        
+        # Drop triggers first (they depend on tables)
+        for trigger in schema_info["triggers"]:
+            conn.execute(f"DROP TRIGGER IF EXISTS {trigger}")
+        
+        # Drop views (they depend on tables)
+        for view in schema_info["views"]:
+            conn.execute(f"DROP VIEW IF EXISTS {view}")
+        
+        # Drop indices (some are associated with FTS)
+        for index in schema_info["indices"]:
+            conn.execute(f"DROP INDEX IF EXISTS {index}")
+        
+        # Drop FTS tables
+        for fts_table in schema_info["fts_tables"]:
+            conn.execute(f"DROP TABLE IF EXISTS {fts_table}")
+        
+        # Drop regular tables
+        for table in schema_info["tables"]:
+            conn.execute(f"DROP TABLE IF EXISTS {table}")
+        
+        conn.commit()
+        
+        # Re-enable foreign keys
+        conn.execute("PRAGMA foreign_keys = ON")
+        conn.commit()
+        
+        # Recreate schema
+        self._prepare_db()
+
     def save_feed_and_episodes(
         self,
         feed: dict,
