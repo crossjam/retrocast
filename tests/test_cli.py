@@ -96,6 +96,47 @@ def test_config_check_reports_missing_without_creating(monkeypatch, tmp_path: Pa
     assert not app_dir.exists()
 
 
+def test_config_check_detects_uninitialized_database(monkeypatch, tmp_path: Path) -> None:
+    """Test that config check detects a database file that is not initialized."""
+    app_dir = tmp_path / "retrocast-tests"
+    app_dir.mkdir(parents=True, exist_ok=True)
+
+    # Create empty database file (not initialized)
+    db_path = app_dir / "retrocast.db"
+    db_path.touch()
+
+    monkeypatch.setattr(platformdirs, "user_data_dir", lambda *_, **__: str(app_dir))
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["config", "check"])
+
+    assert result.exit_code == 1
+    assert "Not initialized" in result.output
+    # Check for the action text (may be wrapped in table)
+    assert "config" in result.output.lower() and "initialize" in result.output.lower()
+
+
+def test_config_check_detects_initialized_database(monkeypatch, tmp_path: Path) -> None:
+    """Test that config check detects a properly initialized database."""
+    app_dir = tmp_path / "retrocast-tests"
+    app_dir.mkdir(parents=True, exist_ok=True)
+
+    # Create and initialize database
+    db_path = app_dir / "retrocast.db"
+    from retrocast.datastore import Datastore
+
+    Datastore(db_path)  # This initializes the schemas
+
+    monkeypatch.setattr(platformdirs, "user_data_dir", lambda *_, **__: str(app_dir))
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["config", "check"])
+
+    assert result.exit_code == 1  # Still incomplete due to missing auth
+    assert "Initialized" in result.output
+    assert "Not initialized" not in result.output
+
+
 def test_config_location_json(monkeypatch, tmp_path: Path) -> None:
     app_dir = tmp_path / "retrocast-tests"
     monkeypatch.setattr(platformdirs, "user_data_dir", lambda *_, **__: str(app_dir))

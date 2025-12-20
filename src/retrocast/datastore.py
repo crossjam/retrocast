@@ -52,6 +52,26 @@ class Datastore:
         """Check if the database file exists."""
         return Path(db_path).exists()
 
+    @staticmethod
+    def is_initialized(db_path: Path | str) -> bool:
+        """Check if the database exists and has been initialized with schemas.
+
+        Returns True if the database file exists and contains the core required tables,
+        False otherwise.
+        """
+        if not Path(db_path).exists():
+            return False
+
+        try:
+            db = Database(str(db_path))
+            table_names = db.table_names()
+
+            # Check for core required tables
+            required_tables = {"feeds", "episodes", "playlists"}
+            return required_tables.issubset(table_names)
+        except Exception:
+            return False
+
     def __init__(self, db_path: Path | str) -> None:
         """Instantiate and ensure tables exist with expected columns."""
         self.db: Database = Database(str(db_path))
@@ -903,9 +923,7 @@ class Datastore:
             # Update existing record
             transcription_id = existing[0]["transcription_id"]
             transcription_record["transcription_id"] = transcription_id
-            transcription_record["created_time"] = existing[0][
-                "created_time"
-            ]  # Keep original
+            transcription_record["created_time"] = existing[0]["created_time"]  # Keep original
             self._table("transcriptions").update(
                 transcription_id,
                 transcription_record,
@@ -915,9 +933,7 @@ class Datastore:
             try:
                 self._table("transcriptions").insert(transcription_record)
                 # Get the last inserted row ID using SQL
-                transcription_id = self.db.execute(
-                    "SELECT last_insert_rowid()"
-                ).fetchone()[0]
+                transcription_id = self.db.execute("SELECT last_insert_rowid()").fetchone()[0]
             except Exception as e:
                 # Provide detailed error information
                 raise RuntimeError(
