@@ -25,14 +25,14 @@ console = Console()
 AUDIO_EXTENSIONS = {".mp3", ".m4a", ".ogg", ".opus", ".wav", ".flac", ".aac"}
 
 
-@click.group(name="process")
+@click.group(name="transcription")
 @click.pass_context
-def process(ctx: click.RichContext) -> None:
-    """Process podcast audio files (transcription, analysis)."""
+def transcription(ctx: click.RichContext) -> None:
+    """Manage audio transcriptions (create, search, analyze)."""
     ctx.ensure_object(dict)
 
 
-@process.command()
+@transcription.command()
 @click.argument(
     "paths",
     nargs=-1,
@@ -101,16 +101,16 @@ def transcribe(
     Examples:
 
         # Transcribe a single file
-        retrocast process transcribe episode.mp3
+        retrocast transcription transcribe episode.mp3
 
         # Transcribe all files in a directory
-        retrocast process transcribe /path/to/podcast/
+        retrocast transcription transcribe /path/to/podcast/
 
         # Use specific backend and model
-        retrocast process transcribe --backend mlx-whisper --model medium file.mp3
+        retrocast transcription transcribe --backend mlx-whisper --model medium file.mp3
 
         # Save as SRT subtitle format
-        retrocast process transcribe --format srt episode.mp3
+        retrocast transcription transcribe --format srt episode.mp3
     """
     # Setup
     app_dir = get_app_dir(create=True)
@@ -238,7 +238,7 @@ def transcribe(
         logger.enable("retrocast")
 
 
-@process.group(name="backends")
+@transcription.group(name="backends")
 def backends() -> None:
     """Manage transcription backends.
 
@@ -254,7 +254,7 @@ def list_backends() -> None:
     Shows which backends are installed and available on your system.
 
     Example:
-        retrocast process backends list
+        retrocast transcription backends list
     """
     from retrocast.transcription.backends import get_all_backends
 
@@ -310,7 +310,7 @@ def test_backend(backend_name: str) -> None:
     BACKEND_NAME: Name of backend to test (e.g., 'mlx-whisper')
 
     Example:
-        retrocast process backends test mlx-whisper
+        retrocast transcription backends test mlx-whisper
     """
     from retrocast.transcription.backends import get_all_backends
 
@@ -343,7 +343,7 @@ def test_backend(backend_name: str) -> None:
         console.print(f"\n[dim]Try installing: pip install {backend.name}[/dim]\n")
 
 
-@process.command()
+@transcription.command()
 @click.argument("query", type=str, required=True)
 @click.option(
     "--podcast",
@@ -443,19 +443,19 @@ def search(
     Examples:
 
         # Simple search
-        retrocast process search "machine learning"
+        retrocast transcription search "machine learning"
 
         # Search with filters
-        retrocast process search "AI" --podcast "Tech Podcast" --limit 10
+        retrocast transcription search "AI" --podcast "Tech Podcast" --limit 10
 
         # Search with date range
-        retrocast process search "python" --date-from "2024-01-01" --date-to "2024-12-31"
+        retrocast transcription search "python" --date-from "2024-01-01" --date-to "2024-12-31"
 
         # Export results to JSON
-        retrocast process search "data science" --export json --output results.json
+        retrocast transcription search "data science" --export json --output results.json
 
         # Search with context and pagination
-        retrocast process search "neural networks" --context 2 --page 2 --limit 10
+        retrocast transcription search "neural networks" --context 2 --page 2 --limit 10
     """
     from rich.markup import escape
 
