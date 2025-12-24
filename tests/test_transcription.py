@@ -683,3 +683,206 @@ class TestTranscriptionDatabase:
             # All results should be from Podcast A
             for result in results:
                 assert result["podcast_title"] == "Podcast A"
+
+    def test_search_transcriptions_with_backend_filter(self):
+        """Test searching with backend filter."""
+        from retrocast.datastore import Datastore
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            db_path = Path(tmpdir) / "test.db"
+            ds = Datastore(db_path)
+
+            # Insert transcriptions with different backends
+            for backend in ["mlx-whisper", "faster-whisper"]:
+                segments = [{"start": 0.0, "end": 5.0, "text": "Test content", "speaker": None}]
+                ds.upsert_transcription(
+                    audio_content_hash=f"hash_{backend}",
+                    media_path=f"/path/to/{backend}.mp3",
+                    file_size=1024,
+                    transcription_path=f"/path/to/{backend}.json",
+                    episode_url=None,
+                    podcast_title="Test Podcast",
+                    episode_title=f"Episode {backend}",
+                    backend=backend,
+                    model_size="base",
+                    language="en",
+                    duration=10.0,
+                    transcription_time=5.0,
+                    has_diarization=False,
+                    speaker_count=0,
+                    word_count=100,
+                    segments=segments,
+                )
+
+            # Search with backend filter
+            results = ds.search_transcriptions("Test", backend="mlx-whisper")
+            assert len(results) > 0
+            for result in results:
+                assert result["backend"] == "mlx-whisper"
+
+    def test_search_transcriptions_with_model_filter(self):
+        """Test searching with model size filter."""
+        from retrocast.datastore import Datastore
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            db_path = Path(tmpdir) / "test.db"
+            ds = Datastore(db_path)
+
+            # Insert transcriptions with different models
+            for model in ["base", "medium"]:
+                segments = [{"start": 0.0, "end": 5.0, "text": "AI content", "speaker": None}]
+                ds.upsert_transcription(
+                    audio_content_hash=f"hash_{model}",
+                    media_path=f"/path/to/{model}.mp3",
+                    file_size=1024,
+                    transcription_path=f"/path/to/{model}.json",
+                    episode_url=None,
+                    podcast_title="AI Podcast",
+                    episode_title=f"Episode {model}",
+                    backend="mlx-whisper",
+                    model_size=model,
+                    language="en",
+                    duration=10.0,
+                    transcription_time=5.0,
+                    has_diarization=False,
+                    speaker_count=0,
+                    word_count=100,
+                    segments=segments,
+                )
+
+            # Search with model filter
+            results = ds.search_transcriptions("AI", model_size="medium")
+            assert len(results) > 0
+            for result in results:
+                assert result["model_size"] == "medium"
+
+    def test_search_transcriptions_with_date_range(self):
+        """Test searching with date range filter."""
+        from retrocast.datastore import Datastore
+        from datetime import datetime, timedelta
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            db_path = Path(tmpdir) / "test.db"
+            ds = Datastore(db_path)
+
+            # Insert a transcription
+            segments = [{"start": 0.0, "end": 5.0, "text": "Date test content", "speaker": None}]
+            ds.upsert_transcription(
+                audio_content_hash="hash_date",
+                media_path="/path/to/test.mp3",
+                file_size=1024,
+                transcription_path="/path/to/test.json",
+                episode_url=None,
+                podcast_title="Date Podcast",
+                episode_title="Date Episode",
+                backend="mlx-whisper",
+                model_size="base",
+                language="en",
+                duration=10.0,
+                transcription_time=5.0,
+                has_diarization=False,
+                speaker_count=0,
+                word_count=100,
+                segments=segments,
+            )
+
+            # Search with date range (should find it)
+            yesterday = (datetime.now() - timedelta(days=1)).isoformat()
+            tomorrow = (datetime.now() + timedelta(days=1)).isoformat()
+            results = ds.search_transcriptions("Date", date_from=yesterday, date_to=tomorrow)
+            assert len(results) > 0
+
+            # Search with date range that excludes it (future dates)
+            future_start = (datetime.now() + timedelta(days=2)).isoformat()
+            future_end = (datetime.now() + timedelta(days=3)).isoformat()
+            results = ds.search_transcriptions("Date", date_from=future_start, date_to=future_end)
+            assert len(results) == 0
+
+    def test_search_transcriptions_with_context(self):
+        """Test searching with context segments."""
+        from retrocast.datastore import Datastore
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            db_path = Path(tmpdir) / "test.db"
+            ds = Datastore(db_path)
+
+            # Insert transcription with multiple segments
+            segments = [
+                {"start": 0.0, "end": 5.0, "text": "First segment", "speaker": None},
+                {"start": 5.0, "end": 10.0, "text": "Machine learning content", "speaker": None},
+                {"start": 10.0, "end": 15.0, "text": "Last segment", "speaker": None},
+            ]
+            ds.upsert_transcription(
+                audio_content_hash="hash_context",
+                media_path="/path/to/test.mp3",
+                file_size=1024,
+                transcription_path="/path/to/test.json",
+                episode_url=None,
+                podcast_title="Context Podcast",
+                episode_title="Context Episode",
+                backend="mlx-whisper",
+                model_size="base",
+                language="en",
+                duration=15.0,
+                transcription_time=7.5,
+                has_diarization=False,
+                speaker_count=0,
+                word_count=150,
+                segments=segments,
+            )
+
+            # Search with context
+            results = ds.search_transcriptions("machine learning", context_segments=1)
+            assert len(results) > 0
+
+            # Verify context segments are present
+            result = results[0]
+            assert "context_before" in result
+            assert "context_after" in result
+            assert len(result["context_before"]) == 1
+            assert len(result["context_after"]) == 1
+            assert "First segment" in result["context_before"][0]["text"]
+            assert "Last segment" in result["context_after"][0]["text"]
+
+    def test_search_transcriptions_with_pagination(self):
+        """Test searching with pagination (limit and offset)."""
+        from retrocast.datastore import Datastore
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            db_path = Path(tmpdir) / "test.db"
+            ds = Datastore(db_path)
+
+            # Insert multiple transcriptions
+            for i in range(5):
+                segments = [
+                    {"start": 0.0, "end": 5.0, "text": f"Python tutorial part {i}", "speaker": None}
+                ]
+                ds.upsert_transcription(
+                    audio_content_hash=f"hash_page_{i}",
+                    media_path=f"/path/to/test{i}.mp3",
+                    file_size=1024,
+                    transcription_path=f"/path/to/test{i}.json",
+                    episode_url=None,
+                    podcast_title="Tutorial Podcast",
+                    episode_title=f"Episode {i}",
+                    backend="mlx-whisper",
+                    model_size="base",
+                    language="en",
+                    duration=10.0,
+                    transcription_time=5.0,
+                    has_diarization=False,
+                    speaker_count=0,
+                    word_count=100,
+                    segments=segments,
+                )
+
+            # First page
+            results_page1 = ds.search_transcriptions("Python", limit=2, offset=0)
+            assert len(results_page1) == 2
+
+            # Second page
+            results_page2 = ds.search_transcriptions("Python", limit=2, offset=2)
+            assert len(results_page2) == 2
+
+            # Results should be different
+            assert results_page1[0]["media_path"] != results_page2[0]["media_path"]
