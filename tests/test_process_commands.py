@@ -60,3 +60,35 @@ class TestProcessCommands:
         assert "--backend" in result.output
         assert "--model" in result.output
         assert "--format" in result.output
+
+    def test_search_help(self, runner):
+        """Test search command help."""
+        result = runner.invoke(cli, ["process", "search", "--help"])
+        assert result.exit_code == 0
+        assert "Search transcribed podcast content" in result.output
+        assert "--podcast" in result.output
+        assert "--speaker" in result.output
+        assert "--backend" in result.output
+        assert "--model" in result.output
+        assert "--date-from" in result.output
+        assert "--date-to" in result.output
+        assert "--limit" in result.output
+        assert "--page" in result.output
+        assert "--context" in result.output
+        assert "--export" in result.output
+
+    def test_search_no_query(self, runner):
+        """Test search command with no query."""
+        result = runner.invoke(cli, ["process", "search"])
+        assert result.exit_code != 0
+        # Should error because query is required
+
+    def test_search_no_database(self, runner):
+        """Test search command with non-existent/empty database."""
+        with runner.isolated_filesystem():
+            result = runner.invoke(
+                cli, ["process", "search", "test", "--db", "nonexistent.db"]
+            )
+            # Should succeed but find no results (empty database created)
+            assert result.exit_code == 0
+            assert "No results found" in result.output
