@@ -20,7 +20,7 @@ class TestTranscriptionCommands:
         result = runner.invoke(cli, ["transcription", "--help"])
         assert result.exit_code == 0
         assert "Manage audio transcriptions" in result.output
-        assert "transcribe" in result.output
+        assert "process" in result.output
         assert "backends" in result.output
 
     def test_list_backends(self, runner):
@@ -46,17 +46,17 @@ class TestTranscriptionCommands:
             "available and ready" in result.output.lower()
         )
 
-    def test_transcribe_no_paths(self, runner):
-        """Test transcribe command with no paths."""
-        result = runner.invoke(cli, ["transcription", "transcribe"])
+    def test_process_no_paths(self, runner):
+        """Test process command with no paths."""
+        result = runner.invoke(cli, ["transcription", "process"])
         assert result.exit_code != 0
         # Should error because no paths provided
 
-    def test_transcribe_help(self, runner):
-        """Test transcribe command help."""
-        result = runner.invoke(cli, ["transcription", "transcribe", "--help"])
+    def test_process_help(self, runner):
+        """Test process command help."""
+        result = runner.invoke(cli, ["transcription", "process", "--help"])
         assert result.exit_code == 0
-        assert "Transcribe audio files" in result.output
+        assert "Process audio files" in result.output
         assert "--backend" in result.output
         assert "--model" in result.output
         assert "--format" in result.output
