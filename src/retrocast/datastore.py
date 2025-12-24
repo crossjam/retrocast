@@ -1147,14 +1147,28 @@ class Datastore:
         self,
         query: str,
         podcast_title: str | None = None,
+        speaker: str | None = None,
+        backend: str | None = None,
+        model_size: str | None = None,
+        date_from: str | None = None,
+        date_to: str | None = None,
         limit: int | None = None,
+        offset: int = 0,
+        context_segments: int = 0,
     ) -> list[dict]:
-        """Full-text search across transcription segments.
+        """Full-text search across transcription segments with advanced filters.
 
         Args:
             query: Search query string
             podcast_title: Optional filter by podcast title
+            speaker: Optional filter by speaker ID
+            backend: Optional filter by backend (e.g., 'mlx-whisper')
+            model_size: Optional filter by model size (e.g., 'base', 'medium')
+            date_from: Optional filter by creation date (ISO format, inclusive)
+            date_to: Optional filter by creation date (ISO format, inclusive)
             limit: Optional limit on number of results
+            offset: Optional offset for pagination
+            context_segments: Number of surrounding segments to include (0 = no context)
 
         Returns:
             List of matching segments with transcription metadata
@@ -1168,11 +1182,15 @@ class Datastore:
                 transcriptions.media_path,
                 transcriptions.language,
                 transcriptions.duration,
+                transcriptions.backend,
+                transcriptions.model_size,
+                transcriptions.created_time,
                 transcription_segments.segment_index,
                 transcription_segments.start_time,
                 transcription_segments.end_time,
                 transcription_segments.text,
-                transcription_segments.speaker
+                transcription_segments.speaker,
+                rank
             FROM transcription_segments
             JOIN transcription_segments_fts
                 ON transcription_segments.rowid = transcription_segments_fts.rowid
@@ -1187,10 +1205,33 @@ class Datastore:
             sql_query += " AND transcriptions.podcast_title = ?"
             params.append(podcast_title)
 
+        if speaker:
+            sql_query += " AND transcription_segments.speaker = ?"
+            params.append(speaker)
+
+        if backend:
+            sql_query += " AND transcriptions.backend = ?"
+            params.append(backend)
+
+        if model_size:
+            sql_query += " AND transcriptions.model_size = ?"
+            params.append(model_size)
+
+        if date_from:
+            sql_query += " AND transcriptions.created_time >= ?"
+            params.append(date_from)
+
+        if date_to:
+            sql_query += " AND transcriptions.created_time <= ?"
+            params.append(date_to)
+
         sql_query += " ORDER BY rank"
 
         if limit:
             sql_query += f" LIMIT {limit}"
+
+        if offset:
+            sql_query += f" OFFSET {offset}"
 
         results = self.db.execute(sql_query, params).fetchall()
 
@@ -1202,11 +1243,106 @@ class Datastore:
             "media_path",
             "language",
             "duration",
+            "backend",
+            "model_size",
+            "created_time",
             "segment_index",
             "start_time",
             "end_time",
             "text",
             "speaker",
+            "rank",
         ]
 
-        return [dict(zip(columns, row)) for row in results]
+        results_list = [dict(zip(columns, row)) for row in results]
+
+        # Add context segments if requested
+        if context_segments > 0:
+            results_list = self._add_context_segments(results_list, context_segments)
+
+        return results_list
+
+    def _add_context_segments(
+        self, results: list[dict], context_count: int
+    ) -> list[dict]:
+        """Add surrounding segments to search results for context.
+
+        Args:
+            results: List of search result dictionaries
+            context_count: Number of segments to include before and after
+
+        Returns:
+            Enhanced results with context_before and context_after fields
+        """
+        enhanced_results = []
+
+        for result in results:
+            transcription_id = result["transcription_id"]
+            segment_index = result["segment_index"]
+
+            # Get surrounding segments
+            context_before = []
+            context_after = []
+
+            if context_count > 0:
+                # Get segments before
+                before_query = """
+                    SELECT segment_index, start_time, end_time, text, speaker
+                    FROM transcription_segments
+                    WHERE transcription_id = ?
+                      AND segment_index >= ?
+                      AND segment_index < ?
+                    ORDER BY segment_index
+                """
+                before_results = self.db.execute(
+                    before_query,
+                    [
+                        transcription_id,
+                        max(0, segment_index - context_count),
+                        segment_index,
+                    ],
+                ).fetchall()
+
+                context_before = [
+                    {
+                        "segment_index": row[0],
+                        "start_time": row[1],
+                        "end_time": row[2],
+                        "text": row[3],
+                        "speaker": row[4],
+                    }
+                    for row in before_results
+                ]
+
+                # Get segments after
+                after_query = """
+                    SELECT segment_index, start_time, end_time, text, speaker
+                    FROM transcription_segments
+                    WHERE transcription_id = ?
+                      AND segment_index > ?
+                      AND segment_index <= ?
+                    ORDER BY segment_index
+                """
+                after_results = self.db.execute(
+                    after_query,
+                    [transcription_id, segment_index, segment_index + context_count],
+                ).fetchall()
+
+                context_after = [
+                    {
+                        "segment_index": row[0],
+                        "start_time": row[1],
+                        "end_time": row[2],
+                        "text": row[3],
+                        "speaker": row[4],
+                    }
+                    for row in after_results
+                ]
+
+            # Add context to result
+            enhanced_result = result.copy()
+            enhanced_result["context_before"] = context_before
+            enhanced_result["context_after"] = context_after
+            enhanced_results.append(enhanced_result)
+
+        return enhanced_results

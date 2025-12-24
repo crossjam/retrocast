@@ -30,7 +30,7 @@ from retrocast.download_commands import download
 from retrocast.episode_db_commands import episode_db
 from retrocast.logging_config import setup_logging
 from retrocast.overcast import chapters, overcast, transcripts
-from retrocast.process_commands import process
+from retrocast.process_commands import transcription
 
 from . import sql_cli
 
@@ -653,8 +653,8 @@ cli.add_command(download)
 # Register episode database commands under download group
 download.add_command(episode_db)
 
-# Register process commands (transcription, etc.)
-cli.add_command(process)
+# Register transcription commands (transcribe, search, backends)
+cli.add_command(transcription)
 
 cli.add_command(sql_cli.sql)
 
