@@ -292,9 +292,48 @@ class LocationOutput(enum.Enum):
     type=click.Choice(LocationOutput, case_sensitive=False),
     default=LocationOutput.CONSOLE,
 )
+@click.option(
+    "-d",
+    "--db-path",
+    "db_path_flag",
+    is_flag=True,
+    help="Output only the database path as a JSON string",
+)
+@click.option(
+    "-a",
+    "--app-dir",
+    "app_dir_flag",
+    is_flag=True,
+    help="Output only the app directory path as a JSON string",
+)
 @click.pass_context
-def location(ctx: click.Context, output_format) -> None:
-    """Output the location of the configuration directory"""
+def location(ctx: click.Context, output_format, db_path_flag: bool, app_dir_flag: bool) -> None:
+    """Output the location of the configuration directory.
+
+    By default, displays a formatted table showing all configuration paths.
+    Use --format json to output all paths as a JSON object.
+    Use --db-path to output only the database path as a JSON string.
+    Use --app-dir to output only the app directory path as a JSON string.
+
+    Examples:
+        retrocast config location              # Table view
+        retrocast config location --format json  # All paths as JSON
+        retrocast config location --db-path    # Just database path
+        retrocast config location --app-dir    # Just app directory
+    """
+
+    # Validate mutual exclusivity of output options
+    output_modes = [
+        output_format != LocationOutput.CONSOLE,  # --format json specified
+        db_path_flag,
+        app_dir_flag,
+    ]
+
+    if sum(output_modes) > 1:
+        raise click.UsageError(
+            "Only one output option can be used at a time: "
+            "--format, --db-path, or --app-dir"
+        )
 
     console = Console()
     app_dir = get_app_dir(create=False)
@@ -304,6 +343,16 @@ def location(ctx: click.Context, output_format) -> None:
     app_exists = app_dir.exists()
     auth_exists = auth_path.exists() if app_exists else False
     db_exists = db_path.exists() if app_exists else False
+
+    # Handle --db-path flag
+    if db_path_flag:
+        json.dump(str(db_path), fp=sys.stdout)
+        ctx.exit(0)
+
+    # Handle --app-dir flag
+    if app_dir_flag:
+        json.dump(str(app_dir), fp=sys.stdout)
+        ctx.exit(0)
 
     if output_format == LocationOutput.JSON:
         res = {
