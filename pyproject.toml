@@ -148,6 +148,15 @@ profile = "black"
 [tool.black]
 line-length = 100
 
+[tool.pytest.ini_options]
+# Filter deprecation warnings from rich-click's internal code
+# These warnings are from rich-click's own CLI command, not our code
+filterwarnings = [
+    "ignore:`use_markdown=` will be deprecated:PendingDeprecationWarning:rich_click",
+    "ignore:`use_rich_markup=` will be deprecated:PendingDeprecationWarning:rich_click",
+    "ignore:`use_markdown_emoji=` will be deprecated:PendingDeprecationWarning:rich_click",
+]
+
 [tool.poe.tasks]
 # Linting
 [tool.poe.tasks.lint]

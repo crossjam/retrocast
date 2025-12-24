@@ -182,6 +182,75 @@ def test_config_location_ready(monkeypatch, tmp_path: Path) -> None:
     assert "missing" not in result.output.lower()
 
 
+def test_config_location_db_path(monkeypatch, tmp_path: Path) -> None:
+    app_dir = tmp_path / "retrocast-tests"
+    monkeypatch.setattr(platformdirs, "user_data_dir", lambda *_, **__: str(app_dir))
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["config", "location", "--db-path"])
+
+    assert result.exit_code == 0, result.output
+    # Parse the JSON string output
+    assert json.loads(result.stdout) == str(app_dir / "retrocast.db")
+
+
+def test_config_location_app_dir(monkeypatch, tmp_path: Path) -> None:
+    app_dir = tmp_path / "retrocast-tests"
+    monkeypatch.setattr(platformdirs, "user_data_dir", lambda *_, **__: str(app_dir))
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["config", "location", "--app-dir"])
+
+    assert result.exit_code == 0, result.output
+    # Parse the JSON string output
+    assert json.loads(result.stdout) == str(app_dir)
+
+
+def test_config_location_mutual_exclusivity(monkeypatch, tmp_path: Path) -> None:
+    app_dir = tmp_path / "retrocast-tests"
+    monkeypatch.setattr(platformdirs, "user_data_dir", lambda *_, **__: str(app_dir))
+
+    runner = CliRunner()
+
+    # Test --format json with --db-path
+    result = runner.invoke(cli, ["config", "location", "--format", "json", "--db-path"])
+    assert result.exit_code != 0
+    assert "only one output option" in result.output.lower()
+
+    # Test --db-path with --app-dir
+    result = runner.invoke(cli, ["config", "location", "--db-path", "--app-dir"])
+    assert result.exit_code != 0
+    assert "only one output option" in result.output.lower()
+
+    # Test --format json with --app-dir
+    result = runner.invoke(cli, ["config", "location", "--format", "json", "--app-dir"])
+    assert result.exit_code != 0
+    assert "only one output option" in result.output.lower()
+
+
+def test_config_location_json_encoding(monkeypatch, tmp_path: Path) -> None:
+    # Test with a path that contains special characters
+    app_dir = tmp_path / "retrocast tests with spaces"
+    monkeypatch.setattr(platformdirs, "user_data_dir", lambda *_, **__: str(app_dir))
+
+    runner = CliRunner()
+
+    # Test --db-path with special characters in path
+    result = runner.invoke(cli, ["config", "location", "--db-path"])
+    assert result.exit_code == 0, result.output
+    # Verify JSON is properly encoded and parseable
+    parsed = json.loads(result.stdout)
+    assert parsed == str(app_dir / "retrocast.db")
+    assert "retrocast tests with spaces" in parsed
+
+    # Test --app-dir with special characters in path
+    result = runner.invoke(cli, ["config", "location", "--app-dir"])
+    assert result.exit_code == 0, result.output
+    parsed = json.loads(result.stdout)
+    assert parsed == str(app_dir)
+    assert "retrocast tests with spaces" in parsed
+
+
 def test_meta_group_exposes_overcast_transcripts_help() -> None:
     runner = CliRunner()
 
