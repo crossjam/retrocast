@@ -45,31 +45,31 @@ These options will:
 
 ### Task Checklist
 
-- [ ] **Phase 1: Add CLI options**
-  - [ ] Add `--db-path` / `-d` flag to `location` command
-  - [ ] Add `--app-dir` / `-a` flag to `location` command
-  - [ ] Make the three output options mutually exclusive (--format, --db-path, --app-dir)
-  - [ ] Update command help text to document new options
+- [x] **Phase 1: Add CLI options**
+  - [x] Add `--db-path` / `-d` flag to `location` command
+  - [x] Add `--app-dir` / `-a` flag to `location` command
+  - [x] Make the three output options mutually exclusive (--format, --db-path, --app-dir)
+  - [x] Update command help text to document new options
 
-- [ ] **Phase 2: Implement output logic**
-  - [ ] Add conditional check for `db_path` flag
-  - [ ] Output just the db_path as a JSON string when flag is set
-  - [ ] Add conditional check for `app_dir` flag
-  - [ ] Output just the app_dir as a JSON string when flag is set
-  - [ ] Ensure proper JSON string encoding (handle special characters, spaces, etc.)
-  - [ ] Exit with code 0 after JSON output
+- [x] **Phase 2: Implement output logic**
+  - [x] Add conditional check for `db_path` flag
+  - [x] Output just the db_path as a JSON string when flag is set
+  - [x] Add conditional check for `app_dir` flag
+  - [x] Output just the app_dir as a JSON string when flag is set
+  - [x] Ensure proper JSON string encoding (handle special characters, spaces, etc.)
+  - [x] Exit with code 0 after JSON output
 
-- [ ] **Phase 3: Testing**
-  - [ ] Add test for `--db-path` flag
-  - [ ] Add test for `--app-dir` flag
-  - [ ] Add test for mutual exclusivity (error when multiple output options used)
-  - [ ] Add test to verify proper JSON string encoding
-  - [ ] Verify existing tests still pass
+- [x] **Phase 3: Testing**
+  - [x] Add test for `--db-path` flag
+  - [x] Add test for `--app-dir` flag
+  - [x] Add test for mutual exclusivity (error when multiple output options used)
+  - [x] Add test to verify proper JSON string encoding
+  - [x] Verify existing tests still pass
 
-- [ ] **Phase 4: Documentation**
-  - [ ] Update command docstring with new options
-  - [ ] Add usage examples in comments or help text
-  - [ ] Update AGENTS.md if necessary
+- [x] **Phase 4: Documentation**
+  - [x] Update command docstring with new options
+  - [x] Add usage examples in comments or help text
+  - [x] Update AGENTS.md if necessary (not needed - location not documented there)
 
 ## Technical Details
 
@@ -264,3 +264,72 @@ DB_PATH=$(retrocast config location --db-path | python3 -c "import sys, json; pr
 - Follow Click framework best practices for option handling
 - Maintain consistent error messages with rest of codebase
 - Use `json.dump()` from standard library for JSON encoding
+
+---
+
+## Implementation Summary (2025-12-24)
+
+**Status**: ✅ COMPLETED
+
+All phases of the implementation plan have been successfully completed:
+
+### Changes Made
+
+**src/retrocast/cli.py** (lines 287-343):
+- Added `--db-path` / `-d` option to output database path as JSON string
+- Added `--app-dir` / `-a` option to output app directory as JSON string
+- Implemented mutual exclusivity validation for all output options
+- Enhanced command docstring with usage examples
+- JSON output handles special characters correctly
+
+**tests/test_cli.py** (lines 185-251):
+- Added `test_config_location_db_path`: Verifies --db-path outputs correct JSON
+- Added `test_config_location_app_dir`: Verifies --app-dir outputs correct JSON
+- Added `test_config_location_mutual_exclusivity`: Verifies mutual exclusivity enforcement
+- Added `test_config_location_json_encoding`: Verifies proper JSON encoding with special characters
+
+### Test Results
+
+All 17 tests pass (13 existing + 4 new):
+```
+tests/test_cli.py::test_config_location_db_path PASSED
+tests/test_cli.py::test_config_location_app_dir PASSED
+tests/test_cli.py::test_config_location_mutual_exclusivity PASSED
+tests/test_cli.py::test_config_location_json_encoding PASSED
+```
+
+### Manual Verification
+
+```bash
+# Test --db-path
+$ retrocast config location --db-path
+"/root/.local/share/net.memexponent.retrocast/retrocast.db"
+
+# Test --app-dir
+$ retrocast config location --app-dir
+"/root/.local/share/net.memexponent.retrocast"
+
+# Test mutual exclusivity
+$ retrocast config location --db-path --app-dir
+Error: Only one output option can be used at a time: --format, --db-path, or --app-dir
+
+# Verify JSON is valid
+$ retrocast config location --db-path | python3 -c "import sys, json; print(json.load(sys.stdin))"
+/root/.local/share/net.memexponent.retrocast/retrocast.db
+```
+
+### Commits
+
+- `e204f04`: Implement --db-path and --app-dir options for location command
+
+### Success Criteria Verification
+
+1. ✅ `--db-path` outputs only the database path as a JSON string
+2. ✅ `--app-dir` outputs only the app directory path as a JSON string
+3. ✅ Options are mutually exclusive with each other and `--format`
+4. ✅ JSON strings are properly encoded and parseable
+5. ✅ All new tests pass
+6. ✅ All existing tests continue to pass
+7. ✅ No breaking changes to existing functionality
+
+**Implementation complete and ready for use!**
