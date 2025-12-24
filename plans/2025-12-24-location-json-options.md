@@ -15,8 +15,8 @@ However, there's no convenient way to retrieve individual path values as JSON st
 ## Objective
 
 Add two new CLI options to the `retrocast config location` command:
-1. `--db-path-json` / `-d`: Output only the database path as a JSON string
-2. `--app-dir-json` / `-a`: Output only the application directory path as a JSON string
+1. `--db-path` / `-d`: Output only the database path as a JSON string
+2. `--app-dir` / `-a`: Output only the application directory path as a JSON string
 
 These options will:
 - Output single path values as JSON-encoded strings (properly escaped)
@@ -46,22 +46,22 @@ These options will:
 ### Task Checklist
 
 - [ ] **Phase 1: Add CLI options**
-  - [ ] Add `--db-path-json` / `-d` flag to `location` command
-  - [ ] Add `--app-dir-json` / `-a` flag to `location` command
-  - [ ] Make the three output options mutually exclusive (--format, --db-path-json, --app-dir-json)
+  - [ ] Add `--db-path` / `-d` flag to `location` command
+  - [ ] Add `--app-dir` / `-a` flag to `location` command
+  - [ ] Make the three output options mutually exclusive (--format, --db-path, --app-dir)
   - [ ] Update command help text to document new options
 
 - [ ] **Phase 2: Implement output logic**
-  - [ ] Add conditional check for `db_path_json` flag
+  - [ ] Add conditional check for `db_path` flag
   - [ ] Output just the db_path as a JSON string when flag is set
-  - [ ] Add conditional check for `app_dir_json` flag
+  - [ ] Add conditional check for `app_dir` flag
   - [ ] Output just the app_dir as a JSON string when flag is set
   - [ ] Ensure proper JSON string encoding (handle special characters, spaces, etc.)
   - [ ] Exit with code 0 after JSON output
 
 - [ ] **Phase 3: Testing**
-  - [ ] Add test for `--db-path-json` flag
-  - [ ] Add test for `--app-dir-json` flag
+  - [ ] Add test for `--db-path` flag
+  - [ ] Add test for `--app-dir` flag
   - [ ] Add test for mutual exclusivity (error when multiple output options used)
   - [ ] Add test to verify proper JSON string encoding
   - [ ] Verify existing tests still pass
@@ -88,20 +88,20 @@ The new options should be implemented as boolean flags that trigger specialized 
 )
 @click.option(
     "-d",
-    "--db-path-json",
-    "db_path_json",
+    "--db-path",
+    "db_path",
     is_flag=True,
     help="Output only the database path as a JSON string",
 )
 @click.option(
     "-a",
-    "--app-dir-json",
-    "app_dir_json",
+    "--app-dir",
+    "app_dir",
     is_flag=True,
     help="Output only the app directory path as a JSON string",
 )
 @click.pass_context
-def location(ctx: click.Context, output_format, db_path_json: bool, app_dir_json: bool) -> None:
+def location(ctx: click.Context, output_format, db_path: bool, app_dir: bool) -> None:
     """Output the location of the configuration directory"""
 ```
 
@@ -113,14 +113,14 @@ Implement validation to ensure only one output mode is active:
 # Count active output options
 output_modes = [
     output_format != LocationOutput.CONSOLE,  # --format json specified
-    db_path_json,
-    app_dir_json,
+    db_path,
+    app_dir,
 ]
 
 if sum(output_modes) > 1:
     raise click.UsageError(
         "Only one output option can be used at a time: "
-        "--format, --db-path-json, or --app-dir-json"
+        "--format, --db-path, or --app-dir"
     )
 ```
 
@@ -129,16 +129,16 @@ if sum(output_modes) > 1:
 Use Python's `json.dumps()` to properly encode path strings:
 
 ```python
-if db_path_json:
-    db_path = get_default_db_path(create=False)
+if db_path:
+    db_path_value = get_default_db_path(create=False)
     # Output just the path value as a JSON string
-    json.dump(str(db_path), fp=sys.stdout)
+    json.dump(str(db_path_value), fp=sys.stdout)
     ctx.exit(0)
 
-if app_dir_json:
-    app_dir = get_app_dir(create=False)
+if app_dir:
+    app_dir_value = get_app_dir(create=False)
     # Output just the path value as a JSON string
-    json.dump(str(app_dir), fp=sys.stdout)
+    json.dump(str(app_dir_value), fp=sys.stdout)
     ctx.exit(0)
 ```
 
@@ -146,16 +146,16 @@ if app_dir_json:
 
 ```bash
 # Database path as JSON string
-$ retrocast config location --db-path-json
+$ retrocast config location --db-path
 "/home/user/.local/share/retrocast/retrocast.db"
 
 # App directory as JSON string
-$ retrocast config location --app-dir-json
+$ retrocast config location --app-dir
 "/home/user/.local/share/retrocast"
 
 # Error on multiple options
-$ retrocast config location --format json --db-path-json
-Error: Only one output option can be used at a time: --format, --db-path-json, or --app-dir-json
+$ retrocast config location --format json --db-path
+Error: Only one output option can be used at a time: --format, --db-path, or --app-dir
 ```
 
 ## Testing Strategy
@@ -164,32 +164,32 @@ Error: Only one output option can be used at a time: --format, --db-path-json, o
 
 Add to `tests/test_cli.py`:
 
-1. **test_config_location_db_path_json**: Verify `--db-path-json` outputs correct JSON string
-2. **test_config_location_app_dir_json**: Verify `--app-dir-json` outputs correct JSON string
+1. **test_config_location_db_path**: Verify `--db-path` outputs correct JSON string
+2. **test_config_location_app_dir**: Verify `--app-dir` outputs correct JSON string
 3. **test_config_location_mutual_exclusivity**: Verify error when multiple output options used
 4. **test_config_location_json_encoding**: Verify special characters in paths are properly encoded
 
 ### Test Implementation Example
 
 ```python
-def test_config_location_db_path_json(monkeypatch, tmp_path: Path) -> None:
+def test_config_location_db_path(monkeypatch, tmp_path: Path) -> None:
     app_dir = tmp_path / "retrocast-tests"
     monkeypatch.setattr(platformdirs, "user_data_dir", lambda *_, **__: str(app_dir))
 
     runner = CliRunner()
-    result = runner.invoke(cli, ["config", "location", "--db-path-json"])
+    result = runner.invoke(cli, ["config", "location", "--db-path"])
 
     assert result.exit_code == 0, result.output
     # Parse the JSON string output
     assert json.loads(result.stdout) == str(app_dir / "retrocast.db")
 
 
-def test_config_location_app_dir_json(monkeypatch, tmp_path: Path) -> None:
+def test_config_location_app_dir(monkeypatch, tmp_path: Path) -> None:
     app_dir = tmp_path / "retrocast-tests"
     monkeypatch.setattr(platformdirs, "user_data_dir", lambda *_, **__: str(app_dir))
 
     runner = CliRunner()
-    result = runner.invoke(cli, ["config", "location", "--app-dir-json"])
+    result = runner.invoke(cli, ["config", "location", "--app-dir"])
 
     assert result.exit_code == 0, result.output
     # Parse the JSON string output
@@ -202,13 +202,13 @@ def test_config_location_mutual_exclusivity(monkeypatch, tmp_path: Path) -> None
 
     runner = CliRunner()
 
-    # Test --format json with --db-path-json
-    result = runner.invoke(cli, ["config", "location", "--format", "json", "--db-path-json"])
+    # Test --format json with --db-path
+    result = runner.invoke(cli, ["config", "location", "--format", "json", "--db-path"])
     assert result.exit_code != 0
     assert "only one output option" in result.output.lower()
 
-    # Test --db-path-json with --app-dir-json
-    result = runner.invoke(cli, ["config", "location", "--db-path-json", "--app-dir-json"])
+    # Test --db-path with --app-dir
+    result = runner.invoke(cli, ["config", "location", "--db-path", "--app-dir"])
     assert result.exit_code != 0
     assert "only one output option" in result.output.lower()
 ```
@@ -234,8 +234,8 @@ def test_config_location_mutual_exclusivity(monkeypatch, tmp_path: Path) -> None
 
 ## Success Criteria
 
-1. ✅ `--db-path-json` outputs only the database path as a JSON string
-2. ✅ `--app-dir-json` outputs only the app directory path as a JSON string
+1. ✅ `--db-path` outputs only the database path as a JSON string
+2. ✅ `--app-dir` outputs only the app directory path as a JSON string
 3. ✅ Options are mutually exclusive with each other and `--format`
 4. ✅ JSON strings are properly encoded and parseable
 5. ✅ All new tests pass
@@ -248,13 +248,13 @@ These options enable programmatic access to path values in shell scripts:
 
 ```bash
 # Get database path in a shell script
-DB_PATH=$(retrocast config location --db-path-json | jq -r)
+DB_PATH=$(retrocast config location --db-path | jq -r)
 
 # Get app directory in a script
-APP_DIR=$(retrocast config location --app-dir-json | jq -r)
+APP_DIR=$(retrocast config location --app-dir | jq -r)
 
 # Or without jq (since output is already a valid JSON string):
-DB_PATH=$(retrocast config location --db-path-json | python3 -c "import sys, json; print(json.load(sys.stdin))")
+DB_PATH=$(retrocast config location --db-path | python3 -c "import sys, json; print(json.load(sys.stdin))")
 ```
 
 ## Implementation Notes
