@@ -32,7 +32,7 @@ def transcription(ctx: click.RichContext) -> None:
     ctx.ensure_object(dict)
 
 
-@transcription.command()
+@transcription.command(name="process")
 @click.argument(
     "paths",
     nargs=-1,
@@ -83,7 +83,7 @@ def transcription(ctx: click.RichContext) -> None:
     help="Path to database file (defaults to app_dir/retrocast.db).",
 )
 @click.pass_context
-def transcribe(
+def process_audio(
     ctx: click.RichContext,
     paths: tuple[Path, ...],
     backend: str,
@@ -94,23 +94,23 @@ def transcribe(
     force: bool,
     db_path: Optional[Path],
 ) -> None:
-    """Transcribe audio files to text.
+    """Process audio files to create transcriptions.
 
     PATHS: One or more audio files or directories containing audio files.
 
     Examples:
 
-        # Transcribe a single file
-        retrocast transcription transcribe episode.mp3
+        # Process a single file
+        retrocast transcription process episode.mp3
 
-        # Transcribe all files in a directory
-        retrocast transcription transcribe /path/to/podcast/
+        # Process all files in a directory
+        retrocast transcription process /path/to/podcast/
 
         # Use specific backend and model
-        retrocast transcription transcribe --backend mlx-whisper --model medium file.mp3
+        retrocast transcription process --backend mlx-whisper --model medium file.mp3
 
         # Save as SRT subtitle format
-        retrocast transcription transcribe --format srt episode.mp3
+        retrocast transcription process --format srt episode.mp3
     """
     # Setup
     app_dir = get_app_dir(create=True)
