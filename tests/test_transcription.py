@@ -758,8 +758,9 @@ class TestTranscriptionDatabase:
 
     def test_search_transcriptions_with_date_range(self):
         """Test searching with date range filter."""
-        from retrocast.datastore import Datastore
         from datetime import datetime, timedelta
+
+        from retrocast.datastore import Datastore
 
         with tempfile.TemporaryDirectory() as tmpdir:
             db_path = Path(tmpdir) / "test.db"
