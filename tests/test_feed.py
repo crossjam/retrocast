@@ -4,7 +4,7 @@ import pytest
 import requests
 
 import retrocast.feed as feed
-from retrocast.constants import DESCRIPTION, ENCLOSURE_URL, TITLE, XML_URL, FEED_XML_URL
+from retrocast.constants import DESCRIPTION, ENCLOSURE_URL, FEED_XML_URL, TITLE, XML_URL
 from retrocast.feed import fetch_xml_and_extract
 
 
@@ -73,7 +73,9 @@ def test_fetch_xml_and_extract_handles_non_ok_response(requests_mock, fixed_date
     assert chapters == []
 
 
-def test_fetch_xml_and_extract_handles_request_exception(monkeypatch: pytest.MonkeyPatch, fixed_datetime: None) -> None:
+def test_fetch_xml_and_extract_handles_request_exception(
+    monkeypatch: pytest.MonkeyPatch, fixed_datetime: None
+) -> None:
     xml_url = "https://example.test/feed.xml"
 
     def blow_up(*_, **__):
