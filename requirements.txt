@@ -113,7 +113,9 @@ pyyaml==6.0.3
 requests==2.32.5
     # via
     #   podcast-archiver
+    #   requests-mock
     #   retrocast
+requests-mock==1.12.1
 rich==14.2.0
     # via
     #   loguru-config
