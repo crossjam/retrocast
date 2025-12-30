@@ -3,6 +3,7 @@ from pathlib import Path
 from xml.etree import ElementTree
 
 import requests
+import stamina
 from podcast_chapter_tools.entities import Chapter
 
 from .constants import (
@@ -23,8 +24,21 @@ def fetch_xml_and_extract(
     headers: dict,
 ) -> tuple[dict, list[dict], list[Chapter]]:
     """Fetch XML feed and extract all feed and episode tags and attributes."""
-    response = requests.get(xml_url, headers=headers)
     now = datetime.now(tz=UTC).isoformat()
+    try:
+        response = _get_xml_with_retries(xml_url, headers)
+    except requests.RequestException as exc:
+        print(f"⛔️ Error fetching podcast feed {xml_url}: {exc}")
+        return (
+            {
+                XML_URL: xml_url,
+                "lastUpdated": now,
+                "errorCode": -1,
+                "errorMessage": str(exc),
+            },
+            [],
+            [],
+        )
     if not response.ok:
         print(f"⛔️ Error {response.status_code} fetching podcast feed {xml_url}")
         if verbose:
@@ -32,6 +46,7 @@ def fetch_xml_and_extract(
         return (
             {
                 XML_URL: xml_url,
+                "lastUpdated": now,
                 "errorCode": response.status_code,
             },
             [],
@@ -84,3 +99,13 @@ def _extract_from_feed_xml(
     feed_attrs[DESCRIPTION] = feed_attrs.get(DESCRIPTION, "").strip()
 
     return feed_attrs, episodes, all_chapters
+
+
+@stamina.retry(
+    on=(requests.RequestException,),
+    attempts=4,
+    wait_initial=0.5,
+    wait_max=3.0,
+)
+def _get_xml_with_retries(xml_url: str, headers: dict) -> requests.Response:
+    return requests.get(xml_url, headers=headers, timeout=10)

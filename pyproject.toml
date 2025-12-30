@@ -41,7 +41,7 @@ dependencies = [
  "click",
  "click-default-group",
  "loguru",
- "loguru-config",
+ "loguru-config @ git+https://github.com/crossjam/loguru-config",
  "platformdirs",
  "podcast-chapter-tools",
  "python-dateutil",
