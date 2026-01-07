@@ -787,6 +787,7 @@ Based on this plan, here are the 5 most critical files:
 
 This checklist tracks progress through all implementation phases. Check off tasks as they are completed. This is especially useful for resuming work after interruptions or context limits.
 
+<<<<<<< HEAD
 ### Phase 1: Core Infrastructure ✅
 
 **Module Setup**
@@ -898,7 +899,6 @@ This checklist tracks progress through all implementation phases. Check off task
 - [x] Add installation instructions for `[transcription-mlx]` (in pyproject.toml)
 - [x] Document MLX-specific settings (model sizes, performance) (in docstrings)
 - [x] Add troubleshooting section (via helpful error messages)
-
 ---
 
 ### Phase 3: Faster-Whisper Backend ✅ / ❌
@@ -939,6 +939,7 @@ This checklist tracks progress through all implementation phases. Check off task
 
 ---
 
+<<<<<<< HEAD
 ### Phase 4: CLI Integration ✅
 
 **CLI Command File** (`process_commands.py`)
