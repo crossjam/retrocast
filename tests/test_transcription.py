@@ -448,6 +448,154 @@ class TestMLXWhisperBackend:
         assert result.duration == 5.0
 
 
+class TestFasterWhisperBackend:
+    """Tests for Faster-Whisper backend."""
+
+    def test_backend_name(self):
+        """Test backend name property."""
+        from retrocast.transcription.backends.faster_whisper import FasterWhisperBackend
+
+        backend = FasterWhisperBackend()
+        assert backend.name == "faster-whisper"
+
+    def test_platform_info_cpu(self):
+        """Test platform info for CPU."""
+        from retrocast.transcription.backends.faster_whisper import FasterWhisperBackend
+
+        backend = FasterWhisperBackend()
+        backend._device = "cpu"
+        platform_info = backend.platform_info()
+        assert "CPU" in platform_info
+
+    def test_platform_info_cuda(self):
+        """Test platform info for CUDA."""
+        from retrocast.transcription.backends.faster_whisper import FasterWhisperBackend
+
+        backend = FasterWhisperBackend()
+        backend._device = "cuda"
+        platform_info = backend.platform_info()
+        assert "CUDA" in platform_info or "GPU" in platform_info
+
+    def test_description(self):
+        """Test backend description."""
+        from retrocast.transcription.backends.faster_whisper import FasterWhisperBackend
+
+        backend = FasterWhisperBackend()
+        description = backend.description()
+        assert "Faster-Whisper" in description
+        assert "CUDA" in description or "CPU" in description
+
+    def test_is_available_no_import(self, monkeypatch):
+        """Test is_available when faster_whisper not installed."""
+        from retrocast.transcription.backends.faster_whisper import FasterWhisperBackend
+
+        # Mock the import to raise ImportError
+        def mock_import(name, *args, **kwargs):
+            if name == "faster_whisper":
+                raise ImportError("faster_whisper not found")
+            return __import__(name, *args, **kwargs)
+
+        monkeypatch.setattr("builtins.__import__", mock_import)
+
+        backend = FasterWhisperBackend()
+        assert not backend.is_available()
+
+    def test_detect_device_cpu(self, monkeypatch):
+        """Test device detection defaults to CPU when CUDA not available."""
+        from retrocast.transcription.backends.faster_whisper import FasterWhisperBackend
+
+        backend = FasterWhisperBackend()
+
+        # Mock torch to not have CUDA
+        class MockTorch:
+            class cuda:
+                @staticmethod
+                def is_available():
+                    return False
+
+        monkeypatch.setattr(
+            "retrocast.transcription.backends.faster_whisper.torch",
+            MockTorch,
+            raising=False,
+        )
+
+        device, compute_type = backend._detect_device()
+        assert device == "cpu"
+        assert compute_type == "int8"
+
+    def test_invalid_model_size(self):
+        """Test transcribe with invalid model size."""
+        from retrocast.transcription.backends.faster_whisper import FasterWhisperBackend
+
+        backend = FasterWhisperBackend()
+
+        # Create a temporary test file
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as f:
+            test_path = Path(f.name)
+            f.write(b"fake audio data")
+
+        try:
+            # This should fail with ValueError for invalid model size
+            with pytest.raises((ValueError, ImportError)):
+                backend.transcribe(test_path, model_size="invalid")
+        finally:
+            test_path.unlink()
+
+    def test_transcribe_missing_file(self):
+        """Test transcribe with missing audio file."""
+        from retrocast.transcription.backends.faster_whisper import FasterWhisperBackend
+
+        backend = FasterWhisperBackend()
+
+        # If faster_whisper is not installed, should raise ImportError
+        # If faster_whisper IS installed, should raise FileNotFoundError
+        with pytest.raises((ImportError, FileNotFoundError)):
+            backend.transcribe(Path("/nonexistent/file.mp3"))
+
+    def test_convert_result(self):
+        """Test conversion of faster_whisper result to TranscriptionResult."""
+        from retrocast.transcription.backends.faster_whisper import FasterWhisperBackend
+
+        backend = FasterWhisperBackend()
+        backend._device = "cpu"
+        backend._compute_type = "int8"
+
+        # Mock faster_whisper segment objects
+        class MockSegment:
+            def __init__(self, start, end, text):
+                self.start = start
+                self.end = end
+                self.text = text
+
+        class MockInfo:
+            def __init__(self):
+                self.language = "en"
+                self.duration = 5.0
+                self.language_probability = 0.95
+
+        faster_segments = [
+            MockSegment(0.0, 2.5, " Hello world."),
+            MockSegment(2.5, 5.0, " This is a test."),
+        ]
+        info = MockInfo()
+
+        result = backend._convert_result(
+            faster_segments, info, Path("test.mp3"), transcription_time=2.5, model_size="base"
+        )
+
+        assert isinstance(result, TranscriptionResult)
+        assert result.text == "Hello world. This is a test."
+        assert result.language == "en"
+        assert len(result.segments) == 2
+        assert result.segments[0].text == "Hello world."
+        assert result.segments[0].start == 0.0
+        assert result.segments[0].end == 2.5
+        assert result.duration == 5.0
+        assert result.metadata["backend"] == "faster-whisper"
+        assert result.metadata["device"] == "cpu"
+        assert result.metadata["transcription_time"] == 2.5
+
+
 class TestBackendRegistry:
     """Tests for backend registry."""
 
@@ -460,6 +608,16 @@ class TestBackendRegistry:
 
         # MLX backend should be registered (even if not available)
         assert "mlx-whisper" in backend_names
+
+    def test_get_all_backends_includes_faster_whisper(self):
+        """Test that Faster-Whisper backend is registered."""
+        from retrocast.transcription.backends import get_all_backends
+
+        backends = get_all_backends()
+        backend_names = [b().name for b in backends]
+
+        # Faster-Whisper backend should be registered (even if not available)
+        assert "faster-whisper" in backend_names
 
     def test_backend_registration(self):
         """Test backend registration mechanism."""
