@@ -41,7 +41,7 @@ def transcription(ctx: click.RichContext) -> None:
 )
 @click.option(
     "--backend",
-    type=click.Choice(["auto", "mlx-whisper"], case_sensitive=False),
+    type=click.Choice(["auto", "mlx-whisper", "faster-whisper"], case_sensitive=False),
     default="auto",
     help="Transcription backend to use.",
 )

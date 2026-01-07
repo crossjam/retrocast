@@ -298,18 +298,21 @@ def check_transcription_exists(
 
 ### Command Hierarchy
 
+**IMPLEMENTATION NOTE**: The actual implementation uses `transcription` as the command group name instead of `process`, with `process` as a subcommand. This better aligns with the domain terminology.
+
 ```
-retrocast process                     # New command group
-├── transcribe                        # Transcribe audio files
-│   ├── --backend [auto|mlx|faster|whisper]
+retrocast transcription               # Command group for transcription features
+├── process                           # Process audio files to create transcriptions
+│   ├── --backend [auto|mlx-whisper|faster-whisper]
 │   ├── --model [tiny|base|small|medium|large]
 │   ├── --language [en|es|fr|...]
-│   ├── --diarize                     # Enable speaker diarization
 │   ├── --output-dir PATH
 │   ├── --format [txt|json|srt|vtt]
+│   ├── --force                       # Re-transcribe even if exists
 │   └── PATH [PATH ...]               # Audio files or directories
-├── list-backends                     # Show available backends
-├── test-backend BACKEND              # Test backend availability
+├── backends                          # Backend management subgroup
+│   ├── list                          # Show available backends
+│   └── test BACKEND                  # Test backend availability
 └── search QUERY                      # Search transcribed content
 ```
 
@@ -900,54 +903,56 @@ This checklist tracks progress through all implementation phases. Check off task
 - [x] Add troubleshooting section (via helpful error messages)
 ---
 
-### Phase 3: Faster-Whisper Backend ✅ / ❌
+### Phase 3: Faster-Whisper Backend ✅
 
 **Backend Implementation** (`backends/faster_whisper.py`)
-- [ ] Create `FasterWhisperBackend` class inheriting from `TranscriptionBackend`
-- [ ] Implement `name` property (return "faster-whisper")
-- [ ] Implement `is_available()` method
-  - [ ] Check for `faster_whisper` import
-  - [ ] Detect CUDA availability
-- [ ] Implement `platform_info()` method (show CUDA/CPU mode)
-- [ ] Implement `description()` method
-- [ ] Implement `transcribe()` method
-  - [ ] Load faster-whisper model with device auto-detection
-  - [ ] Call transcription with appropriate compute type
-  - [ ] Convert result to `TranscriptionResult`
-  - [ ] Handle errors gracefully
-- [ ] Add performance logging (transcription time, real-time factor)
-- [ ] Add model caching
+- [x] Create `FasterWhisperBackend` class inheriting from `TranscriptionBackend`
+- [x] Implement `name` property (return "faster-whisper")
+- [x] Implement `is_available()` method
+  - [x] Check for `faster_whisper` import
+  - [x] Detect CUDA availability
+- [x] Implement `platform_info()` method (show CUDA/CPU mode)
+- [x] Implement `description()` method
+- [x] Implement `transcribe()` method
+  - [x] Load faster-whisper model with device auto-detection
+  - [x] Call transcription with appropriate compute type
+  - [x] Convert result to `TranscriptionResult`
+  - [x] Handle errors gracefully
+- [x] Add performance logging (transcription time, real-time factor)
+- [x] Add model caching
 
 **Integration with Manager**
-- [ ] Register faster-whisper backend in `backends/__init__.py`
-- [ ] Add to backend registry/discovery
-- [ ] Test auto-detection on Linux and macOS
+- [x] Register faster-whisper backend in `backends/__init__.py`
+- [x] Add to backend registry/discovery
+- [x] Test auto-detection on Linux and macOS
 
 **Testing**
-- [ ] Create mock tests for faster-whisper backend
-- [ ] Add integration test with small test audio file
-- [ ] Test CUDA detection (if available)
-- [ ] Test CPU fallback
-- [ ] Test error handling
+- [x] Create mock tests for faster-whisper backend (9 tests added)
+- [x] Add integration test with small test audio file
+- [x] Test CUDA detection (if available)
+- [x] Test CPU fallback
+- [x] Test error handling
 
 **Documentation**
-- [ ] Add installation instructions for `[transcription-cuda]` and `[transcription-cpu]`
-- [ ] Document CUDA setup (PyTorch installation)
-- [ ] Add performance benchmarks
-- [ ] Add troubleshooting section (CUDA not found, etc.)
+- [x] Add installation instructions for `[transcription-cuda]` and `[transcription-cpu]`
+- [x] Document CUDA setup (PyTorch installation)
+- [x] Add performance benchmarks
+- [x] Add troubleshooting section (CUDA not found, etc.)
 
 ---
 ### Phase 4: CLI Integration ✅
 
+**IMPLEMENTATION NOTE**: Commands implemented under `transcription` group instead of `process`, with `process` as a subcommand. Backend commands moved to `transcription backends` subgroup.
+
 **CLI Command File** (`process_commands.py`)
 - [x] Create new file `src/retrocast/process_commands.py`
 - [x] Import necessary modules (rich_click, Rich, pathlib, etc.)
-- [x] Create `process` command group with `@click.group()`
+- [x] Create `transcription` command group with `@click.group()` (changed from `process`)
 
-**`transcribe` Command**
-- [x] Implement `transcribe` command with all options:
+**`process` Command** (formerly `transcribe`)
+- [x] Implement `process` command with all options:
   - [x] `paths` argument (multiple file/directory paths)
-  - [x] `--backend` option (auto, mlx-whisper)
+  - [x] `--backend` option (auto, mlx-whisper, faster-whisper)
   - [x] `--model` option (tiny, base, small, medium, large)
   - [x] `--language` option
   - [ ] `--diarize` flag (deferred to Phase 5)
@@ -960,17 +965,15 @@ This checklist tracks progress through all implementation phases. Check off task
 - [x] Integrate with `TranscriptionManager`
 - [x] Save results to database
 
-**`list-backends` Command**
-- [x] Implement `list-backends` command
+**`backends` Subgroup Commands**
+- [x] Implement `backends list` command (formerly `list-backends`)
 - [x] Create Rich Table showing:
   - [x] Backend name
   - [x] Availability status (✓/✗)
   - [x] Platform info
   - [x] Description
 - [x] Test on multiple platforms
-
-**`test-backend` Command**
-- [x] Implement `test-backend BACKEND` command
+- [x] Implement `backends test BACKEND` command (formerly `test-backend`)
 - [x] Attempt to load backend and report status
 - [x] Show detailed error messages if unavailable
 
@@ -985,18 +988,18 @@ This checklist tracks progress through all implementation phases. Check off task
 - [ ] Add result highlighting (deferred - basic highlighting present)
 
 **CLI Integration**
-- [x] Import `process` command group in `cli.py`
-- [x] Add `cli.add_command(process)` to register
-- [x] Test all commands with `uv run python -m retrocast.cli process --help`
+- [x] Import `transcription` command group in `cli.py` (changed from `process`)
+- [x] Add `cli.add_command(transcription)` to register
+- [x] Test all commands with `retrocast transcription --help`
 
 **Testing**
-- [x] Test `transcribe` command with test audio files
-- [x] Test `list-backends` on macOS and Linux
+- [x] Test `process` command with test audio files
+- [x] Test `backends list` on macOS and Linux
 - [x] Test `search` command help
 - [x] Test error handling (invalid paths, missing backends)
 
 **Documentation**
-- [x] Add CLI documentation for all `process` commands (via docstrings and help text)
+- [x] Add CLI documentation for all `transcription` commands (via docstrings and help text)
 - [x] Add usage examples (in command docstrings)
 - [ ] Add GIF/screenshots of CLI output (deferred to Phase 8)
 
@@ -1070,22 +1073,31 @@ This checklist tracks progress through all implementation phases. Check off task
 
 ---
 
-### Phase 7: Dependency Management & Packaging ✅ / ❌
+### Phase 7: Dependency Management & Packaging ✅
 
 **pyproject.toml Updates**
-- [ ] Add `[project.optional-dependencies]` section
-- [ ] Add `transcription-mlx` extra with platform markers
-- [ ] Add `transcription-cuda` extra
-- [ ] Add `transcription-cpu` extra
-- [ ] Add `transcription-diarization` extra
-- [ ] Add `transcription-full` metapackage
-- [ ] Test installation with `uv pip install -e ".[transcription-mlx]"`
+- [x] Add `[project.optional-dependencies]` section
+- [x] Add `transcription-mlx` extra with platform markers
+- [x] Add `transcription-cuda` extra
+- [x] Add `transcription-cpu` extra
+- [x] Add `transcription-diarization` extra
+- [x] Add `transcription-full` metapackage
+- [x] Test installation with `uv pip install -e ".[transcription-mlx]"`
 
 **Platform Testing**
-- [ ] Test on macOS (Apple Silicon) with MLX
-- [ ] Test on Linux with CUDA (if available)
-- [ ] Test on Linux with CPU-only
-- [ ] Test on Windows (optional, CPU-only)
+- [ ] Test on macOS (Apple Silicon) with MLX (deferred - tested via CI)
+- [ ] Test on Linux with CUDA (if available) (deferred - tested via CI)
+- [ ] Test on Linux with CPU-only (deferred - tested via CI)
+- [ ] Test on Windows (optional, CPU-only) (deferred)
+
+**Documentation** (Completed as part of PR #66)
+- [x] Updated TRANSCRIPTION.md with comprehensive backend documentation
+- [x] Added backend comparison section
+- [x] Documented faster-whisper installation and usage
+- [x] Updated performance benchmarks with faster-whisper metrics
+- [x] Added real-time factor (RTF) explanation
+- [x] Updated JSON metadata examples with faster-whisper fields
+- [x] Fixed all CLI command examples (transcription instead of process)
 
 ---
 
@@ -1140,25 +1152,46 @@ This checklist tracks progress through all implementation phases. Check off task
 
 ## Progress Tracking Notes
 
-**Current Phase**: Phase 1, 2 & 4 Complete - Ready for Phase 3, 5, or 6
+**Current Phase**: Phases 1, 2, 3, 4, and 7 Complete - Ready for Phase 5 or 6
 
-**Last Completed Task**: Phase 4 complete - CLI Integration fully implemented. All 64 tests passing, all QA checks pass.
+**Last Completed Task**: Phase 3 complete (PR #66) - faster-whisper backend fully implemented with CUDA/CPU support. All 105 tests passing, all QA checks pass. Documentation updated.
+
+**Completed in PR #66**:
+- Phase 3: Faster-Whisper backend with CUDA/CPU support
+  - Full TranscriptionBackend interface implementation
+  - Automatic CUDA/CPU device detection with optimal compute types
+  - Performance logging (transcription time, real-time factor)
+  - Model caching support
+  - 9 comprehensive tests added
+  - Backend registered in registry
+- Phase 7: Documentation and packaging
+  - Updated TRANSCRIPTION.md with comprehensive backend documentation
+  - Added backend comparison section
+  - Documented faster-whisper installation and usage
+  - Updated performance benchmarks
+  - Fixed all CLI command examples (transcription instead of process)
+  - Optional dependencies configured in pyproject.toml
 
 **Next Steps**:
-1. Option A: Implement Phase 3 (faster-whisper backend for CUDA/CPU)
-2. Option B: Implement Phase 5 (speaker diarization with pyannote.audio)
-3. Option C: Implement Phase 6 (enhanced search and query features)
-4. Option D: Move to production with Phase 1, 2 & 4 (minimal viable feature set)
+1. Option A: Implement Phase 5 (speaker diarization with pyannote.audio)
+2. Option B: Implement Phase 6 (enhanced search and query features)
+3. Option C: Implement Phase 8 (documentation polish and code quality)
+4. Option D: Move to production with current feature set
+
+**Known Issues**: None
 
 **Blockers**: None
 
 **Notes**:
 - Phase 1: Core infrastructure with 25 tests
 - Phase 2: MLX Whisper backend with 10 additional tests (35 total)
-- Phase 4: CLI Integration with 7 additional tests (64 total)
+- Phase 3: Faster-Whisper backend with 9 additional tests (total: 105 tests per PR #66)
+- Phase 4: CLI Integration with 7 additional tests (64 total before Phase 3)
+- Phase 7: Documentation and optional dependencies completed
 - Type checking passes with proper type: ignore annotations for optional imports
 - Optional dependencies properly configured in pyproject.toml
 - Backend registry system ready for additional backends
 - All code follows project linting and formatting standards
-- CLI commands: `process transcribe`, `process list-backends`, `process test-backend`, `process search`
+- CLI commands: `transcription process`, `transcription backends list`, `transcription backends test`, `transcription search`
 - Rich progress bars, colored output, comprehensive error handling
+- Command group renamed from `process` to `transcription` for better domain alignment
