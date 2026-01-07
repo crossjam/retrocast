@@ -32,9 +32,12 @@ def get_all_backends() -> list[Type[TranscriptionBackend]]:
     except ImportError:
         pass  # MLX backend dependencies not available
 
-    # Future backends will be imported here:
-    # from retrocast.transcription.backends.faster_whisper import FasterWhisperBackend
-    # register_backend(FasterWhisperBackend)
+    try:
+        from retrocast.transcription.backends.faster_whisper import FasterWhisperBackend
+
+        register_backend(FasterWhisperBackend)
+    except ImportError:
+        pass  # Faster-Whisper backend dependencies not available
 
     return _BACKENDS.copy()
 
