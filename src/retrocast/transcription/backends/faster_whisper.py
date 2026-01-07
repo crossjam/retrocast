@@ -134,6 +134,9 @@ class FasterWhisperBackend(TranscriptionBackend):
         # Load model (with caching)
         self._ensure_model_loaded(model_size)
 
+        # Ensure model is loaded (type checker assertion)
+        assert self._model is not None, "Model should be loaded after _ensure_model_loaded()"
+
         logger.info(
             f"Transcribing {audio_path.name} with Faster-Whisper "
             f"({model_size} model on {self._device})"
