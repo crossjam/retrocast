@@ -59,11 +59,59 @@ After installing a backend, verify it's working:
 
 ```bash
 # List available backends
-retrocast process backends list
+retrocast transcription backends list
 
 # Test specific backend
-retrocast process backends test mlx-whisper
+retrocast transcription backends test mlx-whisper
+# Or test faster-whisper
+retrocast transcription backends test faster-whisper
 ```
+
+## Backend Comparison
+
+retrocast supports multiple transcription backends, each optimized for different platforms and use cases:
+
+### MLX Whisper (Apple Silicon)
+
+**Best for**: M1/M2/M3 Macs
+
+- **Pros**:
+  - Fastest performance on Apple Silicon (3-5x faster than CPU)
+  - Native Metal acceleration
+  - Low memory usage
+  - Optimized for macOS
+- **Cons**:
+  - Only works on macOS with Apple Silicon
+  - Requires MLX framework
+- **Installation**: `poe install:transcription-mlx`
+
+### Faster-Whisper (CUDA/CPU)
+
+**Best for**: Linux with NVIDIA GPUs or any platform without Apple Silicon
+
+- **Pros**:
+  - Excellent CUDA GPU performance (2-4x faster than OpenAI Whisper)
+  - Works on any platform (Windows, Linux, macOS)
+  - Automatic CPU fallback if CUDA not available
+  - Lower memory usage than OpenAI Whisper
+  - More accurate than OpenAI Whisper in some cases
+- **Cons**:
+  - Requires CUDA setup for GPU acceleration
+  - Slightly more complex installation on Windows
+- **Installation**: 
+  - CUDA: `poe install:transcription-cuda`
+  - CPU: `poe install:transcription-cpu`
+
+### When to Use Which Backend
+
+| Scenario | Recommended Backend | Alternative |
+|----------|---------------------|-------------|
+| macOS with M1/M2/M3 | MLX Whisper | faster-whisper (CPU) |
+| Linux with NVIDIA GPU | faster-whisper (CUDA) | - |
+| Windows with NVIDIA GPU | faster-whisper (CUDA) | - |
+| Any platform, CPU-only | faster-whisper (CPU) | - |
+| Maximum accuracy | faster-whisper (large model) | MLX Whisper (large model) |
+| Quick drafts | Any backend with tiny/base model | - |
 
 ## Quick Start
 
@@ -72,47 +120,51 @@ retrocast process backends test mlx-whisper
 Before transcribing, check which backends are available on your system:
 
 ```bash
-retrocast process backends list
+retrocast transcription backends list
 ```
 
 Example output:
 ```
-┌───────────────┬────────────────┬───────────────────────┬─────────────────────────────────────┐
-│ Backend       │     Status     │ Platform              │ Description                         │
-├───────────────┼────────────────┼───────────────────────┼─────────────────────────────────────┤
-│ mlx-whisper   │ ✓ Available    │ macOS (Apple Silicon) │ MLX Whisper - optimized for Apple   │
-│               │                │                       │ Silicon M1/M2/M3                    │
-└───────────────┴────────────────┴───────────────────────┴─────────────────────────────────────┘
+┌────────────────┬─────────────────┬───────────────────────┬──────────────────────────────────────────────┐
+│ Backend        │     Status      │ Platform              │ Description                                  │
+├────────────────┼─────────────────┼───────────────────────┼──────────────────────────────────────────────┤
+│ mlx-whisper    │ ✓ Available     │ macOS (Apple Silicon) │ MLX Whisper - optimized for Apple Silicon    │
+│                │                 │                       │ M1/M2/M3                                     │
+│ faster-whisper │ ✗ Not Available │ Any platform (CPU)    │ Faster-Whisper - optimized Whisper with      │
+│                │                 │                       │ CUDA/CPU support                             │
+└────────────────┴─────────────────┴───────────────────────┴──────────────────────────────────────────────┘
 ```
 
 ### 2. Test a Specific Backend
 
 ```bash
-retrocast process backends test mlx-whisper
+retrocast transcription backends test mlx-whisper
+# Or test faster-whisper
+retrocast transcription backends test faster-whisper
 ```
 
 ### 3. Transcribe Your First File
 
 ```bash
 # Transcribe a single audio file
-retrocast process transcribe episode.mp3
+retrocast transcription process episode.mp3
 
 # Transcribe all audio files in a directory
-retrocast process transcribe /path/to/podcast/episodes/
+retrocast transcription process /path/to/podcast/episodes/
 
 # Transcribe with specific options
-retrocast process transcribe --model medium --format srt episode.mp3
+retrocast transcription process --model medium --format srt episode.mp3
 ```
 
 ## CLI Command Reference
 
-### `retrocast process transcribe`
+### `retrocast transcription process`
 
 Transcribe audio files to text.
 
 **Usage:**
 ```bash
-retrocast process transcribe [OPTIONS] PATHS...
+retrocast transcription process [OPTIONS] PATHS...
 ```
 
 **Arguments:**
@@ -122,7 +174,7 @@ retrocast process transcribe [OPTIONS] PATHS...
 
 | Option | Values | Default | Description |
 |--------|--------|---------|-------------|
-| `--backend` | auto, mlx-whisper | auto | Transcription backend to use |
+| `--backend` | auto, mlx-whisper, faster-whisper | auto | Transcription backend to use |
 | `--model` | tiny, base, small, medium, large | base | Whisper model size |
 | `--language` | en, es, fr, etc. | auto-detect | Audio language code |
 | `--output-dir` | PATH | app_dir/transcriptions | Output directory for transcription files |
@@ -139,38 +191,39 @@ retrocast process transcribe [OPTIONS] PATHS...
 - FLAC (`.flac`)
 - AAC (`.aac`)
 
-### `retrocast process list-backends`
+### `retrocast transcription backends list`
 
 List all available transcription backends with their status.
 
 **Usage:**
 ```bash
-retrocast process backends list
+retrocast transcription backends list
 ```
 
 Shows a table with backend name, availability status, platform requirements, and description.
 
-### `retrocast process backends test`
+### `retrocast transcription backends test`
 
 Test if a specific backend is available and properly configured.
 
 **Usage:**
 ```bash
-retrocast process backends test BACKEND_NAME
+retrocast transcription backends test BACKEND_NAME
 ```
 
 **Example:**
 ```bash
-retrocast process backends test mlx-whisper
+retrocast transcription backends test mlx-whisper
+retrocast transcription backends test faster-whisper
 ```
 
-### `retrocast process search`
+### `retrocast transcription search`
 
 Search transcribed content using full-text search.
 
 **Usage:**
 ```bash
-retrocast process search [OPTIONS] QUERY
+retrocast transcription search [OPTIONS] QUERY
 ```
 
 **Arguments:**
@@ -190,30 +243,30 @@ retrocast process search [OPTIONS] QUERY
 
 ```bash
 # Transcribe a single file with defaults (base model, JSON output)
-retrocast process transcribe episode.mp3
+retrocast transcription process episode.mp3
 ```
 
 ### Batch Processing
 
 ```bash
 # Transcribe all MP3 files in a directory
-retrocast process transcribe ~/Downloads/podcasts/
+retrocast transcription process ~/Downloads/podcasts/
 
 # Transcribe multiple specific files
-retrocast process transcribe episode1.mp3 episode2.mp3 episode3.m4a
+retrocast transcription process episode1.mp3 episode2.mp3 episode3.m4a
 ```
 
 ### Model Selection
 
 ```bash
 # Use tiny model (fastest, lowest accuracy)
-retrocast process transcribe --model tiny episode.mp3
+retrocast transcription process --model tiny episode.mp3
 
 # Use medium model (balanced speed/accuracy)
-retrocast process transcribe --model medium episode.mp3
+retrocast transcription process --model medium episode.mp3
 
 # Use large model (slowest, highest accuracy)
-retrocast process transcribe --model large episode.mp3
+retrocast transcription process --model large episode.mp3
 ```
 
 **Model Size Comparison:**
@@ -230,29 +283,29 @@ retrocast process transcribe --model large episode.mp3
 
 ```bash
 # Transcribe Spanish audio
-retrocast process transcribe --language es podcast_espanol.mp3
+retrocast transcription process --language es podcast_espanol.mp3
 
 # Transcribe French audio
-retrocast process transcribe --language fr interview.mp3
+retrocast transcription process --language fr interview.mp3
 
 # Auto-detect language (default)
-retrocast process transcribe podcast.mp3
+retrocast transcription process podcast.mp3
 ```
 
 ### Output Formats
 
 ```bash
 # Plain text with timestamps
-retrocast process transcribe --format txt episode.mp3
+retrocast transcription process --format txt episode.mp3
 
 # JSON with full metadata and segments
-retrocast process transcribe --format json episode.mp3
+retrocast transcription process --format json episode.mp3
 
 # SRT subtitle format (for video)
-retrocast process transcribe --format srt episode.mp3
+retrocast transcription process --format srt episode.mp3
 
 # WebVTT format (for web players)
-retrocast process transcribe --format vtt episode.mp3
+retrocast transcription process --format vtt episode.mp3
 ```
 
 **Format Details:**
@@ -266,37 +319,37 @@ retrocast process transcribe --format vtt episode.mp3
 
 ```bash
 # By default, already-transcribed files are skipped
-retrocast process transcribe episode.mp3
+retrocast transcription process episode.mp3
 # Output: "Already transcribed (use --force to re-transcribe)"
 
 # Force re-transcription (e.g., to try a different model)
-retrocast process transcribe --force --model large episode.mp3
+retrocast transcription process --force --model large episode.mp3
 ```
 
 ### Custom Output Directory
 
 ```bash
 # Save transcriptions to a specific directory
-retrocast process transcribe --output-dir ~/transcripts/ episode.mp3
+retrocast transcription process --output-dir ~/transcripts/ episode.mp3
 
 # Organize by project
-retrocast process transcribe --output-dir ~/projects/podcast-analysis/transcripts/ *.mp3
+retrocast transcription process --output-dir ~/projects/podcast-analysis/transcripts/ *.mp3
 ```
 
 ### Searching Transcriptions
 
 ```bash
 # Search all transcriptions
-retrocast process search "machine learning"
+retrocast transcription search "machine learning"
 
 # Search within a specific podcast
-retrocast process search --podcast "My Podcast" "neural networks"
+retrocast transcription search --podcast "My Podcast" "neural networks"
 
 # Limit results
-retrocast process search --limit 5 "python programming"
+retrocast transcription search --limit 5 "python programming"
 
 # Search for phrases
-retrocast process search "artificial intelligence"
+retrocast transcription search "artificial intelligence"
 ```
 
 **Search Results Example:**
@@ -323,13 +376,13 @@ Found 3 result(s) for: machine learning
 ```bash
 # 1. Download episodes (using podcast-archiver or manually)
 # 2. List available backends
-retrocast process list-backends
+retrocast transcription backends list
 
 # 3. Transcribe entire directory with medium model for better quality
-retrocast process transcribe --model medium --format json ~/podcasts/my-show/
+retrocast transcription process --model medium --format json ~/podcasts/my-show/
 
 # 4. Search the transcribed content
-retrocast process search "topic of interest"
+retrocast transcription search "topic of interest"
 ```
 
 ### Create Subtitles for Video
@@ -339,7 +392,7 @@ retrocast process search "topic of interest"
 ffmpeg -i video.mp4 -vn -acodec copy audio.m4a
 
 # Transcribe to SRT format
-retrocast process transcribe --format srt --model medium audio.m4a
+retrocast transcription process --format srt --model medium audio.m4a
 
 # The .srt file can now be used with video players
 ```
@@ -348,13 +401,13 @@ retrocast process transcribe --format srt --model medium audio.m4a
 
 ```bash
 # Transcribe English episodes
-retrocast process transcribe --language en --podcast "English Show" english_episodes/
+retrocast transcription process --language en --podcast "English Show" english_episodes/
 
 # Transcribe Spanish episodes
-retrocast process transcribe --language es --podcast "Spanish Show" spanish_episodes/
+retrocast transcription process --language es --podcast "Spanish Show" spanish_episodes/
 
 # Search across both
-retrocast process search "technology"
+retrocast transcription search "technology"
 ```
 
 ## Understanding Output
@@ -392,9 +445,13 @@ The JSON output includes complete metadata:
     }
   ],
   "metadata": {
-    "backend": "mlx-whisper",
+    "backend": "faster-whisper",
     "model_size": "base",
-    "transcription_time": 120.5
+    "device": "cuda",
+    "compute_type": "float16",
+    "transcription_time": 45.2,
+    "real_time_factor": 0.0125,
+    "language_probability": 0.99
   }
 }
 ```
@@ -417,43 +474,49 @@ Transcriptions are also stored in SQLite for fast searching:
 
 ### Backend Selection
 
-- **Apple Silicon**: MLX Whisper is 3-5x faster than CPU alternatives
-- **CUDA GPU**: faster-whisper provides excellent performance
-- **CPU**: All backends work, but expect longer processing times
+- **Apple Silicon (M1/M2/M3)**: MLX Whisper is 3-5x faster than CPU alternatives
+- **NVIDIA GPU (CUDA)**: faster-whisper provides excellent performance (2-4x faster than CPU)
+- **CPU-only**: faster-whisper with int8 quantization provides best CPU performance
+- **Auto mode**: The CLI automatically selects the best available backend
 
 ### Processing Time
 
 Approximate real-time factors (time to transcribe 1 hour of audio):
 
-| Model | Apple Silicon (MLX) | CUDA GPU | CPU |
-|-------|---------------------|----------|-----|
-| tiny | 2-3 min | 3-5 min | 10-15 min |
-| base | 4-6 min | 6-10 min | 20-30 min |
-| small | 8-12 min | 12-20 min | 45-60 min |
-| medium | 15-25 min | 25-40 min | 2-3 hours |
-| large | 30-45 min | 45-75 min | 4-6 hours |
+| Model | MLX (Apple Silicon) | faster-whisper (CUDA) | faster-whisper (CPU) |
+|-------|---------------------|----------------------|---------------------|
+| tiny | 2-3 min | 2-4 min | 8-12 min |
+| base | 4-6 min | 4-8 min | 15-25 min |
+| small | 8-12 min | 8-15 min | 35-50 min |
+| medium | 15-25 min | 15-30 min | 90-120 min |
+| large | 30-45 min | 30-60 min | 3-4 hours |
 
 *Times are approximate and depend on audio quality, speaking rate, and hardware.*
+
+**Real-Time Factor (RTF) Examples**:
+- RTF = 0.05 means 3 minutes to transcribe 1 hour (very fast)
+- RTF = 0.25 means 15 minutes to transcribe 1 hour (good)
+- RTF = 1.0 means 1 hour to transcribe 1 hour (real-time)
 
 ### Batch Processing Tips
 
 ```bash
 # Process multiple files efficiently
 # The CLI shows progress for each file
-retrocast process transcribe --model base podcast_dir/*.mp3
+retrocast transcription process --model base podcast_dir/*.mp3
 
 # For very large batches, consider using smaller models first
-retrocast process transcribe --model tiny large_archive/
+retrocast transcription process --model tiny large_archive/
 
 # Then re-transcribe important episodes with larger models
-retrocast process transcribe --force --model large important_episode.mp3
+retrocast transcription process --force --model large important_episode.mp3
 ```
 
 ## Troubleshooting
 
 ### Backend Not Available
 
-**Problem**: `retrocast process backends list` shows backend as "Not Available"
+**Problem**: `retrocast transcription backends list` shows backend as "Not Available"
 
 **Solution**:
 ```bash
@@ -467,7 +530,7 @@ poe install:transcription-cuda
 poe install:transcription-cpu
 
 # Verify installation
-retrocast process backends test mlx-whisper
+retrocast transcription backends test mlx-whisper
 ```
 
 ### CUDA Not Detected
@@ -504,7 +567,7 @@ pip install torch --index-url https://download.pytorch.org/whl/cu121
 
 ### Search Returns No Results
 
-**Problem**: `retrocast process search` finds nothing
+**Problem**: `retrocast transcription search` finds nothing
 
 **Solution**:
 1. Verify transcriptions exist: Check database or output directory
@@ -540,7 +603,7 @@ TRANSCRIPT_DIR="$HOME/podcasts/transcripts"
 # Watch for new files and transcribe
 for file in "$DOWNLOAD_DIR"/*.mp3; do
   if [ -f "$file" ]; then
-    retrocast process transcribe \
+    retrocast transcription process \
       --model base \
       --format json \
       --output-dir "$TRANSCRIPT_DIR" \
