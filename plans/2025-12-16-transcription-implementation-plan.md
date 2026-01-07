@@ -952,7 +952,7 @@ This checklist tracks progress through all implementation phases. Check off task
 **`process` Command** (formerly `transcribe`)
 - [x] Implement `process` command with all options:
   - [x] `paths` argument (multiple file/directory paths)
-  - [x] `--backend` option (auto, mlx-whisper) **NOTE**: faster-whisper not yet added to CLI choice list
+  - [x] `--backend` option (auto, mlx-whisper, faster-whisper)
   - [x] `--model` option (tiny, base, small, medium, large)
   - [x] `--language` option
   - [ ] `--diarize` flag (deferred to Phase 5)
@@ -1173,15 +1173,12 @@ This checklist tracks progress through all implementation phases. Check off task
   - Optional dependencies configured in pyproject.toml
 
 **Next Steps**:
-1. **CRITICAL**: Update CLI backend option to include "faster-whisper" choice (currently only shows "auto" and "mlx-whisper")
-2. Option A: Implement Phase 5 (speaker diarization with pyannote.audio)
-3. Option B: Implement Phase 6 (enhanced search and query features)
-4. Option C: Implement Phase 8 (documentation polish and code quality)
-5. Option D: Move to production with current feature set
+1. Option A: Implement Phase 5 (speaker diarization with pyannote.audio)
+2. Option B: Implement Phase 6 (enhanced search and query features)
+3. Option C: Implement Phase 8 (documentation polish and code quality)
+4. Option D: Move to production with current feature set
 
-**Known Issues**:
-- CLI `--backend` option in `process_commands.py` line 44 only lists ["auto", "mlx-whisper"] but should include "faster-whisper"
-- Backend auto-detection works correctly, but users cannot explicitly select faster-whisper from CLI
+**Known Issues**: None
 
 **Blockers**: None
 
