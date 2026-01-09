@@ -14,7 +14,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           enable-cache: true
-      - run: sudo apt-get install libxml2 libxml2-dev libxslt-dev python-dev-is-python3
+      - run: sudo apt-get install libxml2 libxml2-dev python-dev-is-python3
       - name: Sync project dependencies
         run: uv sync --locked
       - name: Run QA checks (lint, type, test)
