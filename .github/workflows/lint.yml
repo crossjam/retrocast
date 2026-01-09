@@ -14,16 +14,11 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           enable-cache: true
-      - run: sudo apt-get install libxml2 libxml2-dev libxslt-dev python-dev-is-python3
+      - run: sudo apt-get install libxml2 libxml2-dev python-dev-is-python3
       - name: Sync project dependencies
-        run: uv sync --locked --extra lint
-      - run: uv run ruff check src
-      - name: Run mypy
-        if: matrix.python-version != '3.11'
-        run: uv run ty check src
-      - name: Skip type checking on Python 3.11
-        if: matrix.python-version == '3.11'
-        run: echo "Skipping type checking on Python 3.11"
-      - run: uv run pyroma . --min=10
-      - run: |
+        run: uv sync --locked
+      - name: Run QA checks (lint, type, test)
+        run: uv run poe qa
+      - name: Test CLI help command
+        run: |
           uv run python -m retrocast.cli --help |& grep -q 'Usage:'
