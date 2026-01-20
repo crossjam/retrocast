@@ -942,6 +942,27 @@ class Datastore:
         # Convert to list of dicts
         return [dict(zip(columns, row)) for row in results]
 
+    def get_downloaded_podcasts(self) -> list[dict]:
+        """Get list of unique podcast titles from episode_downloads with counts.
+
+        Returns:
+            List of dicts with podcast_title and episode_count, sorted by count.
+        """
+        if "episode_downloads" not in self.db.table_names():
+            return []
+
+        results = self.db.execute(
+            """
+            SELECT podcast_title, COUNT(*) as episode_count
+            FROM episode_downloads
+            WHERE media_exists = 1
+            GROUP BY podcast_title
+            ORDER BY episode_count DESC
+            """
+        ).fetchall()
+
+        return [{"podcast_title": row[0], "episode_count": row[1]} for row in results if row[0]]
+
     # TRANSCRIPTIONS
 
     def upsert_transcription(

@@ -37,7 +37,24 @@ def transcription(ctx: click.RichContext) -> None:
     "paths",
     nargs=-1,
     type=click.Path(exists=True, path_type=Path),
-    required=True,
+    required=False,
+)
+@click.option(
+    "--from-downloads",
+    is_flag=True,
+    help="Process episodes from the episode_downloads directory.",
+)
+@click.option(
+    "--podcast",
+    "podcast_filter",
+    type=str,
+    default=None,
+    help="Filter by podcast name (use with --from-downloads or directory paths).",
+)
+@click.option(
+    "--list-podcasts",
+    is_flag=True,
+    help="List available podcasts from downloads and exit.",
 )
 @click.option(
     "--backend",
@@ -83,9 +100,12 @@ def transcription(ctx: click.RichContext) -> None:
     help="Path to database file (defaults to app_dir/retrocast.db).",
 )
 @click.pass_context
-def process_audio(
+def process_audio(  # noqa: C901
     ctx: click.RichContext,
     paths: tuple[Path, ...],
+    from_downloads: bool,
+    podcast_filter: Optional[str],
+    list_podcasts: bool,
     backend: str,
     model: str,
     language: Optional[str],
@@ -97,6 +117,7 @@ def process_audio(
     """Process audio files to create transcriptions.
 
     PATHS: One or more audio files or directories containing audio files.
+    Can be omitted when using --from-downloads.
 
     Examples:
 
@@ -111,6 +132,15 @@ def process_audio(
 
         # Save as SRT subtitle format
         retrocast transcription process --format srt episode.mp3
+
+        # Process all downloaded episodes from a specific podcast
+        retrocast transcription process --from-downloads --podcast "Tech Podcast"
+
+        # List available podcasts from downloads
+        retrocast transcription process --list-podcasts
+
+        # Process all downloaded episodes
+        retrocast transcription process --from-downloads
     """
     # Setup
     app_dir = get_app_dir(create=True)
@@ -124,26 +154,162 @@ def process_audio(
     # Initialize datastore
     datastore = Datastore(db_path)
 
+    # Handle --list-podcasts
+    if list_podcasts:
+        _list_downloaded_podcasts(datastore, app_dir)
+        return
+
     # Collect audio files
-    audio_files = []
-    for path in paths:
-        if path.is_file():
-            if path.suffix.lower() in AUDIO_EXTENSIONS:
-                audio_files.append(path)
+    audio_files: list[Path] = []
+    podcast_metadata: dict[Path, str] = {}  # Map file path to podcast title
+
+    if from_downloads:
+        # Get files from episode_downloads directory
+        downloads_dir = app_dir / "episode_downloads"
+
+        if not downloads_dir.exists():
+            console.print(
+                f"[red]Episode downloads directory not found: {downloads_dir}[/red]\n"
+                "Use 'retrocast download podcast-archiver' to download episodes first."
+            )
+            ctx.exit(1)
+
+        # Get episodes from database if available, otherwise scan filesystem
+        downloaded_podcasts = datastore.get_downloaded_podcasts()
+
+        if downloaded_podcasts:
+            # Use database to get episode list
+            if podcast_filter:
+                # Check if podcast exists
+                matching = [
+                    p
+                    for p in downloaded_podcasts
+                    if podcast_filter.lower() in p["podcast_title"].lower()
+                ]
+                if not matching:
+                    console.print(f"[red]No podcast found matching: {podcast_filter}[/red]\n")
+                    _list_downloaded_podcasts(datastore, app_dir)
+                    ctx.exit(1)
+
+                # If multiple matches, show them
+                if len(matching) > 1:
+                    exact_match = [
+                        p for p in matching if p["podcast_title"].lower() == podcast_filter.lower()
+                    ]
+                    if exact_match:
+                        matching = exact_match
+                    else:
+                        console.print(
+                            f"[yellow]Multiple podcasts match '{podcast_filter}':[/yellow]"
+                        )
+                        for p in matching:
+                            title = p["podcast_title"]
+                            count = p["episode_count"]
+                            console.print(f"  • {title} ({count} episodes)")
+                        console.print("\n[dim]Please use a more specific name.[/dim]")
+                        ctx.exit(1)
+
+                podcast_name = matching[0]["podcast_title"]
+                episodes = datastore.get_episode_downloads(podcast_title=podcast_name)
             else:
-                console.print(f"[yellow]Skipping {path.name}: not a supported audio file[/yellow]")
-        elif path.is_dir():
-            # Find all audio files in directory
-            for ext in AUDIO_EXTENSIONS:
-                audio_files.extend(path.rglob(f"*{ext}"))
+                episodes = datastore.get_episode_downloads()
+
+            for ep in episodes:
+                media_path = Path(ep["media_path"])
+                if media_path.exists() and media_path.suffix.lower() in AUDIO_EXTENSIONS:
+                    audio_files.append(media_path)
+                    podcast_metadata[media_path] = ep.get("podcast_title", media_path.parent.name)
+
         else:
-            console.print(f"[yellow]Skipping {path}: not a file or directory[/yellow]")
+            # Fallback: scan filesystem directly
+            console.print(
+                "[dim]Note: Episode database not populated. "
+                "Run 'retrocast download db update' for better podcast filtering.[/dim]\n"
+            )
+            for podcast_dir in downloads_dir.iterdir():
+                if not podcast_dir.is_dir():
+                    continue
+
+                podcast_name = podcast_dir.name
+
+                # Apply podcast filter if specified
+                if podcast_filter:
+                    if podcast_filter.lower() not in podcast_name.lower():
+                        continue
+
+                for media_file in podcast_dir.iterdir():
+                    if media_file.is_file() and media_file.suffix.lower() in AUDIO_EXTENSIONS:
+                        audio_files.append(media_file)
+                        podcast_metadata[media_file] = podcast_name
+
+    else:
+        # Use provided paths
+        if not paths:
+            console.print(
+                "[red]No paths specified.[/red]\n"
+                "Provide audio files/directories or use --from-downloads.\n"
+                "Use --help for more options."
+            )
+            ctx.exit(1)
+
+        for path in paths:
+            if path.is_file():
+                if path.suffix.lower() in AUDIO_EXTENSIONS:
+                    audio_files.append(path)
+                    # Try to infer podcast name from parent directory
+                    podcast_metadata[path] = path.parent.name
+                else:
+                    console.print(
+                        f"[yellow]Skipping {path.name}: not a supported audio file[/yellow]"
+                    )
+            elif path.is_dir():
+                # Apply podcast filter if the directory matches
+                if podcast_filter:
+                    if podcast_filter.lower() in path.name.lower():
+                        # Process this directory
+                        for ext in AUDIO_EXTENSIONS:
+                            for f in path.rglob(f"*{ext}"):
+                                audio_files.append(f)
+                                podcast_metadata[f] = f.parent.name
+                    else:
+                        # Check subdirectories for matching podcast names
+                        for subdir in path.iterdir():
+                            if subdir.is_dir() and podcast_filter.lower() in subdir.name.lower():
+                                for ext in AUDIO_EXTENSIONS:
+                                    for f in subdir.rglob(f"*{ext}"):
+                                        audio_files.append(f)
+                                        podcast_metadata[f] = f.parent.name
+                else:
+                    # Find all audio files in directory
+                    for ext in AUDIO_EXTENSIONS:
+                        for f in path.rglob(f"*{ext}"):
+                            audio_files.append(f)
+                            podcast_metadata[f] = f.parent.name
+            else:
+                console.print(f"[yellow]Skipping {path}: not a file or directory[/yellow]")
 
     if not audio_files:
-        console.print("[red]No audio files found to transcribe.[/red]")
+        if podcast_filter:
+            console.print(f"[red]No audio files found for podcast: {podcast_filter}[/red]")
+        else:
+            console.print("[red]No audio files found to transcribe.[/red]")
         ctx.exit(1)
 
-    console.print(f"\n[bold]Found {len(audio_files)} audio file(s) to transcribe[/bold]\n")
+    # Show what we found
+    if podcast_filter or from_downloads:
+        unique_podcasts = set(podcast_metadata.values())
+        if len(unique_podcasts) == 1:
+            console.print(
+                f"\n[bold]Found {len(audio_files)} episode(s) from "
+                f"'{list(unique_podcasts)[0]}'[/bold]\n"
+            )
+        else:
+            console.print(
+                f"\n[bold]Found {len(audio_files)} episode(s) from "
+                f"{len(unique_podcasts)} podcast(s)[/bold]\n"
+            )
+    else:
+        console.print(f"\n[bold]Found {len(audio_files)} audio file(s) to transcribe[/bold]\n")
 
     # Initialize transcription manager
     try:
@@ -188,10 +354,11 @@ def process_audio(
                 )
 
                 try:
-                    # Transcribe
+                    # Transcribe - use metadata if available
+                    podcast_title = podcast_metadata.get(audio_file, audio_file.parent.name)
                     result = manager.transcribe_file(
                         audio_path=audio_file,
-                        podcast_title=audio_file.parent.name,
+                        podcast_title=podcast_title,
                         episode_title=audio_file.stem,
                         language=language,
                         output_format=output_format,
@@ -234,6 +401,57 @@ def process_audio(
     finally:
         # Restore normal logging
         logger.enable("retrocast")
+
+
+def _list_downloaded_podcasts(datastore: Datastore, app_dir: Path) -> None:
+    """List available podcasts from the episode_downloads database.
+
+    Args:
+        datastore: Datastore instance
+        app_dir: Application directory path
+    """
+    podcasts = datastore.get_downloaded_podcasts()
+
+    if not podcasts:
+        downloads_dir = app_dir / "episode_downloads"
+        if not downloads_dir.exists():
+            console.print(
+                "\n[yellow]No downloaded episodes found.[/yellow]\n"
+                "Use 'retrocast download podcast-archiver <feed_url>' to download episodes.\n"
+            )
+        else:
+            # Try scanning filesystem
+            console.print(
+                "\n[yellow]Episode database not populated.[/yellow]\n"
+                "Run 'retrocast download db update' to index downloaded episodes.\n"
+            )
+            # Show directories as fallback
+            podcast_dirs = [
+                d.name for d in downloads_dir.iterdir() if d.is_dir() and not d.name.startswith(".")
+            ]
+            if podcast_dirs:
+                console.print("[dim]Available podcast directories:[/dim]")
+                for name in sorted(podcast_dirs):
+                    console.print(f"  • {name}")
+                console.print()
+        return
+
+    console.print("\n[bold cyan]═══ Available Podcasts ═══[/bold cyan]\n")
+
+    table = Table(show_header=True)
+    table.add_column("Podcast", style="cyan", max_width=50)
+    table.add_column("Episodes", justify="right")
+
+    total_episodes = 0
+    for podcast in podcasts:
+        table.add_row(podcast["podcast_title"], str(podcast["episode_count"]))
+        total_episodes += podcast["episode_count"]
+
+    console.print(table)
+    console.print(f"\n[dim]Total: {len(podcasts)} podcast(s), {total_episodes} episode(s)[/dim]")
+    console.print(
+        "\n[dim]Use --podcast <name> to select a specific podcast for transcription.[/dim]\n"
+    )
 
 
 @transcription.group(name="backends")

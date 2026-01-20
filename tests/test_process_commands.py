@@ -60,6 +60,31 @@ class TestTranscriptionCommands:
         assert "--backend" in result.output
         assert "--model" in result.output
         assert "--format" in result.output
+        assert "--from-downloads" in result.output
+        assert "--podcast" in result.output
+        assert "--list-podcasts" in result.output
+
+    def test_process_list_podcasts_no_downloads(self, runner):
+        """Test process --list-podcasts with no downloads directory."""
+        with runner.isolated_filesystem():
+            result = runner.invoke(
+                cli, ["transcription", "process", "--list-podcasts", "--db", "test.db"]
+            )
+            assert result.exit_code == 0
+            # Should show message about no downloads
+            assert (
+                "No downloaded episodes" in result.output
+                or "database not populated" in result.output
+            )
+
+    def test_process_from_downloads_no_directory(self, runner):
+        """Test process --from-downloads when directory doesn't exist."""
+        with runner.isolated_filesystem():
+            result = runner.invoke(
+                cli, ["transcription", "process", "--from-downloads", "--db", "test.db"]
+            )
+            assert result.exit_code != 0
+            assert "downloads directory not found" in result.output
 
     def test_search_help(self, runner):
         """Test search command help."""
