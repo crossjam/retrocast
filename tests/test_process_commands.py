@@ -1,5 +1,8 @@
 """Tests for transcription commands (transcription CLI)."""
 
+import os
+from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 from click.testing import CliRunner
@@ -80,9 +83,13 @@ class TestTranscriptionCommands:
     def test_process_from_downloads_no_directory(self, runner):
         """Test process --from-downloads when directory doesn't exist."""
         with runner.isolated_filesystem():
-            result = runner.invoke(
-                cli, ["transcription", "process", "--from-downloads", "--db", "test.db"]
-            )
+            # Mock get_app_dir to return the current (isolated) directory
+            # so the test doesn't find the user's real episode_downloads
+            cwd = Path(os.getcwd())
+            with patch("retrocast.process_commands.get_app_dir", return_value=cwd):
+                result = runner.invoke(
+                    cli, ["transcription", "process", "--from-downloads", "--db", "test.db"]
+                )
             assert result.exit_code != 0
             assert "downloads directory not found" in result.output
 
