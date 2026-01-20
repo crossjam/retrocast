@@ -1061,6 +1061,21 @@ This checklist tracks progress through all implementation phases. Check off task
 - [ ] Add export options (CSV, JSON, HTML)
 - [ ] Add pagination for large result sets
 
+**Descriptive, Listing and Summarative Subcommands**
+- [ ] New subcommands for `retrocast transcription`
+  - [ ] `podcasts`, new subgroup
+  - [ ] `episodes`, new subgroup
+  - [ ] `summary`, subcommand to overall summarize the podcasts and
+        episodes that have populated the transcription datastore, also
+        segments, date range info, and dataset size info
+  - [ ] `podcasts summary`, just for podcasts, count, titles, date
+        range info, episodes per podcast dataset size
+  - [ ] `episodes summary`, just for episodes, count, titles, date
+        range info, time per episode, dataset size
+  - [ ] `browse`, subcommand that implements a textual interface for
+        browsing the podcast and episode information
+
+
 **Testing**
 - [ ] Test search with various filters
 - [ ] Test result ranking
