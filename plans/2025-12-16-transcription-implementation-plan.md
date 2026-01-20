@@ -1046,20 +1046,20 @@ This checklist tracks progress through all implementation phases. Check off task
 ### Phase 6: Search and Query Features ✅ / ❌
 
 **Search Implementation**
-- [ ] Enhance `search_transcriptions()` in `datastore.py`
-- [ ] Add filters:
-  - [ ] Podcast title
-  - [ ] Date range
-  - [ ] Speaker (if diarization enabled)
-  - [ ] Backend/model used
-- [ ] Implement result ranking
-- [ ] Add context extraction (surrounding segments)
+- [x] Enhance `search_transcriptions()` in `datastore.py`
+- [x] Add filters:
+  - [x] Podcast title
+  - [x] Date range
+  - [x] Speaker (if diarization enabled)
+  - [x] Backend/model used
+- [x] Implement result ranking (via FTS5 rank)
+- [x] Add context extraction (surrounding segments)
 
 **CLI Enhancements**
-- [ ] Add advanced search options to `search` command
-- [ ] Implement result highlighting with Rich
-- [ ] Add export options (CSV, JSON, HTML)
-- [ ] Add pagination for large result sets
+- [x] Add advanced search options to `search` command
+- [x] Implement result highlighting with Rich
+- [x] Add export options (CSV, JSON, HTML)
+- [x] Add pagination for large result sets
 
 **Descriptive, Listing and Summarative Subcommands**
 - [ ] New subcommands for `retrocast transcription`

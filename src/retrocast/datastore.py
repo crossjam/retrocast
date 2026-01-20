@@ -350,7 +350,8 @@ class Datastore:
 
         # Get tables (excluding sqlite internal tables and FTS tables)
         tables = [
-            row[0] for row in conn.execute(
+            row[0]
+            for row in conn.execute(
                 "SELECT name FROM sqlite_master WHERE type='table' "
                 "AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '%_fts%' "
                 "ORDER BY name"
@@ -359,15 +360,16 @@ class Datastore:
 
         # Get views
         views = [
-            row[0] for row in conn.execute(
-                "SELECT name FROM sqlite_master WHERE type='view' "
-                "ORDER BY name"
+            row[0]
+            for row in conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='view' ORDER BY name"
             ).fetchall()
         ]
 
         # Get indices (excluding auto-generated ones)
         indices = [
-            row[0] for row in conn.execute(
+            row[0]
+            for row in conn.execute(
                 "SELECT name FROM sqlite_master WHERE type='index' "
                 "AND name NOT LIKE 'sqlite_%' "
                 "ORDER BY name"
@@ -376,15 +378,16 @@ class Datastore:
 
         # Get triggers
         triggers = [
-            row[0] for row in conn.execute(
-                "SELECT name FROM sqlite_master WHERE type='trigger' "
-                "ORDER BY name"
+            row[0]
+            for row in conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='trigger' ORDER BY name"
             ).fetchall()
         ]
 
         # Get FTS tables
         fts_tables = [
-            row[0] for row in conn.execute(
+            row[0]
+            for row in conn.execute(
                 "SELECT name FROM sqlite_master WHERE type='table' "
                 "AND name LIKE '%_fts%' "
                 "ORDER BY name"
@@ -1262,9 +1265,7 @@ class Datastore:
 
         return results_list
 
-    def _add_context_segments(
-        self, results: list[dict], context_count: int
-    ) -> list[dict]:
+    def _add_context_segments(self, results: list[dict], context_count: int) -> list[dict]:
         """Add surrounding segments to search results for context.
 
         Args:
@@ -1346,3 +1347,299 @@ class Datastore:
             enhanced_results.append(enhanced_result)
 
         return enhanced_results
+
+    def get_transcription_summary(self) -> dict:
+        """Get overall summary statistics for transcriptions.
+
+        Returns:
+            Dictionary with summary statistics:
+            - total_transcriptions: int
+            - total_podcasts: int
+            - total_segments: int
+            - total_words: int
+            - total_duration: float (hours)
+            - total_transcription_time: float (hours)
+            - date_range: tuple[str | None, str | None] (oldest, newest)
+            - backends_used: dict[str, int]
+            - models_used: dict[str, int]
+            - languages: dict[str, int]
+        """
+        result: dict = {
+            "total_transcriptions": 0,
+            "total_podcasts": 0,
+            "total_segments": 0,
+            "total_words": 0,
+            "total_duration": 0.0,
+            "total_transcription_time": 0.0,
+            "date_range": (None, None),
+            "backends_used": {},
+            "models_used": {},
+            "languages": {},
+        }
+
+        # Check if table exists and has data
+        if "transcriptions" not in self.db.table_names():
+            return result
+
+        # Total transcriptions
+        count_result = self.db.execute("SELECT COUNT(*) FROM transcriptions").fetchone()
+        result["total_transcriptions"] = count_result[0] if count_result else 0
+
+        if result["total_transcriptions"] == 0:
+            return result
+
+        # Total unique podcasts
+        podcast_count = self.db.execute(
+            "SELECT COUNT(DISTINCT podcast_title) FROM transcriptions"
+        ).fetchone()
+        result["total_podcasts"] = podcast_count[0] if podcast_count else 0
+
+        # Total segments
+        segment_count = self.db.execute("SELECT COUNT(*) FROM transcription_segments").fetchone()
+        result["total_segments"] = segment_count[0] if segment_count else 0
+
+        # Aggregates (words, duration, transcription time)
+        aggregates = self.db.execute(
+            """
+            SELECT
+                SUM(word_count),
+                SUM(duration),
+                SUM(transcription_time)
+            FROM transcriptions
+            """
+        ).fetchone()
+        if aggregates:
+            result["total_words"] = aggregates[0] or 0
+            result["total_duration"] = (aggregates[1] or 0) / 3600.0  # Convert to hours
+            result["total_transcription_time"] = (aggregates[2] or 0) / 3600.0  # Convert to hours
+
+        # Date range
+        date_range = self.db.execute(
+            """
+            SELECT MIN(created_time), MAX(created_time)
+            FROM transcriptions
+            """
+        ).fetchone()
+        if date_range:
+            result["date_range"] = (date_range[0], date_range[1])
+
+        # Backends used
+        backends = self.db.execute(
+            """
+            SELECT backend, COUNT(*) as count
+            FROM transcriptions
+            GROUP BY backend
+            ORDER BY count DESC
+            """
+        ).fetchall()
+        result["backends_used"] = {row[0]: row[1] for row in backends if row[0]}
+
+        # Models used
+        models = self.db.execute(
+            """
+            SELECT model_size, COUNT(*) as count
+            FROM transcriptions
+            GROUP BY model_size
+            ORDER BY count DESC
+            """
+        ).fetchall()
+        result["models_used"] = {row[0]: row[1] for row in models if row[0]}
+
+        # Languages
+        languages = self.db.execute(
+            """
+            SELECT language, COUNT(*) as count
+            FROM transcriptions
+            GROUP BY language
+            ORDER BY count DESC
+            """
+        ).fetchall()
+        result["languages"] = {row[0]: row[1] for row in languages if row[0]}
+
+        return result
+
+    def get_podcast_transcription_stats(
+        self,
+        limit: int | None = None,
+    ) -> list[dict]:
+        """Get transcription statistics grouped by podcast.
+
+        Args:
+            limit: Optional limit on number of podcasts to return
+
+        Returns:
+            List of dictionaries with per-podcast statistics:
+            - podcast_title: str
+            - episode_count: int
+            - total_segments: int
+            - total_words: int
+            - total_duration: float (hours)
+            - total_transcription_time: float (hours)
+            - backends_used: str (comma-separated)
+            - models_used: str (comma-separated)
+            - date_range: tuple[str | None, str | None]
+        """
+        sql_query = """
+            SELECT
+                t.podcast_title,
+                COUNT(*) as episode_count,
+                SUM(t.word_count) as total_words,
+                SUM(t.duration) / 3600.0 as total_duration_hours,
+                SUM(t.transcription_time) / 3600.0 as total_transcription_time_hours,
+                GROUP_CONCAT(DISTINCT t.backend) as backends_used,
+                GROUP_CONCAT(DISTINCT t.model_size) as models_used,
+                MIN(t.created_time) as oldest,
+                MAX(t.created_time) as newest
+            FROM transcriptions t
+            GROUP BY t.podcast_title
+            ORDER BY episode_count DESC
+        """
+
+        if limit:
+            sql_query += f" LIMIT {limit}"
+
+        results = self.db.execute(sql_query).fetchall()
+
+        stats = []
+        for row in results:
+            podcast_title = row[0]
+
+            # Get segment count for this podcast
+            segment_count = self.db.execute(
+                """
+                SELECT COUNT(*) FROM transcription_segments ts
+                JOIN transcriptions t ON ts.transcription_id = t.transcription_id
+                WHERE t.podcast_title = ?
+                """,
+                [podcast_title],
+            ).fetchone()
+
+            stats.append(
+                {
+                    "podcast_title": podcast_title,
+                    "episode_count": row[1],
+                    "total_segments": segment_count[0] if segment_count else 0,
+                    "total_words": row[2] or 0,
+                    "total_duration": row[3] or 0.0,
+                    "total_transcription_time": row[4] or 0.0,
+                    "backends_used": row[5] or "",
+                    "models_used": row[6] or "",
+                    "date_range": (row[7], row[8]),
+                }
+            )
+
+        return stats
+
+    def get_episode_transcription_list(
+        self,
+        podcast_title: str | None = None,
+        limit: int | None = None,
+        offset: int = 0,
+        order_by: str = "created_time",
+        order_desc: bool = True,
+    ) -> list[dict]:
+        """Get list of transcribed episodes with metadata.
+
+        Args:
+            podcast_title: Optional filter by podcast title
+            limit: Optional limit on number of results
+            offset: Optional offset for pagination
+            order_by: Column to order by (created_time, duration, word_count)
+            order_desc: If True, order descending
+
+        Returns:
+            List of transcription records with metadata
+        """
+        valid_order_cols = {"created_time", "duration", "word_count", "episode_title"}
+        if order_by not in valid_order_cols:
+            order_by = "created_time"
+
+        order_dir = "DESC" if order_desc else "ASC"
+
+        sql_query = """
+            SELECT
+                transcription_id,
+                podcast_title,
+                episode_title,
+                media_path,
+                backend,
+                model_size,
+                language,
+                duration,
+                transcription_time,
+                word_count,
+                has_diarization,
+                speaker_count,
+                created_time
+            FROM transcriptions
+        """
+
+        params = []
+        if podcast_title:
+            sql_query += " WHERE podcast_title = ?"
+            params.append(podcast_title)
+
+        sql_query += f" ORDER BY {order_by} {order_dir}"
+
+        if limit:
+            sql_query += f" LIMIT {limit}"
+        if offset:
+            sql_query += f" OFFSET {offset}"
+
+        results = self.db.execute(sql_query, params).fetchall()
+
+        columns = [
+            "transcription_id",
+            "podcast_title",
+            "episode_title",
+            "media_path",
+            "backend",
+            "model_size",
+            "language",
+            "duration",
+            "transcription_time",
+            "word_count",
+            "has_diarization",
+            "speaker_count",
+            "created_time",
+        ]
+
+        return [dict(zip(columns, row)) for row in results]
+
+    def count_transcriptions(
+        self,
+        podcast_title: str | None = None,
+    ) -> int:
+        """Count total transcriptions, optionally filtered by podcast.
+
+        Args:
+            podcast_title: Optional filter by podcast title
+
+        Returns:
+            Total count of transcriptions
+        """
+        if podcast_title:
+            result = self.db.execute(
+                "SELECT COUNT(*) FROM transcriptions WHERE podcast_title = ?",
+                [podcast_title],
+            ).fetchone()
+        else:
+            result = self.db.execute("SELECT COUNT(*) FROM transcriptions").fetchone()
+
+        return result[0] if result else 0
+
+    def get_transcription_podcasts(self) -> list[str]:
+        """Get list of unique podcast titles with transcriptions.
+
+        Returns:
+            List of podcast title strings
+        """
+        results = self.db.execute(
+            """
+            SELECT DISTINCT podcast_title
+            FROM transcriptions
+            ORDER BY podcast_title
+            """
+        ).fetchall()
+
+        return [row[0] for row in results if row[0]]

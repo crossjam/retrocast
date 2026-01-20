@@ -131,9 +131,7 @@ def process_audio(
             if path.suffix.lower() in AUDIO_EXTENSIONS:
                 audio_files.append(path)
             else:
-                console.print(
-                    f"[yellow]Skipping {path.name}: not a supported audio file[/yellow]"
-                )
+                console.print(f"[yellow]Skipping {path.name}: not a supported audio file[/yellow]")
         elif path.is_dir():
             # Find all audio files in directory
             for ext in AUDIO_EXTENSIONS:
@@ -567,8 +565,7 @@ def search(
     # Pagination hint
     if len(results) == limit:
         console.print(
-            f"\n[dim]More results may be available. "
-            f"Use --page {page + 1} to see next page.[/dim]\n"
+            f"\n[dim]More results may be available. Use --page {page + 1} to see next page.[/dim]\n"
         )
 
 
@@ -607,7 +604,7 @@ def _highlight_text(text: str, query: str) -> Text:
     # Remove FTS5 operators and split into words
     import re
 
-    terms = re.findall(r'\b\w+\b', query.lower())
+    terms = re.findall(r"\b\w+\b", query.lower())
 
     # Highlight each term
     for term in terms:
@@ -756,8 +753,9 @@ def _export_results(
                     )
                     # Simple highlighting
                     import re
+
                     text = result["text"]
-                    terms = re.findall(r'\b\w+\b', query.lower())
+                    terms = re.findall(r"\b\w+\b", query.lower())
                     for term in terms:
                         pattern = re.compile(re.escape(term), re.IGNORECASE)
                         text = pattern.sub(f"<span class='match'>{term}</span>", text)
@@ -783,3 +781,599 @@ def _export_results(
 
     except Exception as e:
         console.print(f"[red]Export error: {e}[/red]")
+
+
+@transcription.command()
+@click.option(
+    "--db",
+    "db_path",
+    type=click.Path(path_type=Path),
+    default=None,
+    help="Path to database file (defaults to app_dir/retrocast.db).",
+)
+@click.pass_context
+def summary(
+    ctx: click.RichContext,
+    db_path: Optional[Path],
+) -> None:
+    """Display overall transcription statistics.
+
+    Shows a comprehensive summary of all transcriptions in the database,
+    including counts, duration, backends used, and more.
+
+    Example:
+        retrocast transcription summary
+    """
+    # Setup database
+    if db_path is None:
+        db_path = get_default_db_path(create=False)
+        if not db_path.exists():
+            console.print("[red]Database not found. Create transcriptions first.[/red]")
+            ctx.exit(1)
+
+    datastore = Datastore(db_path)
+
+    # Get summary statistics
+    stats = datastore.get_transcription_summary()
+
+    if stats["total_transcriptions"] == 0:
+        console.print(
+            "\n[yellow]No transcriptions found in database.[/yellow]\n"
+            "Use 'retrocast transcription process' to create transcriptions.\n"
+        )
+        return
+
+    # Display summary
+    console.print("\n[bold cyan]═══ Transcription Summary ═══[/bold cyan]\n")
+
+    # Main stats table
+    main_table = Table(show_header=False, box=None, padding=(0, 2))
+    main_table.add_column("Metric", style="dim")
+    main_table.add_column("Value", style="bold")
+
+    main_table.add_row("Total Transcriptions", str(stats["total_transcriptions"]))
+    main_table.add_row("Unique Podcasts", str(stats["total_podcasts"]))
+    main_table.add_row("Total Segments", f"{stats['total_segments']:,}")
+    main_table.add_row("Total Words", f"{stats['total_words']:,}")
+    main_table.add_row("Total Audio Duration", f"{stats['total_duration']:.2f} hours")
+    main_table.add_row("Total Processing Time", f"{stats['total_transcription_time']:.2f} hours")
+
+    # Date range
+    if stats["date_range"][0] and stats["date_range"][1]:
+        oldest = stats["date_range"][0].split("T")[0]
+        newest = stats["date_range"][1].split("T")[0]
+        main_table.add_row("Date Range", f"{oldest} to {newest}")
+
+    console.print(main_table)
+
+    # Backends breakdown
+    if stats["backends_used"]:
+        console.print("\n[bold]Backends Used:[/bold]")
+        backend_table = Table(show_header=True, box=None, padding=(0, 2))
+        backend_table.add_column("Backend", style="cyan")
+        backend_table.add_column("Count", justify="right")
+        for backend, count in stats["backends_used"].items():
+            backend_table.add_row(backend, str(count))
+        console.print(backend_table)
+
+    # Models breakdown
+    if stats["models_used"]:
+        console.print("\n[bold]Models Used:[/bold]")
+        model_table = Table(show_header=True, box=None, padding=(0, 2))
+        model_table.add_column("Model Size", style="cyan")
+        model_table.add_column("Count", justify="right")
+        for model, count in stats["models_used"].items():
+            model_table.add_row(model, str(count))
+        console.print(model_table)
+
+    # Languages breakdown
+    if stats["languages"]:
+        console.print("\n[bold]Languages:[/bold]")
+        lang_table = Table(show_header=True, box=None, padding=(0, 2))
+        lang_table.add_column("Language", style="cyan")
+        lang_table.add_column("Count", justify="right")
+        for lang, count in stats["languages"].items():
+            lang_table.add_row(lang, str(count))
+        console.print(lang_table)
+
+    console.print()
+
+
+# Podcasts subgroup
+@transcription.group(name="podcasts")
+def podcasts() -> None:
+    """Manage and view transcribed podcasts.
+
+    Commands for listing and summarizing podcasts with transcriptions.
+    """
+    pass
+
+
+@podcasts.command(name="list")
+@click.option(
+    "--limit",
+    type=int,
+    default=None,
+    help="Maximum number of podcasts to display.",
+)
+@click.option(
+    "--db",
+    "db_path",
+    type=click.Path(path_type=Path),
+    default=None,
+    help="Path to database file (defaults to app_dir/retrocast.db).",
+)
+@click.pass_context
+def podcasts_list(
+    ctx: click.RichContext,
+    limit: Optional[int],
+    db_path: Optional[Path],
+) -> None:
+    """List all podcasts with transcriptions.
+
+    Shows podcasts sorted by number of transcribed episodes.
+
+    Example:
+        retrocast transcription podcasts list
+        retrocast transcription podcasts list --limit 10
+    """
+    # Setup database
+    if db_path is None:
+        db_path = get_default_db_path(create=False)
+        if not db_path.exists():
+            console.print("[red]Database not found. Create transcriptions first.[/red]")
+            ctx.exit(1)
+
+    datastore = Datastore(db_path)
+
+    # Get podcast stats
+    stats = datastore.get_podcast_transcription_stats(limit=limit)
+
+    if not stats:
+        console.print(
+            "\n[yellow]No transcriptions found in database.[/yellow]\n"
+            "Use 'retrocast transcription process' to create transcriptions.\n"
+        )
+        return
+
+    # Display table
+    console.print("\n[bold cyan]═══ Transcribed Podcasts ═══[/bold cyan]\n")
+
+    table = Table(show_header=True)
+    table.add_column("Podcast", style="cyan", no_wrap=True, max_width=40)
+    table.add_column("Episodes", justify="right")
+    table.add_column("Words", justify="right")
+    table.add_column("Duration", justify="right")
+    table.add_column("Backend(s)", style="dim")
+
+    for stat in stats:
+        # Format duration as hours:minutes
+        hours = int(stat["total_duration"])
+        minutes = int((stat["total_duration"] % 1) * 60)
+        duration_str = f"{hours}h {minutes}m" if hours > 0 else f"{minutes}m"
+
+        table.add_row(
+            stat["podcast_title"][:40],
+            str(stat["episode_count"]),
+            f"{stat['total_words']:,}",
+            duration_str,
+            stat["backends_used"],
+        )
+
+    console.print(table)
+    console.print(f"\n[dim]Total: {len(stats)} podcast(s)[/dim]\n")
+
+
+@podcasts.command(name="summary")
+@click.argument("podcast_name", type=str, required=False)
+@click.option(
+    "--db",
+    "db_path",
+    type=click.Path(path_type=Path),
+    default=None,
+    help="Path to database file (defaults to app_dir/retrocast.db).",
+)
+@click.pass_context
+def podcasts_summary(
+    ctx: click.RichContext,
+    podcast_name: Optional[str],
+    db_path: Optional[Path],
+) -> None:
+    """Show summary statistics for podcasts.
+
+    If PODCAST_NAME is provided, shows detailed stats for that podcast.
+    Otherwise, shows overview for all podcasts.
+
+    Examples:
+        retrocast transcription podcasts summary
+        retrocast transcription podcasts summary "Tech Podcast"
+    """
+    # Setup database
+    if db_path is None:
+        db_path = get_default_db_path(create=False)
+        if not db_path.exists():
+            console.print("[red]Database not found. Create transcriptions first.[/red]")
+            ctx.exit(1)
+
+    datastore = Datastore(db_path)
+
+    if podcast_name:
+        # Show specific podcast stats
+        stats_list = datastore.get_podcast_transcription_stats()
+        stat = next((s for s in stats_list if s["podcast_title"] == podcast_name), None)
+
+        if not stat:
+            console.print(
+                f"\n[yellow]No transcriptions found for podcast: {podcast_name}[/yellow]\n"
+            )
+            # Show available podcasts
+            podcasts_available = datastore.get_transcription_podcasts()
+            if podcasts_available:
+                console.print("[dim]Available podcasts:[/dim]")
+                for p in podcasts_available[:10]:
+                    console.print(f"  • {p}")
+                if len(podcasts_available) > 10:
+                    console.print(f"  ... and {len(podcasts_available) - 10} more")
+            return
+
+        # Display detailed stats
+        console.print(f"\n[bold cyan]═══ {podcast_name} ═══[/bold cyan]\n")
+
+        detail_table = Table(show_header=False, box=None, padding=(0, 2))
+        detail_table.add_column("Metric", style="dim")
+        detail_table.add_column("Value", style="bold")
+
+        detail_table.add_row("Episodes Transcribed", str(stat["episode_count"]))
+        detail_table.add_row("Total Segments", f"{stat['total_segments']:,}")
+        detail_table.add_row("Total Words", f"{stat['total_words']:,}")
+        detail_table.add_row("Total Duration", f"{stat['total_duration']:.2f} hours")
+        detail_table.add_row("Processing Time", f"{stat['total_transcription_time']:.2f} hours")
+        detail_table.add_row("Backends Used", stat["backends_used"])
+        detail_table.add_row("Models Used", stat["models_used"])
+
+        if stat["date_range"][0] and stat["date_range"][1]:
+            oldest = stat["date_range"][0].split("T")[0]
+            newest = stat["date_range"][1].split("T")[0]
+            detail_table.add_row("Date Range", f"{oldest} to {newest}")
+
+        console.print(detail_table)
+        console.print()
+
+    else:
+        # Show overview for all podcasts
+        stats = datastore.get_podcast_transcription_stats()
+
+        if not stats:
+            console.print(
+                "\n[yellow]No transcriptions found in database.[/yellow]\n"
+                "Use 'retrocast transcription process' to create transcriptions.\n"
+            )
+            return
+
+        console.print("\n[bold cyan]═══ Podcast Summary ═══[/bold cyan]\n")
+
+        # Summary table
+        summary_table = Table(show_header=True)
+        summary_table.add_column("Podcast", style="cyan", max_width=35)
+        summary_table.add_column("Episodes", justify="right")
+        summary_table.add_column("Segments", justify="right")
+        summary_table.add_column("Words", justify="right")
+        summary_table.add_column("Duration (h)", justify="right")
+        summary_table.add_column("Proc. Time (h)", justify="right")
+
+        total_episodes = 0
+        total_segments = 0
+        total_words = 0
+        total_duration = 0.0
+        total_proc_time = 0.0
+
+        for stat in stats:
+            summary_table.add_row(
+                stat["podcast_title"][:35],
+                str(stat["episode_count"]),
+                f"{stat['total_segments']:,}",
+                f"{stat['total_words']:,}",
+                f"{stat['total_duration']:.2f}",
+                f"{stat['total_transcription_time']:.2f}",
+            )
+            total_episodes += stat["episode_count"]
+            total_segments += stat["total_segments"]
+            total_words += stat["total_words"]
+            total_duration += stat["total_duration"]
+            total_proc_time += stat["total_transcription_time"]
+
+        console.print(summary_table)
+
+        # Totals
+        console.print(
+            f"\n[bold]Totals:[/bold] {len(stats)} podcasts, "
+            f"{total_episodes} episodes, {total_segments:,} segments, "
+            f"{total_words:,} words, {total_duration:.2f}h audio, "
+            f"{total_proc_time:.2f}h processing\n"
+        )
+
+
+# Episodes subgroup
+@transcription.group(name="episodes")
+def episodes() -> None:
+    """Manage and view transcribed episodes.
+
+    Commands for listing and summarizing episodes with transcriptions.
+    """
+    pass
+
+
+@episodes.command(name="list")
+@click.option(
+    "--podcast",
+    type=str,
+    default=None,
+    help="Filter by podcast title.",
+)
+@click.option(
+    "--limit",
+    type=int,
+    default=20,
+    help="Maximum number of episodes to display.",
+)
+@click.option(
+    "--page",
+    type=int,
+    default=1,
+    help="Page number for pagination.",
+)
+@click.option(
+    "--order",
+    type=click.Choice(["date", "duration", "words", "title"], case_sensitive=False),
+    default="date",
+    help="Sort order for results.",
+)
+@click.option(
+    "--asc",
+    is_flag=True,
+    help="Sort in ascending order (default is descending).",
+)
+@click.option(
+    "--db",
+    "db_path",
+    type=click.Path(path_type=Path),
+    default=None,
+    help="Path to database file (defaults to app_dir/retrocast.db).",
+)
+@click.pass_context
+def episodes_list(
+    ctx: click.RichContext,
+    podcast: Optional[str],
+    limit: int,
+    page: int,
+    order: str,
+    asc: bool,
+    db_path: Optional[Path],
+) -> None:
+    """List transcribed episodes.
+
+    Shows episodes sorted by the specified order (default: most recent first).
+
+    Examples:
+        retrocast transcription episodes list
+        retrocast transcription episodes list --podcast "Tech Podcast"
+        retrocast transcription episodes list --order duration --limit 10
+    """
+    # Setup database
+    if db_path is None:
+        db_path = get_default_db_path(create=False)
+        if not db_path.exists():
+            console.print("[red]Database not found. Create transcriptions first.[/red]")
+            ctx.exit(1)
+
+    datastore = Datastore(db_path)
+
+    # Map order option to column name
+    order_map = {
+        "date": "created_time",
+        "duration": "duration",
+        "words": "word_count",
+        "title": "episode_title",
+    }
+    order_by = order_map.get(order, "created_time")
+
+    # Calculate offset
+    offset = (page - 1) * limit
+
+    # Get episodes
+    episodes_data = datastore.get_episode_transcription_list(
+        podcast_title=podcast,
+        limit=limit,
+        offset=offset,
+        order_by=order_by,
+        order_desc=not asc,
+    )
+
+    if not episodes_data:
+        if podcast:
+            console.print(f"\n[yellow]No transcriptions found for podcast: {podcast}[/yellow]\n")
+        else:
+            console.print(
+                "\n[yellow]No transcriptions found in database.[/yellow]\n"
+                "Use 'retrocast transcription process' to create transcriptions.\n"
+            )
+        return
+
+    # Get total count for pagination
+    total_count = datastore.count_transcriptions(podcast_title=podcast)
+
+    # Display table
+    title = "Transcribed Episodes"
+    if podcast:
+        title += f" - {podcast}"
+    console.print(f"\n[bold cyan]═══ {title} ═══[/bold cyan]\n")
+
+    table = Table(show_header=True)
+    table.add_column("#", style="dim", width=4)
+    table.add_column("Episode", style="cyan", max_width=40)
+    if not podcast:
+        table.add_column("Podcast", style="dim", max_width=25)
+    table.add_column("Duration", justify="right")
+    table.add_column("Words", justify="right")
+    table.add_column("Language", justify="center")
+    table.add_column("Date", style="dim")
+
+    for i, ep in enumerate(episodes_data, start=offset + 1):
+        # Format duration as MM:SS or HH:MM:SS
+        duration = ep["duration"] or 0
+        hours = int(duration // 3600)
+        minutes = int((duration % 3600) // 60)
+        secs = int(duration % 60)
+        if hours > 0:
+            duration_str = f"{hours}:{minutes:02d}:{secs:02d}"
+        else:
+            duration_str = f"{minutes}:{secs:02d}"
+
+        # Format date
+        date_str = ep["created_time"].split("T")[0] if ep.get("created_time") else "N/A"
+
+        row = [
+            str(i),
+            ep["episode_title"][:40] if ep.get("episode_title") else "Unknown",
+        ]
+        if not podcast:
+            row.append(ep["podcast_title"][:25] if ep.get("podcast_title") else "Unknown")
+        row.extend(
+            [
+                duration_str,
+                f"{ep['word_count']:,}" if ep.get("word_count") else "0",
+                ep.get("language") or "N/A",
+                date_str,
+            ]
+        )
+
+        table.add_row(*row)
+
+    console.print(table)
+
+    # Pagination info
+    start_num = offset + 1
+    end_num = min(offset + len(episodes_data), total_count)
+    console.print(
+        f"\n[dim]Showing {start_num}-{end_num} of {total_count} episodes (page {page})[/dim]"
+    )
+
+    if end_num < total_count:
+        console.print(f"[dim]Use --page {page + 1} for next page[/dim]")
+    console.print()
+
+
+@episodes.command(name="summary")
+@click.option(
+    "--podcast",
+    type=str,
+    default=None,
+    help="Filter by podcast title.",
+)
+@click.option(
+    "--db",
+    "db_path",
+    type=click.Path(path_type=Path),
+    default=None,
+    help="Path to database file (defaults to app_dir/retrocast.db).",
+)
+@click.pass_context
+def episodes_summary(
+    ctx: click.RichContext,
+    podcast: Optional[str],
+    db_path: Optional[Path],
+) -> None:
+    """Show summary statistics for transcribed episodes.
+
+    Displays aggregate statistics about transcribed episodes.
+
+    Examples:
+        retrocast transcription episodes summary
+        retrocast transcription episodes summary --podcast "Tech Podcast"
+    """
+    # Setup database
+    if db_path is None:
+        db_path = get_default_db_path(create=False)
+        if not db_path.exists():
+            console.print("[red]Database not found. Create transcriptions first.[/red]")
+            ctx.exit(1)
+
+    datastore = Datastore(db_path)
+
+    # Get episodes
+    episodes_data = datastore.get_episode_transcription_list(
+        podcast_title=podcast,
+        limit=None,  # Get all for summary
+    )
+
+    if not episodes_data:
+        if podcast:
+            console.print(f"\n[yellow]No transcriptions found for podcast: {podcast}[/yellow]\n")
+        else:
+            console.print(
+                "\n[yellow]No transcriptions found in database.[/yellow]\n"
+                "Use 'retrocast transcription process' to create transcriptions.\n"
+            )
+        return
+
+    # Calculate statistics
+    total_episodes = len(episodes_data)
+    total_duration = sum(ep.get("duration") or 0 for ep in episodes_data)
+    total_words = sum(ep.get("word_count") or 0 for ep in episodes_data)
+    total_proc_time = sum(ep.get("transcription_time") or 0 for ep in episodes_data)
+
+    # Calculate averages
+    avg_duration = total_duration / total_episodes if total_episodes > 0 else 0
+    avg_words = total_words / total_episodes if total_episodes > 0 else 0
+    avg_proc_time = total_proc_time / total_episodes if total_episodes > 0 else 0
+
+    # Find min/max durations
+    durations = [ep.get("duration") or 0 for ep in episodes_data]
+    min_duration = min(durations) if durations else 0
+    max_duration = max(durations) if durations else 0
+
+    # Language distribution
+    languages: dict[str, int] = {}
+    for ep in episodes_data:
+        lang = ep.get("language") or "unknown"
+        languages[lang] = languages.get(lang, 0) + 1
+
+    # Display summary
+    title = "Episode Summary"
+    if podcast:
+        title += f" - {podcast}"
+    console.print(f"\n[bold cyan]═══ {title} ═══[/bold cyan]\n")
+
+    stats_table = Table(show_header=False, box=None, padding=(0, 2))
+    stats_table.add_column("Metric", style="dim")
+    stats_table.add_column("Value", style="bold")
+
+    stats_table.add_row("Total Episodes", str(total_episodes))
+    stats_table.add_row("Total Duration", f"{total_duration / 3600:.2f} hours")
+    stats_table.add_row("Total Words", f"{total_words:,}")
+    stats_table.add_row("Total Processing Time", f"{total_proc_time / 3600:.2f} hours")
+    stats_table.add_row("", "")
+    stats_table.add_row("Average Duration", f"{avg_duration / 60:.1f} minutes")
+    stats_table.add_row("Average Words", f"{avg_words:,.0f}")
+    stats_table.add_row("Average Processing Time", f"{avg_proc_time:.1f} seconds")
+    stats_table.add_row("", "")
+    stats_table.add_row("Shortest Episode", f"{min_duration / 60:.1f} minutes")
+    stats_table.add_row("Longest Episode", f"{max_duration / 60:.1f} minutes")
+
+    console.print(stats_table)
+
+    # Language breakdown
+    if languages:
+        console.print("\n[bold]Languages:[/bold]")
+        lang_table = Table(show_header=True, box=None, padding=(0, 2))
+        lang_table.add_column("Language", style="cyan")
+        lang_table.add_column("Episodes", justify="right")
+        lang_table.add_column("Percentage", justify="right")
+
+        for lang, count in sorted(languages.items(), key=lambda x: -x[1]):
+            pct = (count / total_episodes) * 100
+            lang_table.add_row(lang, str(count), f"{pct:.1f}%")
+
+        console.print(lang_table)
+
+    console.print()
