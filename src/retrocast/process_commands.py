@@ -831,7 +831,7 @@ def summary(
     main_table.add_column("Metric", style="dim")
     main_table.add_column("Value", style="bold")
 
-    main_table.add_row("Total Transcriptions", str(stats["total_transcriptions"]))
+    main_table.add_row("Total Episodes Transcribed", str(stats["total_transcriptions"]))
     main_table.add_row("Unique Podcasts", str(stats["total_podcasts"]))
     main_table.add_row("Total Segments", f"{stats['total_segments']:,}")
     main_table.add_row("Total Words", f"{stats['total_words']:,}")
