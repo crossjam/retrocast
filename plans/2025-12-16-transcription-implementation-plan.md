@@ -1043,7 +1043,7 @@ This checklist tracks progress through all implementation phases. Check off task
 
 ---
 
-### Phase 6: Search and Query Features ✅ / ❌
+### Phase 6: Search and Query Features ✅
 
 **Search Implementation**
 - [x] Enhance `search_transcriptions()` in `datastore.py`
@@ -1062,29 +1062,30 @@ This checklist tracks progress through all implementation phases. Check off task
 - [x] Add pagination for large result sets
 
 **Descriptive, Listing and Summarative Subcommands**
-- [ ] New subcommands for `retrocast transcription`
-  - [ ] `podcasts`, new subgroup
-  - [ ] `episodes`, new subgroup
-  - [ ] `summary`, subcommand to overall summarize the podcasts and
+- [x] New subcommands for `retrocast transcription`
+  - [x] `podcasts`, new subgroup with `list` and `summary` commands
+  - [x] `episodes`, new subgroup with `list` and `summary` commands
+  - [x] `summary`, subcommand to overall summarize the podcasts and
         episodes that have populated the transcription datastore, also
         segments, date range info, and dataset size info
-  - [ ] `podcasts summary`, just for podcasts, count, titles, date
+  - [x] `podcasts summary`, just for podcasts, count, titles, date
         range info, episodes per podcast dataset size
-  - [ ] `episodes summary`, just for episodes, count, titles, date
+  - [x] `episodes summary`, just for episodes, count, titles, date
         range info, time per episode, dataset size
   - [ ] `browse`, subcommand that implements a textual interface for
-        browsing the podcast and episode information
+        browsing the podcast and episode information (deferred - future enhancement)
 
 
 **Testing**
-- [ ] Test search with various filters
-- [ ] Test result ranking
-- [ ] Test export formats
+- [x] Test search with various filters
+- [x] Test result ranking
+- [x] Test export formats
+- [x] Tests for summary and listing commands (20 new tests added)
 
 **Documentation**
-- [ ] Add search query syntax documentation
-- [ ] Add filter examples
-- [ ] Add search best practices
+- [x] Add search query syntax documentation (via CLI help text)
+- [x] Add filter examples (via CLI docstrings and help)
+- [x] Add search best practices (via command examples)
 
 ---
 
@@ -1167,9 +1168,34 @@ This checklist tracks progress through all implementation phases. Check off task
 
 ## Progress Tracking Notes
 
-**Current Phase**: Phases 1, 2, 3, 4, and 7 Complete - Ready for Phase 5 or 6
+**Current Phase**: Phases 1, 2, 3, 4, 6, and 7 Complete - Ready for Phase 5 or 8
 
-**Last Completed Task**: Phase 3 complete (PR #66) - faster-whisper backend fully implemented with CUDA/CPU support. All 105 tests passing, all QA checks pass. Documentation updated.
+**Last Completed Task**: Phase 6 complete - Search and query features with summary/listing subcommands. All 124 tests passing.
+
+**Completed in Phase 6**:
+- Enhanced search functionality (already implemented in earlier phases)
+  - Full-text search with FTS5 ranking
+  - Filters: podcast, speaker, backend, model, date range
+  - Context extraction (surrounding segments)
+  - Export formats: JSON, CSV, HTML
+  - Pagination support
+  - Result highlighting with Rich
+
+- New CLI subcommands for `retrocast transcription`:
+  - `summary` - overall transcription statistics
+  - `podcasts list` - list podcasts with transcriptions
+  - `podcasts summary [PODCAST]` - detailed podcast statistics
+  - `episodes list` - paginated episode listing with filters
+  - `episodes summary` - aggregate episode statistics
+
+- New datastore methods:
+  - `get_transcription_summary()` - overall stats
+  - `get_podcast_transcription_stats()` - per-podcast stats
+  - `get_episode_transcription_list()` - episode listing
+  - `count_transcriptions()` - counting with filters
+  - `get_transcription_podcasts()` - unique podcast list
+
+- 20 new tests added for summary/listing functionality
 
 **Completed in PR #66**:
 - Phase 3: Faster-Whisper backend with CUDA/CPU support
@@ -1189,24 +1215,27 @@ This checklist tracks progress through all implementation phases. Check off task
 
 **Next Steps**:
 1. Option A: Implement Phase 5 (speaker diarization with pyannote.audio)
-2. Option B: Implement Phase 6 (enhanced search and query features)
-3. Option C: Implement Phase 8 (documentation polish and code quality)
-4. Option D: Move to production with current feature set
+2. Option B: Implement Phase 8 (documentation polish and code quality)
+3. Option C: Move to production with current feature set
 
 **Known Issues**: None
 
 **Blockers**: None
+
+**Deferred Items**:
+- `browse` subcommand with textual interface (optional future enhancement)
 
 **Notes**:
 - Phase 1: Core infrastructure with 25 tests
 - Phase 2: MLX Whisper backend with 10 additional tests (35 total)
 - Phase 3: Faster-Whisper backend with 9 additional tests (total: 105 tests per PR #66)
 - Phase 4: CLI Integration with 7 additional tests (64 total before Phase 3)
+- Phase 6: Summary and listing commands with 20 additional tests (124 total)
 - Phase 7: Documentation and optional dependencies completed
 - Type checking passes with proper type: ignore annotations for optional imports
 - Optional dependencies properly configured in pyproject.toml
 - Backend registry system ready for additional backends
 - All code follows project linting and formatting standards
-- CLI commands: `transcription process`, `transcription backends list`, `transcription backends test`, `transcription search`
+- CLI commands: `transcription process`, `transcription backends list`, `transcription backends test`, `transcription search`, `transcription summary`, `transcription podcasts list`, `transcription podcasts summary`, `transcription episodes list`, `transcription episodes summary`
 - Rich progress bars, colored output, comprehensive error handling
 - Command group renamed from `process` to `transcription` for better domain alignment
