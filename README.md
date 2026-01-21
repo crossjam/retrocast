@@ -19,7 +19,15 @@ providing a foundation for pulling podcast information from my
 Overcast account. `retrocast` honors the Apache 2.0 license from
 `overcast-to-sqlite`.
 
-Save listening history and feed/episode info from Overcast to a SQLite database. Try exploring your podcast listening habits with [Datasette](https://datasette.io/)!
+**Full disclosure, this project is primarily "auditionware".** The
+main goal is to provide something for potential external collaborators
+or employers to view and review. Yup, it’s a bit about me showing
+off. If you have strong opinions feel free to fork this sucker and
+take it where your heart desires.
+
+Save listening history and feed/episode info from Overcast to a SQLite
+database. Try exploring your podcast listening habits with
+[Datasette](https://datasette.io/)!
 
 - [How to install](#how-to-install)
 - [Authentication](#authentication)
@@ -348,16 +356,14 @@ Guide](docs/TRANSCRIPTION.md).
 
 ## Development
 
-**Full disclosure, this project is primarily "auditionware".** The
-main goal is to provide something for potential external collaborators
-or employers to view and review. Yup, it’s a bit about me showing
-off. If you have strong opinions feel free to fork this sucker and
-take it where your heart desires.
+**As mentioned above, this project is primarily "auditionware".** 
 
-However, pull requests are welcome, at least as criticism, feedback,
-and inspiration! There might be a lag on responding or acceptance
-though. For major changes, please open an issue first to discuss what
-you would like to change.
+However, pull requests and issues are welcome, at least as criticism,
+feedback, and inspiration! There might be a lag on responding or
+acceptance though. You’re likely best off assuming that a PR will take
+forever to be accepted if at all. Similarly for addressing issues. For
+major changes, please open an issue first to discuss what you would
+like to change.
 
 ### Setup
 

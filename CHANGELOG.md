@@ -63,7 +63,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Strategy pattern for backend selection
 - Platform-specific dependency management via PEP 508 markers
 
-## [0.1.0] - Initial Release
+## [0.10.0] - Initial Release
 
 ### Added
 
