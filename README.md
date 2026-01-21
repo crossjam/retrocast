@@ -27,6 +27,7 @@ Save listening history and feed/episode info from Overcast to a SQLite database.
 - [Extending and saving full feeds](#extending-and-saving-full-feeds)
 - [Downloading transcripts](#downloading-transcripts)
 - [Episode Download Database](#episode-download-database)
+- [Audio Transcription](#audio-transcription)
 
 ## Quick run
     
@@ -223,6 +224,79 @@ Downloaded episodes are stored in the `episode_downloads` table within `retrocas
 - File existence tracking
 
 Full-text search is enabled via SQLite FTS5 for fast searching across all text fields.
+
+## Audio Transcription
+
+The transcription module enables you to transcribe podcast audio files to searchable text using state-of-the-art Whisper speech recognition models.
+
+### Features
+
+- **Multiple Backends**: MLX Whisper (Apple Silicon), faster-whisper (CUDA/CPU)
+- **Auto-Detection**: Automatically selects the best available backend for your platform
+- **Content Deduplication**: SHA256 hashing prevents re-transcribing the same audio
+- **Full-Text Search**: Search across all transcribed content using SQLite FTS5
+- **Multiple Formats**: Export as TXT, JSON, SRT (subtitles), or VTT (WebVTT)
+
+### Installing Transcription Backends
+
+```bash
+# For Apple Silicon Macs (M1/M2/M3) - fastest performance
+poe install:transcription-mlx
+
+# For Linux/Windows with NVIDIA GPU
+poe install:transcription-cuda
+
+# For CPU-only (any platform)
+poe install:transcription-cpu
+```
+
+### Quick Start
+
+```bash
+# Check available backends
+retrocast transcription backends list
+
+# Transcribe a single audio file
+retrocast transcription process episode.mp3
+
+# Transcribe with specific options
+retrocast transcription process --model medium --format srt episode.mp3
+
+# Transcribe all files in a directory
+retrocast transcription process ~/podcasts/
+
+# Search transcribed content
+retrocast transcription search "machine learning"
+retrocast transcription search --podcast "Tech Talk" "python"
+```
+
+### CLI Commands
+
+| Command | Description |
+|---------|-------------|
+| `retrocast transcription process PATH...` | Transcribe audio files |
+| `retrocast transcription backends list` | List available backends |
+| `retrocast transcription backends test BACKEND` | Test a specific backend |
+| `retrocast transcription search QUERY` | Search transcribed content |
+| `retrocast transcription summary` | Show transcription statistics |
+| `retrocast transcription podcasts list` | List podcasts with transcriptions |
+| `retrocast transcription episodes list` | List transcribed episodes |
+
+### Options for `transcription process`
+
+| Option | Values | Default | Description |
+|--------|--------|---------|-------------|
+| `--backend` | auto, mlx-whisper, faster-whisper | auto | Backend to use |
+| `--model` | tiny, base, small, medium, large | base | Whisper model size |
+| `--language` | en, es, fr, etc. | auto | Audio language |
+| `--format` | txt, json, srt, vtt | json | Output format |
+| `--force` | flag | false | Re-transcribe existing files |
+
+### Supported Audio Formats
+
+MP3, M4A, OGG, Opus, WAV, FLAC, AAC
+
+For comprehensive documentation including performance benchmarks, troubleshooting, and advanced usage, see the [Transcription Guide](docs/TRANSCRIPTION.md).
 
 ## See also
 
