@@ -46,9 +46,21 @@ Or to upgrade:
 	# or
 	$ uv tool upgrade git+https://github.com/crossjam/retrocast
 
-## Authentication
+## Overcast syncing and operations
 
-Run this command to login to Overcast (note: neither your password nor email are saved, only the auth cookie):
+`retrocast sync overcast` corresponds to the CLI functionality of the
+prior overcast-to-sqlite codebase `retrocast` started from. By
+default, `retrocast` uses an os specific user application directory to
+hold and manage files it creates. `retrocast config location` can be
+used to determine this location. Assume that this is the default
+location for application files mentioned in the rest of this
+documentation.
+
+
+### Authentication
+
+Run this command to login to Overcast (note: neither your password nor
+email are saved, only the auth cookie):
 
     $ retrocast sync overcast auth
 
@@ -62,37 +74,49 @@ the "All data" file [from the Overcast account
 page](https://overcast.fm/account) and pass it into the save command
 as described below. 
 
-## Fetching and saving updates
+### Fetching and saving updates
 
-The `save` command retrieves all Overcast info and stores playlists,
-podcast feeds, and episodes in their respective tables with a primary
-key `overcastId`.
+The `retrocast sync overcast save` command retrieves all Overcast info
+and stores playlists, podcast feeds, and episodes in their respective
+tables with a primary key `overcastId`.
 
-    $ retrocast save
+    $ retrocast sync overcast all
 
-By default, this saves to `overcast.db` but this can be manually set.
+By default, this saves to `retrocast.db` in the application directory
+but this can be manually set.
 
-    $ retrocast save someother.db
+    $ retrocast sync overcast save -d someother.db
 
-By default, it will attempt to use the info in `auth.json` file is present it will use the cookie from that file. You can point to a different location using `-a`:
+By default, it will attempt to use the info in `auth.json` file from
+the application directory. You can point to a different location
+using `-a`:
 
-    $ retrocast save -a /path/to/auth.json
+    $ retrocast sync overcast save -a /path/to/auth.json
 
-Alternately, you can skip authentication by passing in an OPML file you downloaded from Overcast:
+Alternately, you can skip authentication by passing in an OPML file
+you downloaded from Overcast:
 
-    $ retrocast save --load /path/to/overcast.opml
+    $ retrocast sync overcast save --load /path/to/overcast.opml
 
-By default, the save command will save any OPML file it downloads adjacent to the database file in `archive/overcast/`. You can disable this behavior with `--no-archive` or `-na`.
+By default, the save command will save any OPML file it downloads
+adjacent to the database file in `archive/overcast/`. You can disable
+this behavior with `--no-archive` or `-na`.
 
 For increased reporting verbosity, use the `-v` flag.
 
-## Extending and saving full feeds
+### Extending and saving full feeds
 
-The `extend` command that will download the XML files for all feeds you are subscribed to and extract tags and attributes. These are stored in separate tables `feeds_extended` and `episodes_extended` with primary keys `xmlUrl` and  `enclosureUrl` respectively. (See points 4 and 5 below for more information.)
+The `extend` command that will download the XML files for all feeds
+you are subscribed to and extract tags and attributes. These are
+stored in separate tables `feeds_extended` and `episodes_extended`
+with primary keys `xmlUrl` and `enclosureUrl` respectively. (See
+points 4 and 5 below for more information.)
 
-    $ retrocast extend
+    $ retrocast sync overcast extend
 
-Like the save command, this will attempt to archive feeds to `archive/feeds/` by default. This can be disabled with `--no-archive` or `-na`.
+Like the save command, this will attempt to archive feeds to
+`archive/feeds/` by default. This can be disabled with `--no-archive`
+or `-na`. 
 
 It also supports the `-v` flag to print additional information.
 
@@ -124,17 +148,22 @@ There are a few caveats for this functionality:
 Any suggestions for improving on these caveats are welcome, please
 [open an issue](https://github.com/crossjam/retrocast/issues)!
 
-## Downloading transcripts
+### Downloading transcripts
 
-The `transcripts` command that will download the transcripts if available.
+The `transcripts` command will download the transcripts from pod
+metadata if available.
 
 The `save` and `extend` commands MUST be run prior to this.
 
-Episodes with a "podcast:transcript:url" value will be downloaded from that URL and the download's location will then be stored in "transcriptDownloadPath". 
+Episodes with a "podcast:transcript:url" value will be downloaded from
+that URL and the download's location will then be stored in
+"transcriptDownloadPath".
 
-    $ retrocast transcripts
+    $ retrocast meta overcast transcripts
 
-Like previous commands, by default this will save transcripts to `archive/transcripts/<feed title>/<episode title>` by default.
+Like previous commands, by default this will save transcripts to
+`{APP_DIR}/archive/transcripts/<feed title>/<episode title>` by
+default.
 
 A different path can be set with the `-p`/`--path` flag.
 
@@ -142,23 +171,31 @@ It also supports the `-v` flag to print additional information.
 
 There is also a `-s` flag to only download transcripts for starred episodes.
 
-## Episode Download Database
+### Episode Download Database
 
-The episode download database feature allows you to index and search podcast episodes downloaded via [podcast-archiver](https://github.com/janw/podcast-archiver). This creates a searchable database of your downloaded episode collection.
+The episode download database feature allows you to index and search
+podcast episodes downloaded via
+[podcast-archiver](https://github.com/janw/podcast-archiver). This
+creates a searchable database of your downloaded episode collection. 
 
-### Downloading Episodes
+There is also stubbed functionality to use `aria2` as an embedded
+download server for an alternative, higher performance backend.
+
+#### Downloading Episodes
 
 Use the `download podcast-archiver` command to download podcast episodes:
 
     $ retrocast download podcast-archiver --feed https://example.com/feed.xml
 
-By default, episodes are downloaded to `~/.local/share/net.memexponent.retrocast/episode_downloads/` (or equivalent on your platform) with `.info.json` metadata files created automatically.
+By default, episodes are downloaded to
+`~/{APP_DIR}/episode_downloads/` with `.info.json` metadata files
+created automatically.
 
 For more options, see:
 
     $ retrocast download podcast-archiver --help
 
-### Indexing Downloaded Episodes
+#### Indexing Downloaded Episodes
 
 Initialize the episode database (one-time setup):
 
@@ -178,13 +215,13 @@ Options:
 - `--rescan`: Delete existing records and rebuild from scratch
 - `--verify`: Check for missing files and mark them in the database
 
-### Searching Episodes
+#### Searching Episodes
 
 Search your downloaded episodes using full-text search:
 
-    $ retrocast download db search "machine learning"
-    $ retrocast download db search "python" --podcast "Talk Python To Me"
-    $ retrocast download db search "interview" --limit 10
+    $ retrocast sync overcast download db search "machine learning"
+    $ retrocast sync overcast download db search "python" --podcast "Talk Python To Me"
+    $ retrocast sync overcast download db search "interview" --limit 10
 
 The search looks across:
 - Episode titles
@@ -213,7 +250,7 @@ retrocast download db update
 retrocast download db search "topic you're interested in"
 ```
 
-### Database Schema
+#### Database Schema
 
 Downloaded episodes are stored in the `episode_downloads` table within `retrocast.db` with the following information:
 
@@ -225,11 +262,13 @@ Downloaded episodes are stored in the `episode_downloads` table within `retrocas
 
 Full-text search is enabled via SQLite FTS5 for fast searching across all text fields.
 
-## Audio Transcription
+### Audio Transcription
 
-The transcription module enables you to transcribe podcast audio files to searchable text using state-of-the-art Whisper speech recognition models.
+The transcription module enables you to transcribe podcast audio files
+to searchable text using state-of-the-art Whisper speech recognition
+models. 
 
-### Features
+#### Features
 
 - **Multiple Backends**: MLX Whisper (Apple Silicon), faster-whisper (CUDA/CPU)
 - **Auto-Detection**: Automatically selects the best available backend for your platform
@@ -237,7 +276,7 @@ The transcription module enables you to transcribe podcast audio files to search
 - **Full-Text Search**: Search across all transcribed content using SQLite FTS5
 - **Multiple Formats**: Export as TXT, JSON, SRT (subtitles), or VTT (WebVTT)
 
-### Installing Transcription Backends
+#### Installing Transcription Backends
 
 ```bash
 # For Apple Silicon Macs (M1/M2/M3) - fastest performance
@@ -250,7 +289,7 @@ poe install:transcription-cuda
 poe install:transcription-cpu
 ```
 
-### Quick Start
+### Transcription Quick Start
 
 ```bash
 # Check available backends
@@ -270,7 +309,7 @@ retrocast transcription search "machine learning"
 retrocast transcription search --podcast "Tech Talk" "python"
 ```
 
-### CLI Commands
+### Transcription CLI Commands
 
 | Command | Description |
 |---------|-------------|
@@ -292,11 +331,13 @@ retrocast transcription search --podcast "Tech Talk" "python"
 | `--format` | txt, json, srt, vtt | json | Output format |
 | `--force` | flag | false | Re-transcribe existing files |
 
-### Supported Audio Formats
+#### Supported Audio Formats
 
 MP3, M4A, OGG, Opus, WAV, FLAC, AAC
 
-For comprehensive documentation including performance benchmarks, troubleshooting, and advanced usage, see the [Transcription Guide](docs/TRANSCRIPTION.md).
+For comprehensive documentation including performance benchmarks,
+troubleshooting, and advanced usage, see the [Transcription
+Guide](docs/TRANSCRIPTION.md).
 
 ## See also
 
