@@ -163,9 +163,7 @@ class FasterWhisperBackend(TranscriptionBackend):
             raise RuntimeError(f"Faster-Whisper transcription failed: {e}") from e
 
         # Convert faster_whisper result to our TranscriptionResult format
-        return self._convert_result(
-            segments_list, info, audio_path, transcription_time, model_size
-        )
+        return self._convert_result(segments_list, info, audio_path, transcription_time, model_size)
 
     def _ensure_model_loaded(self, model_size: str) -> None:
         """Ensure the Whisper model is loaded with the correct size.
@@ -192,7 +190,7 @@ class FasterWhisperBackend(TranscriptionBackend):
         ]
         if model_size not in valid_sizes:
             raise ValueError(
-                f"Invalid model size: {model_size}. " f"Valid sizes: {', '.join(valid_sizes)}"
+                f"Invalid model size: {model_size}. Valid sizes: {', '.join(valid_sizes)}"
             )
 
         # Only reload if model size changed or model not loaded yet

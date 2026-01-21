@@ -632,11 +632,81 @@ for segment in data["segments"]:
     print(f"[{segment['start']:.1f}s] {segment['text']}")
 ```
 
-## Next Steps
+## Frequently Asked Questions (FAQ)
 
-- **Phase 3**: faster-whisper backend for CUDA/CPU (coming soon)
-- **Phase 5**: Speaker diarization to identify different speakers
-- **Phase 6**: Enhanced search with highlighting and filters
+### Q: Which backend should I use?
+
+**A:** It depends on your hardware:
+- **Apple Silicon Mac (M1/M2/M3)**: Use MLX Whisper for best performance
+- **NVIDIA GPU (Linux/Windows)**: Use faster-whisper with CUDA
+- **CPU only**: Use faster-whisper with CPU mode
+
+The `--backend auto` option (default) automatically selects the best available backend.
+
+### Q: How long does transcription take?
+
+**A:** Processing time depends on audio length, model size, and hardware. As a rule of thumb:
+- **MLX Whisper on Apple Silicon**: ~5-10% of audio duration for base model
+- **faster-whisper on CUDA**: ~5-15% of audio duration for base model
+- **CPU mode**: ~20-50% of audio duration for base model
+
+Use smaller models (tiny, base) for faster processing, larger models (medium, large) for better accuracy.
+
+### Q: Will I lose my transcriptions if I move the audio files?
+
+**A:** No. Transcriptions are identified by a SHA256 content hash, not file path. If you move or rename an audio file, retrocast can still find the existing transcription via the hash.
+
+### Q: How do I re-transcribe a file with a different model?
+
+**A:** Use the `--force` flag:
+```bash
+retrocast transcription process --force --model large episode.mp3
+```
+
+### Q: Can I transcribe files that aren't downloaded through retrocast?
+
+**A:** Yes. The `process` command accepts any audio file path:
+```bash
+retrocast transcription process /path/to/any/audio.mp3
+```
+
+### Q: How do I know which backends are installed?
+
+**A:** Run:
+```bash
+retrocast transcription backends list
+```
+
+### Q: Why is transcription slow even with GPU?
+
+**A:** Check that:
+1. The GPU backend is actually being used (`backends list` shows ✓ Available)
+2. You're not using too large a model for your GPU memory
+3. PyTorch CUDA is properly installed: `python -c "import torch; print(torch.cuda.is_available())"`
+
+### Q: Can I transcribe multiple languages?
+
+**A:** Yes. Either:
+- Let Whisper auto-detect the language (default behavior)
+- Specify the language explicitly: `--language es` for Spanish
+
+### Q: How do I search within a specific podcast?
+
+**A:** Use the `--podcast` filter:
+```bash
+retrocast transcription search --podcast "Tech Talk" "machine learning"
+```
+
+### Q: What audio formats are supported?
+
+**A:** MP3, M4A, OGG, Opus, WAV, FLAC, and AAC.
+
+## Future Enhancements
+
+The following features are planned for future releases:
+- **Speaker Diarization**: Identify and label different speakers using pyannote.audio
+- **Interactive Browser**: Textual-based TUI for browsing transcriptions
+- **Export to Datasette**: Improved integration with Datasette for web-based exploration
 
 ## Support
 
