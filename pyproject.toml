@@ -20,7 +20,7 @@ description = "AI driven exploration of archived podcast content"
 readme = "README.md"
 requires-python = ">=3.11"
 authors = [
-    { name = "Brian M. Dennis", email = "bmdphd@bmdphd.info" },
+    { name = "Brian M. Dennis", email = "bmd@bmdphd.info" },
     { name = "Harold Martin", email = "Harold.Martin@gmail.com" },
 ]
 keywords = ["datasette", "overcast", "sqlite", "podcasts", "podcast", "transcripts"]
