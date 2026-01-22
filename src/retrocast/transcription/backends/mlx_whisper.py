@@ -83,8 +83,7 @@ class MLXWhisperBackend(TranscriptionBackend):
             import mlx_whisper  # type: ignore[import-untyped]
         except ImportError as e:
             raise ImportError(
-                "mlx_whisper is not installed. "
-                "Install with: pip install mlx-whisper"
+                "mlx_whisper is not installed. Install with: pip install mlx-whisper"
             ) from e
 
         if not audio_path.exists():
@@ -93,9 +92,7 @@ class MLXWhisperBackend(TranscriptionBackend):
         # Load model (with caching)
         model_path = self._get_or_load_model(model_size)
 
-        logger.info(
-            f"Transcribing {audio_path.name} with MLX Whisper ({model_size} model)"
-        )
+        logger.info(f"Transcribing {audio_path.name} with MLX Whisper ({model_size} model)")
 
         # Transcribe with mlx_whisper (suppress progress output)
         try:
@@ -103,8 +100,9 @@ class MLXWhisperBackend(TranscriptionBackend):
             import io
 
             # Suppress stdout/stderr to hide MLX Whisper's progress bars
-            with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(
-                io.StringIO()
+            with (
+                contextlib.redirect_stdout(io.StringIO()),
+                contextlib.redirect_stderr(io.StringIO()),
             ):
                 result = mlx_whisper.transcribe(
                     str(audio_path),
@@ -133,8 +131,7 @@ class MLXWhisperBackend(TranscriptionBackend):
         valid_sizes = ["tiny", "base", "small", "medium", "large", "large-v2", "large-v3"]
         if model_size not in valid_sizes:
             raise ValueError(
-                f"Invalid model size: {model_size}. "
-                f"Valid sizes: {', '.join(valid_sizes)}"
+                f"Invalid model size: {model_size}. Valid sizes: {', '.join(valid_sizes)}"
             )
 
         # MLX Whisper uses model identifiers like "mlx-community/whisper-small-mlx"
@@ -153,9 +150,7 @@ class MLXWhisperBackend(TranscriptionBackend):
 
         return model_path
 
-    def _convert_result(
-        self, mlx_result: dict, audio_path: Path
-    ) -> TranscriptionResult:
+    def _convert_result(self, mlx_result: dict, audio_path: Path) -> TranscriptionResult:
         """Convert mlx_whisper result to TranscriptionResult.
 
         Args:

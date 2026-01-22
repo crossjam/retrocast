@@ -448,6 +448,154 @@ class TestMLXWhisperBackend:
         assert result.duration == 5.0
 
 
+class TestFasterWhisperBackend:
+    """Tests for Faster-Whisper backend."""
+
+    def test_backend_name(self):
+        """Test backend name property."""
+        from retrocast.transcription.backends.faster_whisper import FasterWhisperBackend
+
+        backend = FasterWhisperBackend()
+        assert backend.name == "faster-whisper"
+
+    def test_platform_info_cpu(self):
+        """Test platform info for CPU."""
+        from retrocast.transcription.backends.faster_whisper import FasterWhisperBackend
+
+        backend = FasterWhisperBackend()
+        backend._device = "cpu"
+        platform_info = backend.platform_info()
+        assert "CPU" in platform_info
+
+    def test_platform_info_cuda(self):
+        """Test platform info for CUDA."""
+        from retrocast.transcription.backends.faster_whisper import FasterWhisperBackend
+
+        backend = FasterWhisperBackend()
+        backend._device = "cuda"
+        platform_info = backend.platform_info()
+        assert "CUDA" in platform_info or "GPU" in platform_info
+
+    def test_description(self):
+        """Test backend description."""
+        from retrocast.transcription.backends.faster_whisper import FasterWhisperBackend
+
+        backend = FasterWhisperBackend()
+        description = backend.description()
+        assert "Faster-Whisper" in description
+        assert "CUDA" in description or "CPU" in description
+
+    def test_is_available_no_import(self, monkeypatch):
+        """Test is_available when faster_whisper not installed."""
+        from retrocast.transcription.backends.faster_whisper import FasterWhisperBackend
+
+        # Mock the import to raise ImportError
+        def mock_import(name, *args, **kwargs):
+            if name == "faster_whisper":
+                raise ImportError("faster_whisper not found")
+            return __import__(name, *args, **kwargs)
+
+        monkeypatch.setattr("builtins.__import__", mock_import)
+
+        backend = FasterWhisperBackend()
+        assert not backend.is_available()
+
+    def test_detect_device_cpu(self, monkeypatch):
+        """Test device detection defaults to CPU when CUDA not available."""
+        from retrocast.transcription.backends.faster_whisper import FasterWhisperBackend
+
+        backend = FasterWhisperBackend()
+
+        # Mock torch to not have CUDA
+        class MockTorch:
+            class cuda:
+                @staticmethod
+                def is_available():
+                    return False
+
+        monkeypatch.setattr(
+            "retrocast.transcription.backends.faster_whisper.torch",
+            MockTorch,
+            raising=False,
+        )
+
+        device, compute_type = backend._detect_device()
+        assert device == "cpu"
+        assert compute_type == "int8"
+
+    def test_invalid_model_size(self):
+        """Test transcribe with invalid model size."""
+        from retrocast.transcription.backends.faster_whisper import FasterWhisperBackend
+
+        backend = FasterWhisperBackend()
+
+        # Create a temporary test file
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as f:
+            test_path = Path(f.name)
+            f.write(b"fake audio data")
+
+        try:
+            # This should fail with ValueError for invalid model size
+            with pytest.raises((ValueError, ImportError)):
+                backend.transcribe(test_path, model_size="invalid")
+        finally:
+            test_path.unlink()
+
+    def test_transcribe_missing_file(self):
+        """Test transcribe with missing audio file."""
+        from retrocast.transcription.backends.faster_whisper import FasterWhisperBackend
+
+        backend = FasterWhisperBackend()
+
+        # If faster_whisper is not installed, should raise ImportError
+        # If faster_whisper IS installed, should raise FileNotFoundError
+        with pytest.raises((ImportError, FileNotFoundError)):
+            backend.transcribe(Path("/nonexistent/file.mp3"))
+
+    def test_convert_result(self):
+        """Test conversion of faster_whisper result to TranscriptionResult."""
+        from retrocast.transcription.backends.faster_whisper import FasterWhisperBackend
+
+        backend = FasterWhisperBackend()
+        backend._device = "cpu"
+        backend._compute_type = "int8"
+
+        # Mock faster_whisper segment objects
+        class MockSegment:
+            def __init__(self, start, end, text):
+                self.start = start
+                self.end = end
+                self.text = text
+
+        class MockInfo:
+            def __init__(self):
+                self.language = "en"
+                self.duration = 5.0
+                self.language_probability = 0.95
+
+        faster_segments = [
+            MockSegment(0.0, 2.5, " Hello world."),
+            MockSegment(2.5, 5.0, " This is a test."),
+        ]
+        info = MockInfo()
+
+        result = backend._convert_result(
+            faster_segments, info, Path("test.mp3"), transcription_time=2.5, model_size="base"
+        )
+
+        assert isinstance(result, TranscriptionResult)
+        assert result.text == "Hello world. This is a test."
+        assert result.language == "en"
+        assert len(result.segments) == 2
+        assert result.segments[0].text == "Hello world."
+        assert result.segments[0].start == 0.0
+        assert result.segments[0].end == 2.5
+        assert result.duration == 5.0
+        assert result.metadata["backend"] == "faster-whisper"
+        assert result.metadata["device"] == "cpu"
+        assert result.metadata["transcription_time"] == 2.5
+
+
 class TestBackendRegistry:
     """Tests for backend registry."""
 
@@ -460,6 +608,16 @@ class TestBackendRegistry:
 
         # MLX backend should be registered (even if not available)
         assert "mlx-whisper" in backend_names
+
+    def test_get_all_backends_includes_faster_whisper(self):
+        """Test that Faster-Whisper backend is registered."""
+        from retrocast.transcription.backends import get_all_backends
+
+        backends = get_all_backends()
+        backend_names = [b().name for b in backends]
+
+        # Faster-Whisper backend should be registered (even if not available)
+        assert "faster-whisper" in backend_names
 
     def test_backend_registration(self):
         """Test backend registration mechanism."""
@@ -887,3 +1045,356 @@ class TestTranscriptionDatabase:
 
             # Results should be different
             assert results_page1[0]["media_path"] != results_page2[0]["media_path"]
+
+
+class TestTranscriptionSummaryMethods:
+    """Tests for transcription summary and statistics methods."""
+
+    def test_get_transcription_summary_empty(self):
+        """Test summary with no transcriptions."""
+        from retrocast.datastore import Datastore
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            db_path = Path(tmpdir) / "test.db"
+            ds = Datastore(db_path)
+
+            summary = ds.get_transcription_summary()
+
+            assert summary["total_transcriptions"] == 0
+            assert summary["total_podcasts"] == 0
+            assert summary["total_segments"] == 0
+            assert summary["total_words"] == 0
+            assert summary["total_duration"] == 0.0
+            assert summary["date_range"] == (None, None)
+            assert summary["backends_used"] == {}
+            assert summary["models_used"] == {}
+            assert summary["languages"] == {}
+
+    def test_get_transcription_summary_with_data(self):
+        """Test summary with transcription data."""
+        from retrocast.datastore import Datastore
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            db_path = Path(tmpdir) / "test.db"
+            ds = Datastore(db_path)
+
+            # Insert test transcriptions
+            for i, (podcast, backend, model, lang) in enumerate([
+                ("Podcast A", "mlx-whisper", "base", "en"),
+                ("Podcast A", "mlx-whisper", "medium", "en"),
+                ("Podcast B", "faster-whisper", "base", "es"),
+            ]):
+                segments = [
+                    {"start": 0.0, "end": 5.0, "text": f"Segment {i}", "speaker": None}
+                ]
+                ds.upsert_transcription(
+                    audio_content_hash=f"hash_summary_{i}",
+                    media_path=f"/path/to/test{i}.mp3",
+                    file_size=1024,
+                    transcription_path=f"/path/to/test{i}.json",
+                    episode_url=None,
+                    podcast_title=podcast,
+                    episode_title=f"Episode {i}",
+                    backend=backend,
+                    model_size=model,
+                    language=lang,
+                    duration=3600.0,  # 1 hour
+                    transcription_time=300.0,  # 5 minutes
+                    has_diarization=False,
+                    speaker_count=0,
+                    word_count=1000,
+                    segments=segments,
+                )
+
+            summary = ds.get_transcription_summary()
+
+            assert summary["total_transcriptions"] == 3
+            assert summary["total_podcasts"] == 2
+            assert summary["total_segments"] == 3
+            assert summary["total_words"] == 3000
+            assert summary["total_duration"] == 3.0  # 3 hours
+            assert summary["total_transcription_time"] == 0.25  # 15 minutes = 0.25 hours
+            assert "mlx-whisper" in summary["backends_used"]
+            assert "faster-whisper" in summary["backends_used"]
+            assert "base" in summary["models_used"]
+            assert "medium" in summary["models_used"]
+            assert "en" in summary["languages"]
+            assert "es" in summary["languages"]
+            assert summary["date_range"][0] is not None
+            assert summary["date_range"][1] is not None
+
+    def test_get_podcast_transcription_stats(self):
+        """Test podcast-level statistics."""
+        from retrocast.datastore import Datastore
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            db_path = Path(tmpdir) / "test.db"
+            ds = Datastore(db_path)
+
+            # Insert transcriptions for two podcasts
+            for i, podcast in enumerate(["Tech Podcast", "Tech Podcast", "News Podcast"]):
+                segments = [
+                    {"start": 0.0, "end": 5.0, "text": f"Content {i}", "speaker": None}
+                ]
+                ds.upsert_transcription(
+                    audio_content_hash=f"hash_podcast_{i}",
+                    media_path=f"/path/to/test{i}.mp3",
+                    file_size=1024,
+                    transcription_path=f"/path/to/test{i}.json",
+                    episode_url=None,
+                    podcast_title=podcast,
+                    episode_title=f"Episode {i}",
+                    backend="mlx-whisper",
+                    model_size="base",
+                    language="en",
+                    duration=3600.0,
+                    transcription_time=300.0,
+                    has_diarization=False,
+                    speaker_count=0,
+                    word_count=500,
+                    segments=segments,
+                )
+
+            stats = ds.get_podcast_transcription_stats()
+
+            assert len(stats) == 2
+
+            # Tech Podcast should be first (more episodes)
+            tech_stats = next(s for s in stats if s["podcast_title"] == "Tech Podcast")
+            assert tech_stats["episode_count"] == 2
+            assert tech_stats["total_words"] == 1000
+            assert tech_stats["total_segments"] == 2
+
+            news_stats = next(s for s in stats if s["podcast_title"] == "News Podcast")
+            assert news_stats["episode_count"] == 1
+            assert news_stats["total_words"] == 500
+
+    def test_get_podcast_transcription_stats_with_limit(self):
+        """Test podcast stats with limit."""
+        from retrocast.datastore import Datastore
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            db_path = Path(tmpdir) / "test.db"
+            ds = Datastore(db_path)
+
+            # Insert transcriptions for 3 podcasts
+            for i in range(3):
+                segments = [{"start": 0.0, "end": 5.0, "text": "Content", "speaker": None}]
+                ds.upsert_transcription(
+                    audio_content_hash=f"hash_limit_{i}",
+                    media_path=f"/path/to/test{i}.mp3",
+                    file_size=1024,
+                    transcription_path=f"/path/to/test{i}.json",
+                    episode_url=None,
+                    podcast_title=f"Podcast {i}",
+                    episode_title="Episode",
+                    backend="mlx-whisper",
+                    model_size="base",
+                    language="en",
+                    duration=3600.0,
+                    transcription_time=300.0,
+                    has_diarization=False,
+                    speaker_count=0,
+                    word_count=100,
+                    segments=segments,
+                )
+
+            # Get only top 2
+            stats = ds.get_podcast_transcription_stats(limit=2)
+            assert len(stats) == 2
+
+    def test_get_episode_transcription_list(self):
+        """Test listing transcribed episodes."""
+        from retrocast.datastore import Datastore
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            db_path = Path(tmpdir) / "test.db"
+            ds = Datastore(db_path)
+
+            # Insert test transcriptions
+            for i in range(3):
+                segments = [{"start": 0.0, "end": 5.0, "text": f"Episode {i}", "speaker": None}]
+                ds.upsert_transcription(
+                    audio_content_hash=f"hash_list_{i}",
+                    media_path=f"/path/to/test{i}.mp3",
+                    file_size=1024,
+                    transcription_path=f"/path/to/test{i}.json",
+                    episode_url=None,
+                    podcast_title="Test Podcast",
+                    episode_title=f"Episode {i}",
+                    backend="mlx-whisper",
+                    model_size="base",
+                    language="en",
+                    duration=float(i * 1000),
+                    transcription_time=300.0,
+                    has_diarization=False,
+                    speaker_count=0,
+                    word_count=(i + 1) * 100,
+                    segments=segments,
+                )
+
+            # Get all episodes
+            episodes = ds.get_episode_transcription_list()
+            assert len(episodes) == 3
+
+            # Verify fields
+            ep = episodes[0]
+            assert "transcription_id" in ep
+            assert "podcast_title" in ep
+            assert "episode_title" in ep
+            assert "duration" in ep
+            assert "word_count" in ep
+
+    def test_get_episode_transcription_list_with_filter(self):
+        """Test listing episodes filtered by podcast."""
+        from retrocast.datastore import Datastore
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            db_path = Path(tmpdir) / "test.db"
+            ds = Datastore(db_path)
+
+            # Insert for different podcasts
+            for i, podcast in enumerate(["Podcast A", "Podcast A", "Podcast B"]):
+                segments = [{"start": 0.0, "end": 5.0, "text": "Content", "speaker": None}]
+                ds.upsert_transcription(
+                    audio_content_hash=f"hash_filter_{i}",
+                    media_path=f"/path/to/test{i}.mp3",
+                    file_size=1024,
+                    transcription_path=f"/path/to/test{i}.json",
+                    episode_url=None,
+                    podcast_title=podcast,
+                    episode_title=f"Episode {i}",
+                    backend="mlx-whisper",
+                    model_size="base",
+                    language="en",
+                    duration=3600.0,
+                    transcription_time=300.0,
+                    has_diarization=False,
+                    speaker_count=0,
+                    word_count=100,
+                    segments=segments,
+                )
+
+            # Filter by podcast
+            episodes = ds.get_episode_transcription_list(podcast_title="Podcast A")
+            assert len(episodes) == 2
+            for ep in episodes:
+                assert ep["podcast_title"] == "Podcast A"
+
+    def test_get_episode_transcription_list_with_ordering(self):
+        """Test listing episodes with different orderings."""
+        from retrocast.datastore import Datastore
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            db_path = Path(tmpdir) / "test.db"
+            ds = Datastore(db_path)
+
+            # Insert with different word counts
+            for i, word_count in enumerate([100, 300, 200]):
+                segments = [{"start": 0.0, "end": 5.0, "text": "Content", "speaker": None}]
+                ds.upsert_transcription(
+                    audio_content_hash=f"hash_order_{i}",
+                    media_path=f"/path/to/test{i}.mp3",
+                    file_size=1024,
+                    transcription_path=f"/path/to/test{i}.json",
+                    episode_url=None,
+                    podcast_title="Test Podcast",
+                    episode_title=f"Episode {i}",
+                    backend="mlx-whisper",
+                    model_size="base",
+                    language="en",
+                    duration=3600.0,
+                    transcription_time=300.0,
+                    has_diarization=False,
+                    speaker_count=0,
+                    word_count=word_count,
+                    segments=segments,
+                )
+
+            # Order by word_count descending
+            episodes = ds.get_episode_transcription_list(order_by="word_count", order_desc=True)
+            assert episodes[0]["word_count"] == 300
+            assert episodes[1]["word_count"] == 200
+            assert episodes[2]["word_count"] == 100
+
+            # Order by word_count ascending
+            episodes = ds.get_episode_transcription_list(order_by="word_count", order_desc=False)
+            assert episodes[0]["word_count"] == 100
+            assert episodes[2]["word_count"] == 300
+
+    def test_count_transcriptions(self):
+        """Test counting transcriptions."""
+        from retrocast.datastore import Datastore
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            db_path = Path(tmpdir) / "test.db"
+            ds = Datastore(db_path)
+
+            # Initially zero
+            assert ds.count_transcriptions() == 0
+
+            # Insert test transcriptions
+            for i, podcast in enumerate(["Podcast A", "Podcast A", "Podcast B"]):
+                segments = [{"start": 0.0, "end": 5.0, "text": "Content", "speaker": None}]
+                ds.upsert_transcription(
+                    audio_content_hash=f"hash_count_{i}",
+                    media_path=f"/path/to/test{i}.mp3",
+                    file_size=1024,
+                    transcription_path=f"/path/to/test{i}.json",
+                    episode_url=None,
+                    podcast_title=podcast,
+                    episode_title=f"Episode {i}",
+                    backend="mlx-whisper",
+                    model_size="base",
+                    language="en",
+                    duration=3600.0,
+                    transcription_time=300.0,
+                    has_diarization=False,
+                    speaker_count=0,
+                    word_count=100,
+                    segments=segments,
+                )
+
+            assert ds.count_transcriptions() == 3
+            assert ds.count_transcriptions(podcast_title="Podcast A") == 2
+            assert ds.count_transcriptions(podcast_title="Podcast B") == 1
+            assert ds.count_transcriptions(podcast_title="Nonexistent") == 0
+
+    def test_get_transcription_podcasts(self):
+        """Test getting list of podcast titles with transcriptions."""
+        from retrocast.datastore import Datastore
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            db_path = Path(tmpdir) / "test.db"
+            ds = Datastore(db_path)
+
+            # Initially empty
+            assert ds.get_transcription_podcasts() == []
+
+            # Insert for different podcasts
+            for i, podcast in enumerate(["Zebra Podcast", "Alpha Podcast", "Alpha Podcast"]):
+                segments = [{"start": 0.0, "end": 5.0, "text": "Content", "speaker": None}]
+                ds.upsert_transcription(
+                    audio_content_hash=f"hash_podcasts_{i}",
+                    media_path=f"/path/to/test{i}.mp3",
+                    file_size=1024,
+                    transcription_path=f"/path/to/test{i}.json",
+                    episode_url=None,
+                    podcast_title=podcast,
+                    episode_title=f"Episode {i}",
+                    backend="mlx-whisper",
+                    model_size="base",
+                    language="en",
+                    duration=3600.0,
+                    transcription_time=300.0,
+                    has_diarization=False,
+                    speaker_count=0,
+                    word_count=100,
+                    segments=segments,
+                )
+
+            podcasts = ds.get_transcription_podcasts()
+            assert len(podcasts) == 2
+            # Should be sorted alphabetically
+            assert podcasts[0] == "Alpha Podcast"
+            assert podcasts[1] == "Zebra Podcast"
