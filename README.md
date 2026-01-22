@@ -25,8 +25,9 @@ or employers to view and review. Yup, it’s a bit about me showing
 off. If you have strong opinions feel free to fork this sucker and
 take it where your heart desires.
 
-Save listening history and feed/episode info from Overcast to a SQLite
-database. Try exploring your podcast listening habits with
+Save listening history and feed/episode info from podcast
+subscriptions (sourced via podcast clients such as Overcast) to an
+SQLite database. Try exploring your podcast listening habits with
 [Datasette](https://datasette.io/)!
 
 - [How to install](#how-to-install)
@@ -44,15 +45,15 @@ database. Try exploring your podcast listening habits with
 
 ## How to install
 
-    $ pipx install git+https://github.com/crossjam/retrocast
-	# or
 	$ uv tool install git+https://github.com/crossjam/retrocast
-
+	# or
+    $ pipx install git+https://github.com/crossjam/retrocast
+	
 Or to upgrade:
 
-    $ pip install --upgrade git+https://github.com/crossjam/retrocast
-	# or
 	$ uv tool upgrade git+https://github.com/crossjam/retrocast
+	# or
+    $ pip install --upgrade git+https://github.com/crossjam/retrocast
 
 ## Overcast syncing and operations
 
@@ -170,7 +171,7 @@ that URL and the download's location will then be stored in
     $ retrocast meta overcast transcripts
 
 Like previous commands, by default this will save transcripts to
-`{APP_DIR}/archive/transcripts/<feed title>/<episode title>` by
+`${APP_DIR}/archive/transcripts/<feed title>/<episode title>` by
 default.
 
 A different path can be set with the `-p`/`--path` flag.
@@ -196,7 +197,7 @@ Use the `download podcast-archiver` command to download podcast episodes:
     $ retrocast download podcast-archiver --feed https://example.com/feed.xml
 
 By default, episodes are downloaded to
-`~/{APP_DIR}/episode_downloads/` with `.info.json` metadata files
+`${APP_DIR}/episode_downloads/` with `.info.json` metadata files
 created automatically.
 
 For more options, see:
