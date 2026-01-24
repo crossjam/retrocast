@@ -37,6 +37,7 @@ SQLite database. Try exploring your podcast listening habits with
 - [Downloading transcripts](#downloading-transcripts)
 - [Episode Download Database](#episode-download-database)
 - [Audio Transcription](#audio-transcription)
+- [AI-Powered Podcast Exploration (castchat)](#ai-powered-podcast-exploration-castchat)
 
 ## Quick run
     
@@ -348,6 +349,75 @@ MP3, M4A, OGG, Opus, WAV, FLAC, AAC
 For comprehensive documentation including performance benchmarks,
 troubleshooting, and advanced usage, see the [Transcription
 Guide](docs/TRANSCRIPTION.md).
+
+## AI-Powered Podcast Exploration (castchat)
+
+**castchat** is an interactive AI-powered REPL for exploring your transcribed podcast archive using natural language. It combines ChromaDB for semantic search with Claude (via PydanticAI) to answer questions about your podcast content.
+
+### Features
+
+- **Semantic Search**: Find relevant content using natural language queries
+- **Interactive REPL**: Have conversations about your podcast archive
+- **RAG-based**: Retrieves actual transcript segments before generating answers
+- **Episode Context**: Results include podcast names, episode titles, timestamps, and speakers
+- **Smart Tools**: AI agent chooses appropriate search strategies automatically
+
+### Installation
+
+```bash
+# Install castchat dependencies
+pip install retrocast[castchat]
+
+# Or with uv
+uv sync --extra castchat
+```
+
+### Requirements
+
+1. Transcribed episodes in your retrocast database
+2. Anthropic API key for Claude access
+
+```bash
+export ANTHROPIC_API_KEY="sk-ant-..."
+```
+
+### Quick Start
+
+```bash
+# Transcribe your episodes first
+retrocast transcription process ~/podcasts/
+
+# Start the castchat REPL
+retrocast castchat
+
+# Use a specific database
+retrocast castchat --database /path/to/retrocast.db
+
+# Rebuild the search index
+retrocast castchat --rebuild-index
+```
+
+### Example Queries
+
+```
+You: What episodes discussed machine learning?
+Agent: [Finds and summarizes relevant segments with timestamps]
+
+You: Where did they talk about climate change in the Radiolab podcast?
+Agent: [Searches within specific podcast]
+
+You: How many episodes have I transcribed?
+Agent: [Queries collection metadata]
+```
+
+### How It Works
+
+1. **First Run**: Indexes all transcription segments into ChromaDB
+2. **Query**: Your question is sent to the PydanticAI agent
+3. **Retrieval**: ChromaDB finds semantically similar transcript segments
+4. **Generation**: Claude uses the context to provide accurate answers
+
+For detailed documentation, see [CASTCHAT Guide](docs/CASTCHAT.md).
 
 ## See also
 
