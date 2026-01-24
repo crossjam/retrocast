@@ -9,6 +9,10 @@ from retrocast.transcription.base import (
     TranscriptionResult,
     TranscriptionSegment,
 )
+from retrocast.transcription.models import (
+    TranscriptionJSONModel,
+    TranscriptionSegmentModel,
+)
 from retrocast.transcription.output_formats import (
     FormatWriter,
     JSONFormatWriter,
@@ -25,6 +29,9 @@ __all__ = [
     "TranscriptionBackend",
     "TranscriptionResult",
     "TranscriptionSegment",
+    # Pydantic models for JSON schema validation
+    "TranscriptionJSONModel",
+    "TranscriptionSegmentModel",
     # Format writers
     "FormatWriter",
     "TXTFormatWriter",
