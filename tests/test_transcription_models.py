@@ -17,9 +17,7 @@ class TestTranscriptionSegmentModel:
 
     def test_valid_segment(self):
         """Test creating a valid segment model."""
-        segment = TranscriptionSegmentModel(
-            start=0.0, end=5.0, text="Hello world", speaker=None
-        )
+        segment = TranscriptionSegmentModel(start=0.0, end=5.0, text="Hello world", speaker=None)
         assert segment.start == 0.0
         assert segment.end == 5.0
         assert segment.text == "Hello world"
@@ -27,9 +25,7 @@ class TestTranscriptionSegmentModel:
 
     def test_segment_with_speaker(self):
         """Test segment with speaker diarization."""
-        segment = TranscriptionSegmentModel(
-            start=0.0, end=5.0, text="Hello", speaker="SPEAKER_1"
-        )
+        segment = TranscriptionSegmentModel(start=0.0, end=5.0, text="Hello", speaker="SPEAKER_1")
         assert segment.speaker == "SPEAKER_1"
 
     def test_negative_start_time(self):
@@ -52,9 +48,7 @@ class TestTranscriptionSegmentModel:
     def test_extra_fields_forbidden(self):
         """Test that extra fields are forbidden."""
         with pytest.raises(ValidationError) as exc_info:
-            TranscriptionSegmentModel(
-                start=0.0, end=5.0, text="Test", extra_field="not allowed"
-            )
+            TranscriptionSegmentModel(start=0.0, end=5.0, text="Test", extra_field="not allowed")
         assert "extra_field" in str(exc_info.value)
 
     def test_json_serialization(self):
