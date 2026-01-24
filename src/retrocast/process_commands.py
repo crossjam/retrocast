@@ -561,13 +561,12 @@ def validate_transcriptions(
                 invalid_files.append((json_file, error_msg))
                 if verbose:
                     console.print(f"[red]✗[/red] {relative_path}: Validation failed")
-                    if verbose:
-                        # Show first error only for brevity
-                        errors = e.errors()
-                        if errors:
-                            first_error = errors[0]
-                            console.print(
-                                f"    [dim]Field: {first_error['loc']}, "
+                    # Show first error only for brevity
+                    errors = e.errors()
+                    if errors:
+                        first_error = errors[0]
+                        console.print(
+                            f"    [dim]Field: {first_error['loc']}, "
                                 f"Error: {first_error['msg']}[/dim]"
                             )
 
