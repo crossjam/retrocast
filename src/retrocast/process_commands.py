@@ -454,6 +454,114 @@ def _list_downloaded_podcasts(datastore: Datastore, app_dir: Path) -> None:
     )
 
 
+def _validate_single_file(
+    json_file: Path, output_dir: Path, verbose: bool
+) -> tuple[bool, Optional[str], Optional[str]]:
+    """Validate a single JSON file.
+
+    Returns:
+        Tuple of (is_valid, error_type, error_message)
+        error_type can be 'validation' or 'parse' or None
+    """
+    import json
+
+    from pydantic import ValidationError
+
+    from retrocast.transcription.models import TranscriptionJSONModel
+
+    relative_path = json_file.relative_to(output_dir)
+
+    try:
+        with open(json_file, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        TranscriptionJSONModel(**data)
+        if verbose:
+            console.print(f"[green]✓[/green] {relative_path}")
+        return (True, None, None)
+
+    except json.JSONDecodeError as e:
+        error_msg = f"JSON parse error: {str(e)}"
+        if verbose:
+            console.print(f"[red]✗[/red] {relative_path}: {error_msg}")
+        return (False, "parse", error_msg)
+
+    except ValidationError as e:
+        if verbose:
+            console.print(f"[red]✗[/red] {relative_path}: Validation failed")
+            errors = e.errors()
+            if errors:
+                first_error = errors[0]
+                console.print(
+                    f"    [dim]Field: {first_error['loc']}, " f"Error: {first_error['msg']}[/dim]"
+                )
+        return (False, "validation", str(e))
+
+    except Exception as e:
+        error_msg = f"Unexpected error: {str(e)}"
+        if verbose:
+            console.print(f"[red]✗[/red] {relative_path}: {error_msg}")
+        return (False, "parse", error_msg)
+
+
+def _display_validation_summary(
+    json_files: list[Path],
+    valid_files: list[Path],
+    invalid_files: list[tuple[Path, str]],
+    error_files: list[tuple[Path, str]],
+    output_dir: Path,
+    verbose: bool,
+) -> None:
+    """Display validation summary table and error details."""
+    console.print("\n[bold cyan]═══ Validation Summary ═══[/bold cyan]\n")
+
+    summary_table = Table(show_header=True, show_edge=False)
+    summary_table.add_column("Status", style="bold")
+    summary_table.add_column("Count", justify="right")
+    summary_table.add_column("Percentage", justify="right")
+
+    total = len(json_files)
+    valid_pct = (len(valid_files) / total * 100) if total > 0 else 0
+    invalid_pct = (len(invalid_files) / total * 100) if total > 0 else 0
+    error_pct = (len(error_files) / total * 100) if total > 0 else 0
+
+    summary_table.add_row(
+        "[green]Valid[/green]", str(len(valid_files)), f"[green]{valid_pct:.1f}%[/green]"
+    )
+    summary_table.add_row(
+        "[yellow]Invalid Schema[/yellow]",
+        str(len(invalid_files)),
+        f"[yellow]{invalid_pct:.1f}%[/yellow]",
+    )
+    summary_table.add_row(
+        "[red]Parse Errors[/red]", str(len(error_files)), f"[red]{error_pct:.1f}%[/red]"
+    )
+    summary_table.add_row("[bold]Total[/bold]", f"[bold]{total}[/bold]", "[bold]100.0%[/bold]")
+
+    console.print(summary_table)
+    console.print()
+
+    if not verbose and (invalid_files or error_files):
+        console.print("[dim]Run with --verbose to see detailed error messages.[/dim]\n")
+
+    if invalid_files and not verbose:
+        console.print(f"[yellow]Files with validation errors ({len(invalid_files)}):[/yellow]")
+        for json_file, _ in invalid_files[:5]:
+            relative_path = json_file.relative_to(output_dir)
+            console.print(f"  • {relative_path}")
+        if len(invalid_files) > 5:
+            console.print(f"  [dim]... and {len(invalid_files) - 5} more[/dim]")
+        console.print()
+
+    if error_files and not verbose:
+        console.print(f"[red]Files with parse/read errors ({len(error_files)}):[/red]")
+        for json_file, _ in error_files[:5]:
+            relative_path = json_file.relative_to(output_dir)
+            console.print(f"  • {relative_path}")
+        if len(error_files) > 5:
+            console.print(f"  [dim]... and {len(error_files) - 5} more[/dim]")
+        console.print()
+
+
 @transcription.command(name="validate")
 @click.option(
     "--output-dir",
@@ -484,12 +592,6 @@ def validate_transcriptions(
         retrocast transcription validate --verbose
         retrocast transcription validate --output-dir /custom/path
     """
-    import json
-
-    from pydantic import ValidationError
-
-    from retrocast.transcription.models import TranscriptionJSONModel
-
     # Setup
     app_dir = get_app_dir(create=False)
     if output_dir is None:
@@ -535,110 +637,21 @@ def validate_transcriptions(
             relative_path = json_file.relative_to(output_dir)
             progress.update(task, description=f"[cyan]Validating {relative_path}...")
 
-            try:
-                # Read JSON file
-                with open(json_file, "r", encoding="utf-8") as f:
-                    data = json.load(f)
+            is_valid, error_type, error_msg = _validate_single_file(json_file, output_dir, verbose)
 
-                # Validate with pydantic
-                TranscriptionJSONModel(**data)
-
-                # Success
+            if is_valid:
                 valid_files.append(json_file)
-                if verbose:
-                    console.print(f"[green]✓[/green] {relative_path}")
-
-            except json.JSONDecodeError as e:
-                # JSON parsing error
-                error_msg = f"JSON parse error: {str(e)}"
-                error_files.append((json_file, error_msg))
-                if verbose:
-                    console.print(f"[red]✗[/red] {relative_path}: {error_msg}")
-
-            except ValidationError as e:
-                # Pydantic validation error
-                error_msg = str(e)
+            elif error_type == "validation" and error_msg is not None:
                 invalid_files.append((json_file, error_msg))
-                if verbose:
-                    console.print(f"[red]✗[/red] {relative_path}: Validation failed")
-                    # Show first error only for brevity
-                    errors = e.errors()
-                    if errors:
-                        first_error = errors[0]
-                        console.print(
-                            f"    [dim]Field: {first_error['loc']}, "
-                                f"Error: {first_error['msg']}[/dim]"
-                            )
-
-            except Exception as e:
-                # Other errors
-                error_msg = f"Unexpected error: {str(e)}"
+            elif error_msg is not None:  # parse or other error
                 error_files.append((json_file, error_msg))
-                if verbose:
-                    console.print(f"[red]✗[/red] {relative_path}: {error_msg}")
 
             progress.update(task, advance=1)
 
     # Display summary
-    console.print("\n[bold cyan]═══ Validation Summary ═══[/bold cyan]\n")
-
-    summary_table = Table(show_header=True, show_edge=False)
-    summary_table.add_column("Status", style="bold")
-    summary_table.add_column("Count", justify="right")
-    summary_table.add_column("Percentage", justify="right")
-
-    total = len(json_files)
-    valid_pct = (len(valid_files) / total * 100) if total > 0 else 0
-    invalid_pct = (len(invalid_files) / total * 100) if total > 0 else 0
-    error_pct = (len(error_files) / total * 100) if total > 0 else 0
-
-    summary_table.add_row(
-        "[green]Valid[/green]",
-        str(len(valid_files)),
-        f"[green]{valid_pct:.1f}%[/green]",
+    _display_validation_summary(
+        json_files, valid_files, invalid_files, error_files, output_dir, verbose
     )
-    summary_table.add_row(
-        "[yellow]Invalid Schema[/yellow]",
-        str(len(invalid_files)),
-        f"[yellow]{invalid_pct:.1f}%[/yellow]",
-    )
-    summary_table.add_row(
-        "[red]Parse Errors[/red]",
-        str(len(error_files)),
-        f"[red]{error_pct:.1f}%[/red]",
-    )
-    summary_table.add_row(
-        "[bold]Total[/bold]",
-        f"[bold]{total}[/bold]",
-        "[bold]100.0%[/bold]",
-    )
-
-    console.print(summary_table)
-    console.print()
-
-    # Show details for invalid files if not in verbose mode
-    if not verbose and (invalid_files or error_files):
-        console.print("[dim]Run with --verbose to see detailed error messages.[/dim]\n")
-
-    # Show invalid files details
-    if invalid_files and not verbose:
-        console.print(f"[yellow]Files with validation errors ({len(invalid_files)}):[/yellow]")
-        for json_file, _ in invalid_files[:5]:  # Show first 5
-            relative_path = json_file.relative_to(output_dir)
-            console.print(f"  • {relative_path}")
-        if len(invalid_files) > 5:
-            console.print(f"  [dim]... and {len(invalid_files) - 5} more[/dim]")
-        console.print()
-
-    # Show error files details
-    if error_files and not verbose:
-        console.print(f"[red]Files with parse/read errors ({len(error_files)}):[/red]")
-        for json_file, _ in error_files[:5]:  # Show first 5
-            relative_path = json_file.relative_to(output_dir)
-            console.print(f"  • {relative_path}")
-        if len(error_files) > 5:
-            console.print(f"  [dim]... and {len(error_files) - 5} more[/dim]")
-        console.print()
 
     # Exit with appropriate status
     if invalid_files or error_files:
