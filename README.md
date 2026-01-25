@@ -326,6 +326,7 @@ retrocast transcription search --podcast "Tech Talk" "python"
 | `retrocast transcription backends list` | List available backends |
 | `retrocast transcription backends test BACKEND` | Test a specific backend |
 | `retrocast transcription search QUERY` | Search transcribed content |
+| `retrocast transcription validate` | Validate JSON transcription files |
 | `retrocast transcription summary` | Show transcription statistics |
 | `retrocast transcription podcasts list` | List podcasts with transcriptions |
 | `retrocast transcription episodes list` | List transcribed episodes |
