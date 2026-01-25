@@ -1,7 +1,7 @@
 # Transcription JSON File Indexing Implementation Plan
 
 **Created:** 2026-01-25 00:44:13 UTC  
-**Updated:** 2026-01-25 00:47:12 UTC  
+**Updated:** 2026-01-25 04:50:52 UTC  
 **Author:** Copilot Agent  
 **Related Feature:** castchat (AI-powered podcast exploration)
 
@@ -9,10 +9,13 @@
 
 This plan outlines the implementation for indexing transcription JSON files directly into **ChromaDB** (vector database) for the `castchat` feature, using **Chonkie** (lightweight chunking library) for intelligent text segmentation. Currently, castchat indexes from the SQLite database (`transcription_segments` table). This enhancement will add the ability to index directly from JSON transcription files stored on disk, enabling users to explore transcriptions even if they haven't been ingested into the database yet.
 
+Additionally, this plan includes **SQLite query tools** for the PydanticAI agent to directly query the retrocast SQLite database containing podcast metadata, allowing the agent to answer questions about subscriptions, episodes, playlists, and other structured data beyond just transcription content.
+
 ### Key Technologies
 
 - **ChromaDB**: Vector database for semantic search and RAG (already integrated)
 - **Chonkie**: Lightweight, fast chunking library for intelligent text segmentation into optimal chunks for embedding
+- **sqlite-utils**: Database query and inspection library (already integrated) - will be exposed as agent tools
 
 ## Why Chonkie?
 
@@ -60,6 +63,93 @@ Chonkie is the ideal chunking library for this implementation for several reason
 | Quality | Depends on transcription backend | Consistently high for RAG |
 | Overlap | None | Configurable overlap for context |
 | Speed | Fast (already segmented) | Still fast (33x faster than alternatives) |
+
+## Why SQLite Query Tools for Agents?
+
+Adding SQLite query capabilities to the PydanticAI agent enables answering questions about structured metadata that complements transcription search:
+
+1. **Hybrid Intelligence**
+   - **Semantic Search** (ChromaDB): "What did they say about AI?"
+   - **Structured Queries** (SQLite): "How many episodes have I listened to?"
+   - **Combined**: "What unplayed episodes discuss machine learning?"
+
+2. **Metadata Access**
+   - Podcast subscriptions and feed information
+   - Episode metadata (titles, URLs, publish dates, durations)
+   - Play history and progress tracking
+   - Playlists and organization
+   - Download status and file locations
+
+3. **sqlite-utils Advantages**
+   - Already integrated into retrocast
+   - Safe, read-only query execution
+   - Schema discovery (tables, columns, views)
+   - Full-text search on indexed fields
+   - JSON export for structured results
+   - Parameterized queries prevent SQL injection
+
+4. **Agent Tool Design**
+   - **query_database**: Execute SELECT queries with safety checks
+   - **list_tables**: Discover available tables and views
+   - **describe_table**: Get schema information for a table
+   - **search_metadata**: Full-text search on episode/podcast titles
+   - **get_statistics**: Quick stats (episode count, listening time, etc.)
+
+### Best Practices for SQLite Agent Tools
+
+Based on research and industry best practices for SQL in agentic systems:
+
+1. **Read-Only Access**
+   - Only allow SELECT queries
+   - No INSERT, UPDATE, DELETE, or DDL operations
+   - Open database connections in read-only mode
+
+2. **Query Safety**
+   - Validate SQL before execution
+   - Reject queries with dangerous keywords (DROP, DELETE, etc.)
+   - Use parameterized queries when possible
+   - Limit query complexity (no subqueries in subqueries)
+
+3. **Result Management**
+   - Always apply LIMIT to prevent overwhelming LLM context
+   - Default LIMIT 50, max LIMIT 500
+   - Format results as structured JSON
+   - Truncate very long text fields
+
+4. **Context Awareness**
+   - Provide schema information in tool descriptions
+   - Include example queries in tool documentation
+   - Suggest relevant tables based on user questions
+
+5. **Error Handling**
+   - Graceful handling of syntax errors
+   - Clear error messages for the agent
+   - Log all queries for debugging
+   - Timeout protection for long-running queries
+
+### SQLite Database Schema (retrocast)
+
+The retrocast database contains rich metadata about podcasts and listening history:
+
+**Core Tables:**
+- `feeds`: Podcast subscriptions (title, xmlUrl, subscribed status)
+- `feeds_extended`: Full feed metadata (description, last updated, link)
+- `episodes`: Episode information (title, URL, played status, progress)
+- `episodes_extended`: Extended episode metadata (description, enclosure URL)
+- `playlists`: User-created playlists
+- `transcriptions`: Transcription metadata (backend, model, duration, word count)
+- `transcription_segments`: Individual transcript segments (text, timestamps, speakers)
+- `episode_downloads`: Downloaded episode file information
+- `chapters`: Podcast chapter markers
+
+**Views:**
+- `episodes_played`: Played episodes with progress
+- `episodes_deleted`: Deleted episodes
+- `episodes_starred`: Starred/recommended episodes
+
+**Full-Text Search:**
+- FTS5 indexes on feed/episode titles and descriptions
+- FTS5 index on transcription segment text
 
 ### Current Architecture
 
@@ -262,7 +352,201 @@ def index_transcriptions(
     """
 ```
 
-### 4. CLI Enhancement
+### 4. SQLite Query Tools for PydanticAI Agent
+
+**Component:** Enhanced `castchat_agent.py` with database query tools  
+**Location:** `src/retrocast/castchat_agent.py`
+
+**Purpose:** Enable the agent to answer questions about structured metadata beyond transcription content, such as subscriptions, listening history, episode details, and playlists.
+
+**New Agent Tools:**
+
+```python
+@agent.tool
+def query_database(
+    ctx: RunContext[Any],
+    sql_query: str,
+    limit: int = 50
+) -> str:
+    """Execute a read-only SQL query on the retrocast database.
+    
+    Use this tool to query structured metadata about podcasts, episodes,
+    playlists, and listening history. Only SELECT queries are allowed.
+    
+    Args:
+        ctx: Run context (automatically provided)
+        sql_query: SQL SELECT query to execute
+        limit: Maximum number of results to return (default 50, max 500)
+    
+    Returns:
+        Query results formatted as JSON or descriptive text
+        
+    Available tables:
+    - feeds: Podcast subscriptions (title, xmlUrl, subscribed)
+    - episodes: Episode information (title, URL, played, progress)
+    - playlists: User playlists
+    - transcriptions: Transcription metadata
+    - transcription_segments: Transcript segments with FTS
+    - episode_downloads: Downloaded episode files
+    
+    Example queries:
+    - SELECT COUNT(*) FROM episodes WHERE played = 1
+    - SELECT title FROM episodes WHERE played = 0 LIMIT 10
+    - SELECT title FROM feeds WHERE subscribed = 1
+    """
+
+@agent.tool
+def list_tables(ctx: RunContext[Any]) -> str:
+    """List all available tables and views in the database.
+    
+    Use this tool to discover what data is available to query.
+    
+    Returns:
+        List of table names with brief descriptions
+    """
+
+@agent.tool
+def describe_table(ctx: RunContext[Any], table_name: str) -> str:
+    """Get schema information for a specific table.
+    
+    Use this tool to learn about the columns and structure of a table
+    before querying it.
+    
+    Args:
+        ctx: Run context (automatically provided)
+        table_name: Name of the table to describe
+        
+    Returns:
+        Table schema including column names, types, and sample data
+    """
+
+@agent.tool
+def search_episodes_metadata(
+    ctx: RunContext[Any],
+    query: str,
+    limit: int = 20
+) -> str:
+    """Search episode titles and descriptions using SQLite full-text search.
+    
+    Use this tool to find episodes by keyword in titles or descriptions.
+    This is faster than semantic search for exact keyword matching.
+    
+    Args:
+        ctx: Run context (automatically provided)
+        query: Search keywords
+        limit: Maximum results (default 20, max 100)
+        
+    Returns:
+        Matching episodes with titles, podcast names, and URLs
+    """
+
+@agent.tool
+def get_listening_stats(ctx: RunContext[Any]) -> str:
+    """Get statistics about listening history and podcast collection.
+    
+    Use this tool to answer questions about listening patterns, totals,
+    and collection statistics.
+    
+    Returns:
+        Statistics including:
+        - Total episodes played/unplayed
+        - Total subscriptions
+        - Total transcribed episodes
+        - Most listened podcasts
+        - Total listening time
+    """
+```
+
+**Safety Implementation:**
+
+```python
+def _validate_sql_query(query: str) -> tuple[bool, str]:
+    """Validate SQL query for safety.
+    
+    Args:
+        query: SQL query string
+        
+    Returns:
+        Tuple of (is_valid, error_message)
+    """
+    query_upper = query.upper().strip()
+    
+    # Must be SELECT query
+    if not query_upper.startswith("SELECT"):
+        return False, "Only SELECT queries are allowed"
+    
+    # Forbidden keywords
+    forbidden = ["DROP", "DELETE", "INSERT", "UPDATE", "ALTER", 
+                 "CREATE", "EXEC", "EXECUTE", "PRAGMA"]
+    for keyword in forbidden:
+        if keyword in query_upper:
+            return False, f"Query contains forbidden keyword: {keyword}"
+    
+    # Forbid semicolons (multiple statements)
+    if ";" in query and not query.strip().endswith(";"):
+        return False, "Multiple statements not allowed"
+    
+    return True, ""
+
+def _execute_safe_query(
+    db: Database,
+    query: str,
+    limit: int = 50
+) -> list[dict]:
+    """Execute query safely with result limiting.
+    
+    Args:
+        db: Database instance (sqlite-utils)
+        query: Validated SQL query
+        limit: Maximum results
+        
+    Returns:
+        Query results as list of dicts
+    """
+    # Enforce LIMIT if not present
+    query_upper = query.upper()
+    if "LIMIT" not in query_upper:
+        query = f"{query.rstrip(';')} LIMIT {min(limit, 500)}"
+    
+    try:
+        # Use sqlite-utils query method
+        results = list(db.query(query))
+        return results
+    except Exception as e:
+        logger.error(f"Query error: {e}")
+        return []
+```
+
+**Integration with Agent Creation:**
+
+```python
+def create_castchat_agent(
+    chroma_manager: ChromaDBManager,
+    datastore: Datastore,  # NEW - pass datastore instance
+    model_name: str = "claude-sonnet-4-20250514"
+) -> Agent:
+    """Create agent with both semantic search and database query tools.
+    
+    Args:
+        chroma_manager: ChromaDB manager for semantic search
+        datastore: Datastore instance for SQLite queries
+        model_name: Anthropic model name
+        
+    Returns:
+        Configured agent with all tools
+    """
+```
+
+**Usage Examples:**
+
+The agent can now handle queries like:
+- "How many unplayed episodes do I have?" → `query_database("SELECT COUNT(*) FROM episodes WHERE played = 0")`
+- "What podcasts am I subscribed to?" → `query_database("SELECT title FROM feeds WHERE subscribed = 1")`
+- "Which episodes have been transcribed?" → `query_database("SELECT COUNT(*) FROM transcriptions")`
+- "Show me my most recent downloads" → Uses `episode_downloads` table
+- "What's my listening progress?" → Combines played episodes and progress data
+
+### 5. CLI Enhancement
 
 **Component:** `castchat` command in `cli.py`
 
@@ -284,7 +568,7 @@ def castchat(...):
 - `--index-source both`: Index from both sources (union)
 - If `--json-dir` not specified, use transcription output directory from config
 
-### 5. File Hash Tracking
+### 6. File Hash Tracking
 
 **Approach:**
 Store indexed file metadata in ChromaDB collection metadata:
@@ -308,7 +592,7 @@ collection = client.get_or_create_collection("transcription_file_index")
 # Store file path as ID, hash in metadata
 ```
 
-### 6. Error Handling
+### 7. Error Handling
 
 **Scenarios to Handle:**
 - Invalid JSON format
@@ -372,7 +656,32 @@ collection = client.get_or_create_collection("transcription_file_index")
   - [ ] Test file tracking
   - [ ] Test chunk size and overlap parameters
 
-### Phase 3: CLI Enhancement
+### Phase 3: SQLite Query Tools for Agent
+- [ ] Enhance `src/retrocast/castchat_agent.py`
+  - [ ] Add `_validate_sql_query()` helper function
+  - [ ] Add `_execute_safe_query()` helper function
+  - [ ] Add `query_database` tool
+    - [ ] SQL validation (SELECT only, no dangerous keywords)
+    - [ ] Result limiting and formatting
+    - [ ] Error handling
+  - [ ] Add `list_tables` tool
+  - [ ] Add `describe_table` tool
+  - [ ] Add `search_episodes_metadata` tool (FTS)
+  - [ ] Add `get_listening_stats` tool
+  - [ ] Update agent system prompt to mention database tools
+  - [ ] Update `create_castchat_agent()` signature to accept `datastore`
+- [ ] Update `src/retrocast/cli.py`
+  - [ ] Pass `datastore` instance to `create_castchat_agent()`
+  - [ ] Ensure database is available before starting agent
+- [ ] Add unit tests for SQLite query tools
+  - [ ] Test SQL validation function
+  - [ ] Test query execution with limits
+  - [ ] Test forbidden query rejection
+  - [ ] Test each agent tool
+  - [ ] Test error handling for invalid queries
+  - [ ] Test result formatting
+
+### Phase 4: CLI Enhancement
 - [ ] Update `src/retrocast/cli.py`
   - [ ] Add `--json-dir` option to `castchat` command
   - [ ] Add `--index-source` option
@@ -389,11 +698,14 @@ collection = client.get_or_create_collection("transcription_file_index")
   - [ ] Show indexed vs skipped counts
   - [ ] Show chunk statistics
 
-### Phase 4: Documentation
+### Phase 5: Documentation
 - [ ] Update `docs/CASTCHAT.md`
   - [ ] Add "Indexing from JSON Files" section
   - [ ] Document Chonkie integration and chunking strategies
+  - [ ] Add "SQLite Query Tools" section
+  - [ ] Document new agent capabilities (database queries)
   - [ ] Add examples for JSON-based workflow with Chonkie
+  - [ ] Add examples of database query interactions
   - [ ] Document all new CLI options:
     - [ ] `--json-dir` 
     - [ ] `--index-source`
@@ -404,30 +716,38 @@ collection = client.get_or_create_collection("transcription_file_index")
 - [ ] Update `README.md`
   - [ ] Add JSON indexing to castchat section
   - [ ] Mention Chonkie integration
+  - [ ] Mention SQLite query capabilities
   - [ ] Add example commands with Chonkie options
+  - [ ] Add example agent interactions with database
 - [ ] Update docstrings
   - [ ] `ChromaDBManager` class (Chonkie methods)
+  - [ ] `castchat_agent.py` (new tools)
   - [ ] New scanner class
   - [ ] CLI command with new options
 
-### Phase 5: Testing & Validation
+### Phase 6: Testing & Validation
 - [ ] Create test fixtures
   - [ ] Sample JSON transcription files
   - [ ] Directory structure with multiple podcasts
+  - [ ] Mock database with sample data
   - [ ] Edge cases (empty, malformed, etc.)
 - [ ] Integration tests
   - [ ] Test full JSON indexing workflow with Chonkie
   - [ ] Test different chunking strategies (recursive vs semantic)
   - [ ] Test chunk size variations
   - [ ] Test hybrid database + JSON indexing
+  - [ ] Test SQLite query tools end-to-end
+  - [ ] Test agent with both semantic search and database queries
   - [ ] Test CLI commands end-to-end
 - [ ] Manual testing
   - [ ] Index real transcription directory with Chonkie
   - [ ] Compare search results: database vs JSON w/Chonkie
+  - [ ] Test database queries through agent
   - [ ] Verify chunk quality and relevance
   - [ ] Test incremental updates
+  - [ ] Test combined queries (semantic + structured)
 
-### Phase 6: Quality & Security
+### Phase 7: Quality & Security
 - [ ] Run security check on Chonkie dependency
 - [ ] Run linting (ruff check/format)
 - [ ] Run type checking (mypy)
@@ -481,29 +801,50 @@ collection = client.get_or_create_collection("transcription_file_index")
 - Consider chunk consolidation for very short segments
 - Monitor collection size and query latency
 
+### 9. SQL Query Safety
+**Issue:** Agent might generate dangerous or malformed SQL queries  
+**Solution:**
+- Strict validation (SELECT only)
+- Keyword blacklist (DROP, DELETE, etc.)
+- Result limiting (max 500 rows)
+- Query timeout protection
+- Comprehensive error handling
+
+### 10. SQL Query Complexity
+**Issue:** Agent might generate overly complex queries that are slow  
+**Solution:**
+- Query complexity analysis
+- Timeout limits
+- Suggest simpler alternative queries
+- Provide query optimization hints in tool descriptions
+
 ## Success Criteria
 
 1. ✅ Users can run `retrocast castchat --json-dir ~/transcriptions` without database
 2. ✅ JSON indexing with Chonkie produces high-quality, semantically meaningful chunks
 3. ✅ Chonkie chunking improves search relevance compared to fixed-size segments
 4. ✅ Multiple chunking strategies (recursive/semantic/segments) work correctly
-5. ✅ Incremental updates work correctly (only new files indexed)
-6. ✅ All existing tests continue to pass
-7. ✅ New tests achieve >80% coverage of new code
-8. ✅ Documentation clearly explains JSON workflow and Chonkie options
-9. ✅ No performance regression for database indexing path
-10. ✅ Chonkie integration adds <2MB to package size
+5. ✅ SQLite query tools enable structured metadata queries through the agent
+6. ✅ SQL validation prevents dangerous queries (no data modification possible)
+7. ✅ Agent can combine semantic search with structured queries effectively
+8. ✅ Incremental updates work correctly (only new files indexed)
+9. ✅ All existing tests continue to pass
+10. ✅ New tests achieve >80% coverage of new code
+11. ✅ Documentation clearly explains JSON workflow, Chonkie options, and SQL tools
+12. ✅ No performance regression for database indexing path
+13. ✅ Chonkie integration adds <2MB to package size
 
 ## Timeline Estimate
 
 - **Phase 1 (Dependencies & Scanner):** 2-3 hours
 - **Phase 2 (ChromaDB + Chonkie):** 4-5 hours
-- **Phase 3 (CLI):** 2 hours
-- **Phase 4 (Docs):** 1-2 hours
-- **Phase 5 (Testing):** 2-3 hours
-- **Phase 6 (QA):** 1 hour
+- **Phase 3 (SQLite Query Tools):** 3-4 hours
+- **Phase 4 (CLI):** 2 hours
+- **Phase 5 (Docs):** 2-3 hours
+- **Phase 6 (Testing):** 3-4 hours
+- **Phase 7 (QA):** 1 hour
 
-**Total:** 12-16 hours of development time (updated from 10-15 to account for Chonkie integration)
+**Total:** 17-22 hours of development time (updated from 12-16 to account for SQLite query tools integration)
 
 ## Dependencies
 
@@ -568,6 +909,15 @@ pip install retrocast[castchat]
 - [ ] Chunk quality metrics and optimization
 - [ ] A/B testing different chunking strategies
 - [ ] Export Chonkie chunks for analysis/debugging
+- [ ] Advanced SQL query capabilities:
+  - [ ] Query history and favorites
+  - [ ] Query result caching
+  - [ ] Complex aggregations and joins
+  - [ ] Query explanation/planning tool
+- [ ] Database insights tool for agent:
+  - [ ] Trend analysis (listening patterns over time)
+  - [ ] Recommendation queries (unplayed episodes matching interests)
+  - [ ] Collection analytics (most/least played podcasts)
 
 ## Related Files
 
@@ -575,13 +925,15 @@ pip install retrocast[castchat]
 - `src/retrocast/transcription_json_scanner.py` - JSON file scanner
 - `tests/test_transcription_json_scanner.py` - Scanner tests
 - `tests/test_json_indexing.py` - JSON indexing integration tests
+- `tests/test_sql_query_tools.py` - SQLite query tool tests
 
 **Modified Files:**
 - `src/retrocast/chromadb_manager.py` - Add JSON indexing methods
-- `src/retrocast/cli.py` - Add CLI options for JSON indexing
-- `docs/CASTCHAT.md` - Add JSON indexing documentation
+- `src/retrocast/castchat_agent.py` - Add SQL query tools
+- `src/retrocast/cli.py` - Add CLI options for JSON indexing and pass datastore to agent
+- `docs/CASTCHAT.md` - Add JSON indexing and SQL query documentation
 - `README.md` - Update castchat examples
-- `tests/test_castchat.py` - Add JSON indexing tests
+- `tests/test_castchat.py` - Add JSON indexing and SQL query tests
 
 ## Notes
 
@@ -596,3 +948,20 @@ pip install retrocast[castchat]
 - Transcription output format: `src/retrocast/transcription/output_formats.py`
 - Current ChromaDB indexing: `src/retrocast/chromadb_manager.py:index_transcriptions()`
 - JSON format spec: lines 68-102 in `output_formats.py`
+- SQLite CLI wrapper: `src/retrocast/sql_cli.py`
+- Datastore implementation: `src/retrocast/datastore.py`
+
+### SQL in Agentic Systems - Best Practices
+
+**Research Sources:**
+1. **LangChain SQL Agent Documentation**: Recommends read-only access, query validation, and result limiting
+2. **Text-to-SQL Best Practices**: Use schema context, example queries, and clear tool descriptions
+3. **sqlite-utils Library**: Provides safe query execution, schema inspection, and JSON export
+4. **SQL Injection Prevention**: Parameterized queries, keyword filtering, syntax validation
+
+**Key Principles:**
+- **Safety First**: Only SELECT queries, no data modification
+- **Context Awareness**: Provide schema information to the agent
+- **Result Management**: Limit result sets to prevent context overflow
+- **Error Handling**: Graceful failures with clear messages
+- **Transparency**: Log all queries for debugging and auditing
