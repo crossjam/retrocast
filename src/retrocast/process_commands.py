@@ -1,9 +1,11 @@
 """CLI commands for processing podcast audio files (transcription, analysis)."""
 
+import json
 from pathlib import Path
 from typing import Optional
 
 import rich_click as click
+from pydantic import ValidationError
 from rich.console import Console
 from rich.progress import (
     BarColumn,
@@ -18,6 +20,7 @@ from rich.text import Text
 from retrocast.appdir import get_app_dir, get_default_db_path
 from retrocast.datastore import Datastore
 from retrocast.transcription import TranscriptionManager
+from retrocast.transcription.models import TranscriptionJSONModel
 
 console = Console()
 
@@ -463,12 +466,6 @@ def _validate_single_file(
         Tuple of (is_valid, error_type, error_message)
         error_type can be 'validation' or 'parse' or None
     """
-    import json
-
-    from pydantic import ValidationError
-
-    from retrocast.transcription.models import TranscriptionJSONModel
-
     relative_path = json_file.relative_to(output_dir)
 
     try:
