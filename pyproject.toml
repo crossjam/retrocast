@@ -217,7 +217,7 @@ cmd = "env PYTHONPATH=src COLUMNS=100 uv run cog -r docs/cli/about.md docs/cli/c
 
 [tool.poe.tasks."docs:check"]
 help = "Check if CLI documentation is up to date"
-cmd = "env PYTHONPATH=src COLUMNS=100 uv run cog --check docs/cli/about.md docs/cli/castchat.md docs/cli/config.md docs/cli/download.md docs/cli/index.md docs/cli/meta.md docs/cli/sql.md docs/cli/sync.md docs/cli/transcription.md"
+cmd = "env PYTHONPATH=src COLUMNS=100 uv run cog --check --diff docs/cli/about.md docs/cli/castchat.md docs/cli/config.md docs/cli/download.md docs/cli/index.md docs/cli/meta.md docs/cli/sql.md docs/cli/sync.md docs/cli/transcription.md"
 # cmd = "env PYTHONPATH=src COLUMNS=100 python -m cogapp --check docs/cli/*.md"
 
 # Transcription backend installation
