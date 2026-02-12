@@ -20,7 +20,8 @@ using the sqlite-utils CLI. The database path defaults to your
 scrobbledb database in the XDG data directory.
 
 Default Database Location:
-  /home/runner/.local/share/net.memexponent.retrocast/retrocast.db
+  /Users/crossjam/Library/Application
+  Support/net.memexponent.retrocast/retrocast.db
 
 To check if your database is initialized:
   scrobbledb init --dry-run
