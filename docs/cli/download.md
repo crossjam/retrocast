@@ -78,7 +78,6 @@ cog.out("```\n{}\n```".format(clean_help_output(result.output)))
                                                                                                     
 +- Miscellaneous Options --------------------------------------------------------------------------+
 | --directory       -d  DIRECTORY             Directory to store downloaded files.                 |
-|                                             [default: /Users/crossjam/repos/retrocast]           |
 | --max-concurrent  -j  INTEGER RANGE [x>=1]  Maximum concurrent aria2c downloads.                 |
 |                                             [default: 5]                                         |
 | --verbose         -v                        Enable verbose logging for this command.             |
