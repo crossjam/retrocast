@@ -23,7 +23,7 @@ jobs:
         env:
           COLUMNS: 100  # stabilize click help wrapping across environments
         run: |
-          uv run poe docs:generate
+          uv run poe docs:check
           git diff --name-only --exit-code docs/cli
       - name: Test CLI help command
         run: |
