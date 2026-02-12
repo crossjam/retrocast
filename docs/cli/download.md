@@ -335,6 +335,33 @@ def clean_help_output(text):
     path_pattern = re.compile(r'\[default:\s+.+?/config\.yaml\]', re.DOTALL)
     text = path_pattern.sub('[default: {PLATFORM_APP_DIR}/config.yaml]', text)
     
+    # Normalize line lengths to 100 chars for consistent table formatting
+    # The CLI output is 120 chars wide, but we normalize to 100 for documentation
+    lines = text.split('\n')
+    fixed_lines = []
+    target_width = 100  # Documentation standard width
+    
+    for line in lines:
+        if line.startswith('|') and line.endswith('|'):
+            # This is a table row - normalize to target width
+            content = line[:-1].rstrip()
+            if len(content) < target_width - 1:
+                # Pad to target_width - 1 (leaving room for final |)
+                line = content.ljust(target_width - 1) + '|'
+            elif len(content) > target_width - 1:
+                # Truncate if too long (shouldn't happen after our replacements)
+                line = content[:target_width - 1] + '|'
+            else:
+                line = content + '|'
+            fixed_lines.append(line)
+        elif line.startswith('+') and line.endswith('+') and '-' in line:
+            # This is a border line - normalize to target width
+            line = '+' + '-' * (target_width - 2) + '+'
+            fixed_lines.append(line)
+        else:
+            fixed_lines.append(line)
+    text = '\n'.join(fixed_lines)
+    
     return text
 
 result = CliRunner().invoke(cli, ["download", "podcast-archiver", "--help"])
@@ -397,7 +424,7 @@ cog.out("```\n{}\n```".format(clean_help_output(result.output)))
 | --config             -c  FILE       Path to a config file. Command line arguments will take      |
 |                                     precedence.                                                  |
 |                                     [env var: PODCAST_ARCHIVER_CONFIG]                           |
-|                                     [default: {PLATFORM_APP_DIR}/config.yaml]                        |
+|                                     [default: {PLATFORM_APP_DIR}/config.yaml]                    |
 | --database               FILE       Location of the database to keep track of downloaded         |
 |                                     episodes. By default, the database will be created as        |
 |                                     'podcast-archiver.db' in the directory of the config file.   |
