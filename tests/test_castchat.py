@@ -1,4 +1,8 @@
-"""Tests for castchat ChromaDB manager and agent."""
+"""Tests for castchat ChromaDB manager and agent.
+
+These tests use mocks for optional castchat dependencies (chromadb, pydantic-ai)
+to allow the test suite to run regardless of whether the castchat extra is installed.
+"""
 
 import sys
 from pathlib import Path
@@ -8,7 +12,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-# Mock chromadb before importing
+# Mock chromadb before importing (castchat optional dependency)
 sys.modules["chromadb"] = MagicMock()
 sys.modules["chromadb.config"] = MagicMock()
 

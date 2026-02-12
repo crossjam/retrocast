@@ -76,7 +76,17 @@ without needing to install optional extras.
 ```bash
 # Run tests with pytest
 uv run pytest
+
+# Run with verbose output
+uv run pytest -v
+
+# Run specific test file
+uv run pytest tests/test_castchat.py -v
 ```
+
+**Note on Testing**: All tests work with or without castchat dependencies installed. 
+The `test_castchat.py` file uses mocks for optional dependencies (chromadb, pydantic-ai), 
+allowing the test suite to run in any configuration.
 
 ### Pre-commit Hooks
 
