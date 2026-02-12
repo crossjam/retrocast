@@ -5474,6 +5474,7 @@ transcription-mlx = [
 [package.dev-dependencies]
 dev = [
     { name = "black" },
+    { name = "cogapp" },
     { name = "pandas-stubs" },
     { name = "pip-audit" },
     { name = "poethepoet" },
@@ -5528,6 +5529,7 @@ provides-extras = ["lint", "docs", "transcription-mlx", "transcription-cuda", "t
 [package.metadata.requires-dev]
 dev = [
     { name = "black", specifier = ">=25.1.0" },
+    { name = "cogapp", specifier = ">=3.0.0" },
     { name = "pandas-stubs", specifier = ">=2.3.2.250926" },
     { name = "pip-audit", specifier = ">=2.10.0" },
     { name = "poethepoet", specifier = ">=0.32.1" },
