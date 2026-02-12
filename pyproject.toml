@@ -67,6 +67,10 @@ lint = [
     "types-pygments>=2.19.0.20250809",
 ]
 
+docs = [
+    "cogapp>=3.0.0",
+]
+
 # Transcription backends - installed separately by user based on platform
 transcription-mlx = [
     "mlx-whisper>=0.4.0; platform_system=='Darwin'",
@@ -203,6 +207,15 @@ cmd = "pytest --collect-only -q"
 help = "Run all QA checks (lint, type, test)"
 sequence = ["lint", "type", "test"]
 ignore_fail = false
+
+# Documentation generation
+[tool.poe.tasks."docs:generate"]
+help = "Generate CLI documentation using cog"
+cmd = "python -m cogapp -r docs/cli/*.md"
+
+[tool.poe.tasks."docs:check"]
+help = "Check if CLI documentation is up to date"
+cmd = "python -m cogapp --check docs/cli/*.md"
 
 # Transcription backend installation
 [tool.poe.tasks."install:transcription-mlx"]
