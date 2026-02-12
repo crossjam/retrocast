@@ -178,8 +178,8 @@ cmd = "ruff check --fix src/ tests/"
 
 # Type checking
 [tool.poe.tasks.type]
-help = "Run ty type checker on source files"
-cmd = "ty check src/"
+help = "Run ty type checker on source files (excludes castchat files if dependencies not installed)"
+script = "scripts.check_types:main"
 
 # Testing
 [tool.poe.tasks.test]
