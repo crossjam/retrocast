@@ -37,3 +37,6 @@ models = [line for line in result.output.split("\n") if line.startswith("OpenAI 
 cog.out("```\n{}\n```".format("\n".join(models)))
 ]]] -->
 ```
+
+Add poe tasks in pyproject.toml as needed to generate updated
+documentation
