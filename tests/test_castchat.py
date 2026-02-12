@@ -12,6 +12,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 sys.modules["chromadb"] = MagicMock()
 sys.modules["chromadb.config"] = MagicMock()
 
+# Mock pydantic_ai before importing (castchat optional dependency)
+sys.modules["pydantic_ai"] = MagicMock()
+sys.modules["pydantic_ai.models"] = MagicMock()
+sys.modules["pydantic_ai.models.anthropic"] = MagicMock()
+
 
 @pytest.fixture
 def temp_db(tmp_path):

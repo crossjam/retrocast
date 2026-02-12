@@ -18,8 +18,10 @@ def test_type_task_without_castchat():
 
     # Should indicate that castchat files are being excluded OR that all files are checked
     output = result.stdout + result.stderr
-    assert "Excluding castchat files" in output, f"Unexpected output: {output}"
-    assert "Checking all files" in output, f"Unexpected output: {output}"
+    assert (
+        "Excluding castchat files" in output or
+        "Checking all files" in output
+    ), f"Unexpected output: {output}"
 
 
 def test_check_types_script_exists():
