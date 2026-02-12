@@ -80,12 +80,6 @@ Options:
 ```bash
 # Download chapters for all episodes
 retrocast meta overcast chapters
-
-# Download chapters for starred episodes only
-retrocast meta overcast chapters --starred
-
-# Limit number of episodes processed
-retrocast meta overcast chapters --max 100
 ```
 
 #### overcast transcripts - Download Transcripts
@@ -121,10 +115,7 @@ Options:
 retrocast meta overcast transcripts
 
 # Download transcripts for starred episodes only
-retrocast meta overcast transcripts --starred
-
-# Limit number of episodes processed
-retrocast meta overcast transcripts --max 100
+retrocast meta overcast transcripts --starred-only
 ```
 
 ## What Are Chapters?
@@ -150,24 +141,16 @@ Some podcasts provide pre-generated transcripts in various formats (VTT, SRT, JS
 retrocast meta overcast chapters
 ```
 
-### Download Chapters for Starred Episodes
-
-```bash
-retrocast meta overcast chapters --starred
-```
-
 ### Download Transcripts
 
 ```bash
 retrocast meta overcast transcripts
 ```
 
-### Process Limited Episodes
-
-Process only the first 50 episodes:
+### Download Transcripts for Starred Episodes
 
 ```bash
-retrocast meta overcast transcripts --max 50
+retrocast meta overcast transcripts --starred-only
 ```
 
 ## Storage

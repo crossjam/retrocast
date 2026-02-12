@@ -215,11 +215,8 @@ retrocast transcription process
 # Process specific podcast
 retrocast transcription process --podcast "Podcast Name"
 
-# Process with specific backend
-retrocast transcription process --backend mlx-whisper
-
-# Process with diarization (speaker detection)
-retrocast transcription process --diarize
+# Process with specific backend and model
+retrocast transcription process --backend mlx-whisper --model medium
 ```
 
 ### search - Search Transcripts
@@ -440,12 +437,6 @@ Each transcript includes:
 
 ```bash
 retrocast transcription process
-```
-
-### Process with Diarization
-
-```bash
-retrocast transcription process --diarize
 ```
 
 ### Search Transcripts

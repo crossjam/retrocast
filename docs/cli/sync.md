@@ -159,9 +159,6 @@ Options:
 ```bash
 # Download chapters for all episodes
 retrocast sync overcast chapters
-
-# Download chapters for starred episodes only
-retrocast sync overcast chapters --starred
 ```
 
 #### overcast check - Check Status
@@ -429,7 +426,7 @@ Options:
 retrocast sync overcast transcripts
 
 # Download transcripts for starred episodes only
-retrocast sync overcast transcripts --starred
+retrocast sync overcast transcripts --starred-only
 ```
 
 ## Typical Workflow

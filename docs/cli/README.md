@@ -44,19 +44,24 @@ python -m cogapp --check docs/cli/*.md
 
 ## How It Works
 
-Each markdown file contains cog directives that invoke the CLI and capture its help output:
+Each markdown file contains cog directives that invoke the CLI and capture its help output.
 
-```markdown
-<!-- [[[cog
+The directives look like this:
+- Start marker: `<!-- [[[cog`
+- Python code to execute
+- End marker: `]]]` followed by `-->`
+- Generated content goes between the markers
+- End-output marker: `<!-- [[[end]]] -->`
+
+When cog runs, it executes the Python code and replaces the content between the markers with the output.
+
+Example Python code used in directives:
+```python
 from click.testing import CliRunner
 from retrocast.cli import cli
 result = CliRunner().invoke(cli, ["command", "--help"])
 cog.out("```\n{}\n```".format(result.output))
-]]] -->
-<!-- [[[end]]] -->
 ```
-
-When cog runs, it executes the Python code between the `[[[cog` and `]]]` markers and replaces the content between `]]]` and `[[[end]]]` with the output.
 
 ## Installing Dependencies
 
