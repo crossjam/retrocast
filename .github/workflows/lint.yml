@@ -24,7 +24,7 @@ jobs:
           COLUMNS: 100  # stabilize click help wrapping across environments
         run: |
           uv run poe docs:generate
-          git diff --name-only --exit-code docs/commands
+          git diff --name-only --exit-code docs/cli
       - name: Test CLI help command
         run: |
           uv run python -m retrocast.cli --help |& grep -q 'Usage:'
