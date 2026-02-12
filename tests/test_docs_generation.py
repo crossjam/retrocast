@@ -45,7 +45,7 @@ def test_cog_installed():
 
 def test_docs_check_command():
     """Test that docs:check poe task works (verifies docs are up to date).
-    
+
     Note: This test may show false positives due to ANSI formatting differences
     in rich-click output. The important thing is that cog can process the files.
     """
@@ -61,7 +61,7 @@ def test_docs_check_command():
         "docs/cli/sync.md",
         "docs/cli/transcription.md",
     ]
-    
+
     # Run the docs:check task
     result = subprocess.run(
         [sys.executable, "-m", "cogapp", "--check"] + docs_files,
