@@ -329,6 +329,12 @@ def clean_help_output(text):
     }
     for old, new in replacements.items():
         text = text.replace(old, new)
+    
+    # Replace host-specific paths with placeholder
+    # Match pattern: [default: /any/path/to/config.yaml] across multiple lines
+    path_pattern = re.compile(r'\[default:\s+.+?/config\.yaml\]', re.DOTALL)
+    text = path_pattern.sub('[default: {PLATFORM_APP_DIR}/config.yaml]', text)
+    
     return text
 
 result = CliRunner().invoke(cli, ["download", "podcast-archiver", "--help"])
@@ -391,8 +397,7 @@ cog.out("```\n{}\n```".format(clean_help_output(result.output)))
 | --config             -c  FILE       Path to a config file. Command line arguments will take      |
 |                                     precedence.                                                  |
 |                                     [env var: PODCAST_ARCHIVER_CONFIG]                           |
-|                                     [default: /Users/crossjam/Library/Application                |
-|                                     Support/podcast-archiver/config.yaml]                        |
+|                                     [default: {PLATFORM_APP_DIR}/config.yaml]                        |
 | --database               FILE       Location of the database to keep track of downloaded         |
 |                                     episodes. By default, the database will be created as        |
 |                                     'podcast-archiver.db' in the directory of the config file.   |
