@@ -212,7 +212,7 @@ def test_create_castchat_agent():
             mock_agent = MagicMock()
             mock_agent_class.return_value = mock_agent
 
-            agent = create_castchat_agent(mock_chroma_manager, model_name="claude-test")
+            result = create_castchat_agent(mock_chroma_manager, model_name="claude-test")
 
             mock_model_class.assert_called_once_with("claude-test")
             mock_agent_class.assert_called_once()
@@ -220,6 +220,8 @@ def test_create_castchat_agent():
             call_kwargs = mock_agent_class.call_args[1]
             assert "system_prompt" in call_kwargs
             assert "AI assistant" in call_kwargs["system_prompt"]
+            # Verify the agent is returned
+            assert result == mock_agent
 
 
 def test_index_empty_database(tmp_path, chroma_manager):

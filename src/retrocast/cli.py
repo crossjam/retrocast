@@ -767,7 +767,7 @@ def castchat(
 
     # Import clai and run
     try:
-        from pydantic_ai.tools import clai_main
+        from pydantic_ai.tools import clai_main  # type: ignore[attr-defined]
 
         # Run the REPL with our agent
         clai_main(agent=agent, model_override=model_name)
