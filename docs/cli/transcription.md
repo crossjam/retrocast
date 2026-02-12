@@ -5,29 +5,44 @@ The `transcription` command group manages audio transcriptions, allowing you to 
 ## Command Group Help
 
 <!-- [[[cog
+import re
 from click.testing import CliRunner
 from retrocast.cli import cli
+
+def clean_help_output(text):
+    """Strip ANSI codes and replace box-drawing characters with plain ASCII."""
+    ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
+    text = ansi_escape.sub('', text)
+    replacements = {
+        '╭': '+', '╰': '+', '╮': '+', '╯': '+',
+        '─': '-', '│': '|', '├': '+', '┤': '+',
+        '┬': '+', '┴': '+', '┼': '+',
+    }
+    for old, new in replacements.items():
+        text = text.replace(old, new)
+    return text
+
 result = CliRunner().invoke(cli, ["transcription", "--help"])
-cog.out("```\n{}\n```".format(result.output))
+cog.out("```\n{}\n```".format(clean_help_output(result.output)))
 ]]] -->
 ```
                                                                                                                         
- [33mUsage:[0m [1mcli transcription[0m [[1;36mOPTIONS[0m] [1;36mCOMMAND[0m [[1;36mARGS[0m]...                                                                   
+ Usage: cli transcription [OPTIONS] COMMAND [ARGS]...                                                                   
                                                                                                                         
  Manage audio transcriptions (create, search, analyze).                                                                 
                                                                                                                         
-[2m╭─[0m[2m Miscellaneous Options [0m[2m─────────────────────────────────────────────────────────────────────────────────────────────[0m[2m─╮[0m
-[2m│[0m [1;36m--help[0m  Show this message and exit.                                                                                  [2m│[0m
-[2m╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯[0m
-[2m╭─[0m[2m Commands [0m[2m──────────────────────────────────────────────────────────────────────────────────────────────────────────[0m[2m─╮[0m
-[2m│[0m [1;36mbackends[0m[1;36m [0m Manage transcription backends.                                                                             [2m│[0m
-[2m│[0m [1;36mepisodes[0m[1;36m [0m Manage and view transcribed episodes.                                                                      [2m│[0m
-[2m│[0m [1;36mpodcasts[0m[1;36m [0m Manage and view transcribed podcasts.                                                                      [2m│[0m
-[2m│[0m [1;36mprocess [0m[1;36m [0m Process audio files to create transcriptions.                                                              [2m│[0m
-[2m│[0m [1;36msearch  [0m[1;36m [0m Search transcribed podcast content.                                                                        [2m│[0m
-[2m│[0m [1;36msummary [0m[1;36m [0m Display overall transcription statistics.                                                                  [2m│[0m
-[2m│[0m [1;36mvalidate[0m[1;36m [0m Validate all JSON transcription files in the app directory.                                                [2m│[0m
-[2m╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯[0m
++- Miscellaneous Options ----------------------------------------------------------------------------------------------+
+| --help  Show this message and exit.                                                                                  |
++----------------------------------------------------------------------------------------------------------------------+
++- Commands -----------------------------------------------------------------------------------------------------------+
+| backends  Manage transcription backends.                                                                             |
+| episodes  Manage and view transcribed episodes.                                                                      |
+| podcasts  Manage and view transcribed podcasts.                                                                      |
+| process   Process audio files to create transcriptions.                                                              |
+| search    Search transcribed podcast content.                                                                        |
+| summary   Display overall transcription statistics.                                                                  |
+| validate  Validate all JSON transcription files in the app directory.                                                |
++----------------------------------------------------------------------------------------------------------------------+
 
 ```
 <!-- [[[end]]] -->
@@ -39,25 +54,40 @@ cog.out("```\n{}\n```".format(result.output))
 Manage transcription backends (MLX Whisper, faster-whisper, etc.).
 
 <!-- [[[cog
+import re
 from click.testing import CliRunner
 from retrocast.cli import cli
+
+def clean_help_output(text):
+    """Strip ANSI codes and replace box-drawing characters with plain ASCII."""
+    ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
+    text = ansi_escape.sub('', text)
+    replacements = {
+        '╭': '+', '╰': '+', '╮': '+', '╯': '+',
+        '─': '-', '│': '|', '├': '+', '┤': '+',
+        '┬': '+', '┴': '+', '┼': '+',
+    }
+    for old, new in replacements.items():
+        text = text.replace(old, new)
+    return text
+
 result = CliRunner().invoke(cli, ["transcription", "backends", "--help"])
-cog.out("```\n{}\n```".format(result.output))
+cog.out("```\n{}\n```".format(clean_help_output(result.output)))
 ]]] -->
 ```
                                                                                                                         
- [33mUsage:[0m [1mcli transcription backends[0m [[1;36mOPTIONS[0m] [1;36mCOMMAND[0m [[1;36mARGS[0m]...                                                          
+ Usage: cli transcription backends [OPTIONS] COMMAND [ARGS]...                                                          
                                                                                                                         
  Manage transcription backends.                                                                                         
- [2mCommands for listing, testing, and managing transcription backends.[0m                                                    
+ Commands for listing, testing, and managing transcription backends.                                                    
                                                                                                                         
-[2m╭─[0m[2m Miscellaneous Options [0m[2m─────────────────────────────────────────────────────────────────────────────────────────────[0m[2m─╮[0m
-[2m│[0m [1;36m--help[0m  Show this message and exit.                                                                                  [2m│[0m
-[2m╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯[0m
-[2m╭─[0m[2m Commands [0m[2m──────────────────────────────────────────────────────────────────────────────────────────────────────────[0m[2m─╮[0m
-[2m│[0m [1;36mlist[0m[1;36m [0m List available transcription backends.                                                                         [2m│[0m
-[2m│[0m [1;36mtest[0m[1;36m [0m Test if a specific backend is available.                                                                       [2m│[0m
-[2m╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯[0m
++- Miscellaneous Options ----------------------------------------------------------------------------------------------+
+| --help  Show this message and exit.                                                                                  |
++----------------------------------------------------------------------------------------------------------------------+
++- Commands -----------------------------------------------------------------------------------------------------------+
+| list  List available transcription backends.                                                                         |
+| test  Test if a specific backend is available.                                                                       |
++----------------------------------------------------------------------------------------------------------------------+
 
 ```
 <!-- [[[end]]] -->
@@ -75,25 +105,40 @@ Shows available transcription backends and their status.
 View and manage transcribed episodes.
 
 <!-- [[[cog
+import re
 from click.testing import CliRunner
 from retrocast.cli import cli
+
+def clean_help_output(text):
+    """Strip ANSI codes and replace box-drawing characters with plain ASCII."""
+    ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
+    text = ansi_escape.sub('', text)
+    replacements = {
+        '╭': '+', '╰': '+', '╮': '+', '╯': '+',
+        '─': '-', '│': '|', '├': '+', '┤': '+',
+        '┬': '+', '┴': '+', '┼': '+',
+    }
+    for old, new in replacements.items():
+        text = text.replace(old, new)
+    return text
+
 result = CliRunner().invoke(cli, ["transcription", "episodes", "--help"])
-cog.out("```\n{}\n```".format(result.output))
+cog.out("```\n{}\n```".format(clean_help_output(result.output)))
 ]]] -->
 ```
                                                                                                                         
- [33mUsage:[0m [1mcli transcription episodes[0m [[1;36mOPTIONS[0m] [1;36mCOMMAND[0m [[1;36mARGS[0m]...                                                          
+ Usage: cli transcription episodes [OPTIONS] COMMAND [ARGS]...                                                          
                                                                                                                         
  Manage and view transcribed episodes.                                                                                  
- [2mCommands for listing and summarizing episodes with transcriptions.[0m                                                     
+ Commands for listing and summarizing episodes with transcriptions.                                                     
                                                                                                                         
-[2m╭─[0m[2m Miscellaneous Options [0m[2m─────────────────────────────────────────────────────────────────────────────────────────────[0m[2m─╮[0m
-[2m│[0m [1;36m--help[0m  Show this message and exit.                                                                                  [2m│[0m
-[2m╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯[0m
-[2m╭─[0m[2m Commands [0m[2m──────────────────────────────────────────────────────────────────────────────────────────────────────────[0m[2m─╮[0m
-[2m│[0m [1;36mlist   [0m[1;36m [0m List transcribed episodes.                                                                                  [2m│[0m
-[2m│[0m [1;36msummary[0m[1;36m [0m Show summary statistics for transcribed episodes.                                                           [2m│[0m
-[2m╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯[0m
++- Miscellaneous Options ----------------------------------------------------------------------------------------------+
+| --help  Show this message and exit.                                                                                  |
++----------------------------------------------------------------------------------------------------------------------+
++- Commands -----------------------------------------------------------------------------------------------------------+
+| list     List transcribed episodes.                                                                                  |
+| summary  Show summary statistics for transcribed episodes.                                                           |
++----------------------------------------------------------------------------------------------------------------------+
 
 ```
 <!-- [[[end]]] -->
@@ -113,25 +158,40 @@ retrocast transcription episodes --podcast "Podcast Name"
 View and manage transcribed podcasts.
 
 <!-- [[[cog
+import re
 from click.testing import CliRunner
 from retrocast.cli import cli
+
+def clean_help_output(text):
+    """Strip ANSI codes and replace box-drawing characters with plain ASCII."""
+    ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
+    text = ansi_escape.sub('', text)
+    replacements = {
+        '╭': '+', '╰': '+', '╮': '+', '╯': '+',
+        '─': '-', '│': '|', '├': '+', '┤': '+',
+        '┬': '+', '┴': '+', '┼': '+',
+    }
+    for old, new in replacements.items():
+        text = text.replace(old, new)
+    return text
+
 result = CliRunner().invoke(cli, ["transcription", "podcasts", "--help"])
-cog.out("```\n{}\n```".format(result.output))
+cog.out("```\n{}\n```".format(clean_help_output(result.output)))
 ]]] -->
 ```
                                                                                                                         
- [33mUsage:[0m [1mcli transcription podcasts[0m [[1;36mOPTIONS[0m] [1;36mCOMMAND[0m [[1;36mARGS[0m]...                                                          
+ Usage: cli transcription podcasts [OPTIONS] COMMAND [ARGS]...                                                          
                                                                                                                         
  Manage and view transcribed podcasts.                                                                                  
- [2mCommands for listing and summarizing podcasts with transcriptions.[0m                                                     
+ Commands for listing and summarizing podcasts with transcriptions.                                                     
                                                                                                                         
-[2m╭─[0m[2m Miscellaneous Options [0m[2m─────────────────────────────────────────────────────────────────────────────────────────────[0m[2m─╮[0m
-[2m│[0m [1;36m--help[0m  Show this message and exit.                                                                                  [2m│[0m
-[2m╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯[0m
-[2m╭─[0m[2m Commands [0m[2m──────────────────────────────────────────────────────────────────────────────────────────────────────────[0m[2m─╮[0m
-[2m│[0m [1;36mlist   [0m[1;36m [0m List all podcasts with transcriptions.                                                                      [2m│[0m
-[2m│[0m [1;36msummary[0m[1;36m [0m Show summary statistics for podcasts.                                                                       [2m│[0m
-[2m╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯[0m
++- Miscellaneous Options ----------------------------------------------------------------------------------------------+
+| --help  Show this message and exit.                                                                                  |
++----------------------------------------------------------------------------------------------------------------------+
++- Commands -----------------------------------------------------------------------------------------------------------+
+| list     List all podcasts with transcriptions.                                                                      |
+| summary  Show summary statistics for podcasts.                                                                       |
++----------------------------------------------------------------------------------------------------------------------+
 
 ```
 <!-- [[[end]]] -->
@@ -149,59 +209,74 @@ Lists all podcasts that have at least one transcribed episode.
 Process audio files to create transcriptions.
 
 <!-- [[[cog
+import re
 from click.testing import CliRunner
 from retrocast.cli import cli
+
+def clean_help_output(text):
+    """Strip ANSI codes and replace box-drawing characters with plain ASCII."""
+    ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
+    text = ansi_escape.sub('', text)
+    replacements = {
+        '╭': '+', '╰': '+', '╮': '+', '╯': '+',
+        '─': '-', '│': '|', '├': '+', '┤': '+',
+        '┬': '+', '┴': '+', '┼': '+',
+    }
+    for old, new in replacements.items():
+        text = text.replace(old, new)
+    return text
+
 result = CliRunner().invoke(cli, ["transcription", "process", "--help"])
-cog.out("```\n{}\n```".format(result.output))
+cog.out("```\n{}\n```".format(clean_help_output(result.output)))
 ]]] -->
 ```
                                                                                                                         
- [33mUsage:[0m [1mcli transcription process[0m [[1;36mOPTIONS[0m] [[1;36mPATHS[0m]...                                                                  
+ Usage: cli transcription process [OPTIONS] [PATHS]...                                                                  
                                                                                                                         
  Process audio files to create transcriptions.                                                                          
- [2mPATHS: One or more audio files or directories containing audio files.[0m[2m [0m[2mCan be omitted when using --from-downloads.[0m      
+ PATHS: One or more audio files or directories containing audio files. Can be omitted when using --from-downloads.      
                                                                                                                         
- [2mExamples:[0m                                                                                                              
+ Examples:                                                                                                              
                                                                                                                         
- [40m                                                                                                                      [0m 
- [40m [0m[97;40m# Process a single file[0m[40m                                                                                             [0m[40m [0m 
- [40m [0m[97;40mretrocast transcription process episode.mp3[0m[40m                                                                         [0m[40m [0m 
- [40m [0m[40m                                                                                                                    [0m[40m [0m 
- [40m [0m[97;40m# Process all files in a directory[0m[40m                                                                                  [0m[40m [0m 
- [40m [0m[97;40mretrocast transcription process /path/to/podcast/[0m[40m                                                                   [0m[40m [0m 
- [40m [0m[40m                                                                                                                    [0m[40m [0m 
- [40m [0m[97;40m# Use specific backend and model[0m[40m                                                                                    [0m[40m [0m 
- [40m [0m[97;40mretrocast transcription process --backend mlx-whisper --model medium file.mp3[0m[40m                                       [0m[40m [0m 
- [40m [0m[40m                                                                                                                    [0m[40m [0m 
- [40m [0m[97;40m# Save as SRT subtitle format[0m[40m                                                                                       [0m[40m [0m 
- [40m [0m[97;40mretrocast transcription process --format srt episode.mp3[0m[40m                                                            [0m[40m [0m 
- [40m [0m[40m                                                                                                                    [0m[40m [0m 
- [40m [0m[97;40m# Process all downloaded episodes from a specific podcast[0m[40m                                                           [0m[40m [0m 
- [40m [0m[97;40mretrocast transcription process --from-downloads --podcast "Tech Podcast"[0m[40m                                           [0m[40m [0m 
- [40m [0m[40m                                                                                                                    [0m[40m [0m 
- [40m [0m[97;40m# List available podcasts from downloads[0m[40m                                                                            [0m[40m [0m 
- [40m [0m[97;40mretrocast transcription process --list-podcasts[0m[40m                                                                     [0m[40m [0m 
- [40m [0m[40m                                                                                                                    [0m[40m [0m 
- [40m [0m[97;40m# Process all downloaded episodes[0m[40m                                                                                   [0m[40m [0m 
- [40m [0m[97;40mretrocast transcription process --from-downloads[0m[40m                                                                    [0m[40m [0m 
- [40m                                                                                                                      [0m 
                                                                                                                         
-[2m╭─[0m[2m Miscellaneous Options [0m[2m─────────────────────────────────────────────────────────────────────────────────────────────[0m[2m─╮[0m
-[2m│[0m [1;36m--from-downloads[0m                                     Process episodes from the episode_downloads directory.          [2m│[0m
-[2m│[0m [1;36m--podcast       [0m  [1;33mTEXT                             [0m  Filter by podcast name (use with --from-downloads or directory  [2m│[0m
-[2m│[0m                                                      paths).                                                         [2m│[0m
-[2m│[0m [1;36m--list-podcasts [0m                                     List available podcasts from downloads and exit.                [2m│[0m
-[2m│[0m [1;36m--backend       [0m  [1;2;33m[[0m[1;33mauto[0m[1;2;33m|[0m[1;33mmlx-whisper[0m[1;2;33m|[0m[1;33mfaster-whisper[0m[1;2;33m][0m  Transcription backend to use.                                   [2m│[0m
-[2m│[0m [1;36m--model         [0m  [1;2;33m[[0m[1;33mtiny[0m[1;2;33m|[0m[1;33mbase[0m[1;2;33m|[0m[1;33msmall[0m[1;2;33m|[0m[1;33mmedium[0m[1;2;33m|[0m[1;33mlarge[0m[1;2;33m][0m[1;33m   [0m  Whisper model size.                                             [2m│[0m
-[2m│[0m [1;36m--language      [0m  [1;33mTEXT                             [0m  Audio language code (e.g., 'en', 'es'). Auto-detected if not    [2m│[0m
-[2m│[0m                                                      specified.                                                      [2m│[0m
-[2m│[0m [1;36m--output-dir    [0m  [1;33mPATH                             [0m  Output directory for transcription files (defaults to           [2m│[0m
-[2m│[0m                                                      app_dir/transcriptions).                                        [2m│[0m
-[2m│[0m [1;36m--format        [0m  [1;2;33m[[0m[1;33mtxt[0m[1;2;33m|[0m[1;33mjson[0m[1;2;33m|[0m[1;33msrt[0m[1;2;33m|[0m[1;33mvtt[0m[1;2;33m][0m[1;33m               [0m  Output format for transcription files.                          [2m│[0m
-[2m│[0m [1;36m--force         [0m                                     Re-transcribe even if transcription already exists.             [2m│[0m
-[2m│[0m [1;36m--db            [0m  [1;33mPATH                             [0m  Path to database file (defaults to app_dir/retrocast.db).       [2m│[0m
-[2m│[0m [1;36m--help          [0m                                     Show this message and exit.                                     [2m│[0m
-[2m╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯[0m
+  # Process a single file                                                                                               
+  retrocast transcription process episode.mp3                                                                           
+                                                                                                                        
+  # Process all files in a directory                                                                                    
+  retrocast transcription process /path/to/podcast/                                                                     
+                                                                                                                        
+  # Use specific backend and model                                                                                      
+  retrocast transcription process --backend mlx-whisper --model medium file.mp3                                         
+                                                                                                                        
+  # Save as SRT subtitle format                                                                                         
+  retrocast transcription process --format srt episode.mp3                                                              
+                                                                                                                        
+  # Process all downloaded episodes from a specific podcast                                                             
+  retrocast transcription process --from-downloads --podcast "Tech Podcast"                                             
+                                                                                                                        
+  # List available podcasts from downloads                                                                              
+  retrocast transcription process --list-podcasts                                                                       
+                                                                                                                        
+  # Process all downloaded episodes                                                                                     
+  retrocast transcription process --from-downloads                                                                      
+                                                                                                                        
+                                                                                                                        
++- Miscellaneous Options ----------------------------------------------------------------------------------------------+
+| --from-downloads                                     Process episodes from the episode_downloads directory.          |
+| --podcast         TEXT                               Filter by podcast name (use with --from-downloads or directory  |
+|                                                      paths).                                                         |
+| --list-podcasts                                      List available podcasts from downloads and exit.                |
+| --backend         [auto|mlx-whisper|faster-whisper]  Transcription backend to use.                                   |
+| --model           [tiny|base|small|medium|large]     Whisper model size.                                             |
+| --language        TEXT                               Audio language code (e.g., 'en', 'es'). Auto-detected if not    |
+|                                                      specified.                                                      |
+| --output-dir      PATH                               Output directory for transcription files (defaults to           |
+|                                                      app_dir/transcriptions).                                        |
+| --format          [txt|json|srt|vtt]                 Output format for transcription files.                          |
+| --force                                              Re-transcribe even if transcription already exists.             |
+| --db              PATH                               Path to database file (defaults to app_dir/retrocast.db).       |
+| --help                                               Show this message and exit.                                     |
++----------------------------------------------------------------------------------------------------------------------+
 
 ```
 <!-- [[[end]]] -->
@@ -224,52 +299,67 @@ retrocast transcription process --backend mlx-whisper --model medium
 Search transcribed podcast content.
 
 <!-- [[[cog
+import re
 from click.testing import CliRunner
 from retrocast.cli import cli
+
+def clean_help_output(text):
+    """Strip ANSI codes and replace box-drawing characters with plain ASCII."""
+    ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
+    text = ansi_escape.sub('', text)
+    replacements = {
+        '╭': '+', '╰': '+', '╮': '+', '╯': '+',
+        '─': '-', '│': '|', '├': '+', '┤': '+',
+        '┬': '+', '┴': '+', '┼': '+',
+    }
+    for old, new in replacements.items():
+        text = text.replace(old, new)
+    return text
+
 result = CliRunner().invoke(cli, ["transcription", "search", "--help"])
-cog.out("```\n{}\n```".format(result.output))
+cog.out("```\n{}\n```".format(clean_help_output(result.output)))
 ]]] -->
 ```
                                                                                                                         
- [33mUsage:[0m [1mcli transcription search[0m [[1;36mOPTIONS[0m] [1;36mQUERY[0m                                                                        
+ Usage: cli transcription search [OPTIONS] QUERY                                                                        
                                                                                                                         
  Search transcribed podcast content.                                                                                    
- [2mQUERY: Search query string (FTS5 syntax supported).[0m                                                                    
+ QUERY: Search query string (FTS5 syntax supported).                                                                    
                                                                                                                         
- [2mExamples:[0m                                                                                                              
+ Examples:                                                                                                              
                                                                                                                         
- [40m                                                                                                                      [0m 
- [40m [0m[97;40m# Simple search[0m[40m                                                                                                     [0m[40m [0m 
- [40m [0m[97;40mretrocast transcription search "machine learning"[0m[40m                                                                   [0m[40m [0m 
- [40m [0m[40m                                                                                                                    [0m[40m [0m 
- [40m [0m[97;40m# Search with filters[0m[40m                                                                                               [0m[40m [0m 
- [40m [0m[97;40mretrocast transcription search "AI" --podcast "Tech Podcast" --limit 10[0m[40m                                             [0m[40m [0m 
- [40m [0m[40m                                                                                                                    [0m[40m [0m 
- [40m [0m[97;40m# Search with date range[0m[40m                                                                                            [0m[40m [0m 
- [40m [0m[97;40mretrocast transcription search "python" --date-from "2024-01-01" --date-to "2024-12-31"[0m[40m                             [0m[40m [0m 
- [40m [0m[40m                                                                                                                    [0m[40m [0m 
- [40m [0m[97;40m# Export results to JSON[0m[40m                                                                                            [0m[40m [0m 
- [40m [0m[97;40mretrocast transcription search "data science" --export json --output results.json[0m[40m                                   [0m[40m [0m 
- [40m [0m[40m                                                                                                                    [0m[40m [0m 
- [40m [0m[97;40m# Search with context and pagination[0m[40m                                                                                [0m[40m [0m 
- [40m [0m[97;40mretrocast transcription search "neural networks" --context 2 --page 2 --limit 10[0m[40m                                    [0m[40m [0m 
- [40m                                                                                                                      [0m 
                                                                                                                         
-[2m╭─[0m[2m Miscellaneous Options [0m[2m─────────────────────────────────────────────────────────────────────────────────────────────[0m[2m─╮[0m
-[2m│[0m [1;36m--podcast  [0m  [1;33mTEXT           [0m  Filter by podcast title.                                                               [2m│[0m
-[2m│[0m [1;36m--speaker  [0m  [1;33mTEXT           [0m  Filter by speaker ID (requires diarization).                                           [2m│[0m
-[2m│[0m [1;36m--backend  [0m  [1;33mTEXT           [0m  Filter by transcription backend (e.g., 'mlx-whisper').                                 [2m│[0m
-[2m│[0m [1;36m--model    [0m  [1;33mTEXT           [0m  Filter by model size (e.g., 'base', 'medium').                                         [2m│[0m
-[2m│[0m [1;36m--date-from[0m  [1;33mTEXT           [0m  Filter by creation date (ISO format, e.g., '2024-01-01').                              [2m│[0m
-[2m│[0m [1;36m--date-to  [0m  [1;33mTEXT           [0m  Filter by creation date (ISO format, e.g., '2024-12-31').                              [2m│[0m
-[2m│[0m [1;36m--limit    [0m  [1;33mINTEGER        [0m  Maximum number of results to display.                                                  [2m│[0m
-[2m│[0m [1;36m--page     [0m  [1;33mINTEGER        [0m  Page number for pagination (starts at 1).                                              [2m│[0m
-[2m│[0m [1;36m--context  [0m  [1;33mINTEGER        [0m  Number of surrounding segments to show for context.                                    [2m│[0m
-[2m│[0m [1;36m--export   [0m  [1;2;33m[[0m[1;33mjson[0m[1;2;33m|[0m[1;33mcsv[0m[1;2;33m|[0m[1;33mhtml[0m[1;2;33m][0m  Export results to file format.                                                         [2m│[0m
-[2m│[0m [1;36m--output   [0m  [1;33mPATH           [0m  Output file path for export (defaults to search_results.{format}).                     [2m│[0m
-[2m│[0m [1;36m--db       [0m  [1;33mPATH           [0m  Path to database file (defaults to app_dir/retrocast.db).                              [2m│[0m
-[2m│[0m [1;36m--help     [0m                   Show this message and exit.                                                            [2m│[0m
-[2m╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯[0m
+  # Simple search                                                                                                       
+  retrocast transcription search "machine learning"                                                                     
+                                                                                                                        
+  # Search with filters                                                                                                 
+  retrocast transcription search "AI" --podcast "Tech Podcast" --limit 10                                               
+                                                                                                                        
+  # Search with date range                                                                                              
+  retrocast transcription search "python" --date-from "2024-01-01" --date-to "2024-12-31"                               
+                                                                                                                        
+  # Export results to JSON                                                                                              
+  retrocast transcription search "data science" --export json --output results.json                                     
+                                                                                                                        
+  # Search with context and pagination                                                                                  
+  retrocast transcription search "neural networks" --context 2 --page 2 --limit 10                                      
+                                                                                                                        
+                                                                                                                        
++- Miscellaneous Options ----------------------------------------------------------------------------------------------+
+| --podcast    TEXT             Filter by podcast title.                                                               |
+| --speaker    TEXT             Filter by speaker ID (requires diarization).                                           |
+| --backend    TEXT             Filter by transcription backend (e.g., 'mlx-whisper').                                 |
+| --model      TEXT             Filter by model size (e.g., 'base', 'medium').                                         |
+| --date-from  TEXT             Filter by creation date (ISO format, e.g., '2024-01-01').                              |
+| --date-to    TEXT             Filter by creation date (ISO format, e.g., '2024-12-31').                              |
+| --limit      INTEGER          Maximum number of results to display.                                                  |
+| --page       INTEGER          Page number for pagination (starts at 1).                                              |
+| --context    INTEGER          Number of surrounding segments to show for context.                                    |
+| --export     [json|csv|html]  Export results to file format.                                                         |
+| --output     PATH             Output file path for export (defaults to search_results.{format}).                     |
+| --db         PATH             Path to database file (defaults to app_dir/retrocast.db).                              |
+| --help                        Show this message and exit.                                                            |
++----------------------------------------------------------------------------------------------------------------------+
 
 ```
 <!-- [[[end]]] -->
@@ -292,25 +382,40 @@ retrocast transcription search "python" --limit 10
 Display overall transcription statistics.
 
 <!-- [[[cog
+import re
 from click.testing import CliRunner
 from retrocast.cli import cli
+
+def clean_help_output(text):
+    """Strip ANSI codes and replace box-drawing characters with plain ASCII."""
+    ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
+    text = ansi_escape.sub('', text)
+    replacements = {
+        '╭': '+', '╰': '+', '╮': '+', '╯': '+',
+        '─': '-', '│': '|', '├': '+', '┤': '+',
+        '┬': '+', '┴': '+', '┼': '+',
+    }
+    for old, new in replacements.items():
+        text = text.replace(old, new)
+    return text
+
 result = CliRunner().invoke(cli, ["transcription", "summary", "--help"])
-cog.out("```\n{}\n```".format(result.output))
+cog.out("```\n{}\n```".format(clean_help_output(result.output)))
 ]]] -->
 ```
                                                                                                                         
- [33mUsage:[0m [1mcli transcription summary[0m [[1;36mOPTIONS[0m]                                                                             
+ Usage: cli transcription summary [OPTIONS]                                                                             
                                                                                                                         
  Display overall transcription statistics.                                                                              
- [2mShows a comprehensive summary of all transcriptions in the database,[0m[2m [0m[2mincluding counts, duration, backends used, and [0m   
- [2mmore.[0m                                                                                                                  
+ Shows a comprehensive summary of all transcriptions in the database, including counts, duration, backends used, and    
+ more.                                                                                                                  
                                                                                                                         
- [2mExample:[0m[2m [0m[2mretrocast transcription summary[0m                                                                               
+ Example: retrocast transcription summary                                                                               
                                                                                                                         
-[2m╭─[0m[2m Miscellaneous Options [0m[2m─────────────────────────────────────────────────────────────────────────────────────────────[0m[2m─╮[0m
-[2m│[0m [1;36m--db  [0m  [1;33mPATH[0m  Path to database file (defaults to app_dir/retrocast.db).                                              [2m│[0m
-[2m│[0m [1;36m--help[0m        Show this message and exit.                                                                            [2m│[0m
-[2m╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯[0m
++- Miscellaneous Options ----------------------------------------------------------------------------------------------+
+| --db    PATH  Path to database file (defaults to app_dir/retrocast.db).                                              |
+| --help        Show this message and exit.                                                                            |
++----------------------------------------------------------------------------------------------------------------------+
 
 ```
 <!-- [[[end]]] -->
@@ -332,27 +437,42 @@ Shows:
 Validate all JSON transcription files.
 
 <!-- [[[cog
+import re
 from click.testing import CliRunner
 from retrocast.cli import cli
+
+def clean_help_output(text):
+    """Strip ANSI codes and replace box-drawing characters with plain ASCII."""
+    ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
+    text = ansi_escape.sub('', text)
+    replacements = {
+        '╭': '+', '╰': '+', '╮': '+', '╯': '+',
+        '─': '-', '│': '|', '├': '+', '┤': '+',
+        '┬': '+', '┴': '+', '┼': '+',
+    }
+    for old, new in replacements.items():
+        text = text.replace(old, new)
+    return text
+
 result = CliRunner().invoke(cli, ["transcription", "validate", "--help"])
-cog.out("```\n{}\n```".format(result.output))
+cog.out("```\n{}\n```".format(clean_help_output(result.output)))
 ]]] -->
 ```
                                                                                                                         
- [33mUsage:[0m [1mcli transcription validate[0m [[1;36mOPTIONS[0m]                                                                            
+ Usage: cli transcription validate [OPTIONS]                                                                            
                                                                                                                         
  Validate all JSON transcription files in the app directory.                                                            
- [2mChecks that all JSON transcription files conform to the expected schema[0m[2m [0m[2musing pydantic validation. Displays progress [0m  
- [2mduring validation and provides[0m[2m [0m[2ma summary report at the end.[0m                                                            
+ Checks that all JSON transcription files conform to the expected schema using pydantic validation. Displays progress   
+ during validation and provides a summary report at the end.                                                            
                                                                                                                         
- [2mExample:[0m[2m [0m[2mretrocast transcription validate[0m[2m [0m[2mretrocast transcription validate --verbose[0m[2m [0m[2mretrocast transcription validate [0m 
- [2m--output-dir /custom/path[0m                                                                                              
+ Example: retrocast transcription validate retrocast transcription validate --verbose retrocast transcription validate  
+ --output-dir /custom/path                                                                                              
                                                                                                                         
-[2m╭─[0m[2m Miscellaneous Options [0m[2m─────────────────────────────────────────────────────────────────────────────────────────────[0m[2m─╮[0m
-[2m│[0m [1;36m--output-dir[0m      [1;33mPATH[0m  Directory containing transcription JSON files (defaults to app_dir/transcriptions).          [2m│[0m
-[2m│[0m [1;36m--verbose   [0m  [1;32m-v[0m        Show detailed validation errors for each file.                                               [2m│[0m
-[2m│[0m [1;36m--help      [0m            Show this message and exit.                                                                  [2m│[0m
-[2m╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯[0m
++- Miscellaneous Options ----------------------------------------------------------------------------------------------+
+| --output-dir      PATH  Directory containing transcription JSON files (defaults to app_dir/transcriptions).          |
+| --verbose     -v        Show detailed validation errors for each file.                                               |
+| --help                  Show this message and exit.                                                                  |
++----------------------------------------------------------------------------------------------------------------------+
 
 ```
 <!-- [[[end]]] -->
