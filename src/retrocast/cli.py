@@ -331,8 +331,7 @@ def location(ctx: click.Context, output_format, db_path_flag: bool, app_dir_flag
 
     if sum(output_modes) > 1:
         raise click.UsageError(
-            "Only one output option can be used at a time: "
-            "--format, --db-path, or --app-dir"
+            "Only one output option can be used at a time: --format, --db-path, or --app-dir"
         )
 
     console = Console()
@@ -513,8 +512,7 @@ def reset_db(ctx: click.Context, dry_run: bool, yes: bool) -> None:
 
     # Warn about data loss
     console.print(
-        "[bold red]⚠ WARNING: This will permanently delete ALL data "
-        "in the database![/bold red]"
+        "[bold red]⚠ WARNING: This will permanently delete ALL data in the database![/bold red]"
     )
     console.print()
 
@@ -657,6 +655,131 @@ download.add_command(episode_db)
 cli.add_command(transcription)
 
 cli.add_command(sql_cli.sql)
+
+
+@cli.command()
+@click.option(
+    "-d",
+    "--database",
+    "db_path",
+    type=click.Path(exists=True, path_type=Path),
+    help="Path to retrocast database (defaults to app directory database)",
+)
+@click.option(
+    "-m",
+    "--model",
+    "model_name",
+    default="claude-sonnet-4-20250514",
+    help="Anthropic model to use for the agent",
+)
+@click.option(
+    "--rebuild-index",
+    is_flag=True,
+    help="Rebuild the ChromaDB index from scratch",
+)
+@click.pass_context
+def castchat(
+    ctx: click.Context,
+    db_path: Path | None,
+    model_name: str,
+    rebuild_index: bool,
+) -> None:
+    """Interactive AI chat for exploring transcribed podcast content.
+
+    Start an interactive REPL session powered by PydanticAI to explore your
+    podcast transcription archive using natural language queries. The agent
+    can search across all transcribed episodes to answer questions about
+    topics, guests, and specific content.
+
+    Requires chromadb and pydantic-ai dependencies:
+        pip install retrocast[castchat]
+
+    Example queries:
+      - What episodes discussed machine learning?
+      - Where did they talk about climate change?
+      - Which episodes featured interviews with scientists?
+    """
+    try:
+        from retrocast.castchat_agent import create_castchat_agent
+        from retrocast.chromadb_manager import ChromaDBManager
+    except ImportError as e:
+        console = Console()
+        console.print("[bold red]Error:[/bold red] castchat dependencies not installed")
+        console.print("\nInstall with: [cyan]pip install retrocast[castchat][/cyan]")
+        console.print(f"\nMissing: {e.name}")
+        raise click.Abort()
+
+    console = Console()
+
+    # Get database path
+    if db_path is None:
+        db_path = get_default_db_path(create=False)
+
+    if not db_path.exists():
+        console.print(f"[bold red]Error:[/bold red] Database not found at {db_path}")
+        console.print("Run [cyan]retrocast sync overcast[/cyan] first to create the database")
+        raise click.Abort()
+
+    # Initialize datastore
+    from retrocast.datastore import Datastore
+
+    datastore = Datastore(db_path)
+
+    # Get app directory for ChromaDB storage
+    app_dir = get_app_dir(create=True)
+    chroma_dir = app_dir / "chromadb"
+
+    # Initialize ChromaDB manager
+    console.print(f"[dim]Initializing ChromaDB at {chroma_dir}...[/dim]")
+    chroma_manager = ChromaDBManager(chroma_dir)
+
+    # Check if index needs to be built or rebuilt
+    current_count = chroma_manager.get_collection_count()
+
+    if rebuild_index or current_count == 0:
+        if rebuild_index:
+            console.print("[yellow]Rebuilding index...[/yellow]")
+            chroma_manager.reset()
+        else:
+            console.print("[yellow]Index is empty. Building initial index...[/yellow]")
+
+        with console.status("[bold green]Indexing transcription segments..."):
+            indexed_count = chroma_manager.index_transcriptions(datastore)
+
+        if indexed_count == 0:
+            console.print("[bold red]No transcription segments found![/bold red]")
+            console.print(
+                "Run [cyan]retrocast transcription transcribe[/cyan] to transcribe episodes first"
+            )
+            raise click.Abort()
+
+        console.print(f"[green]✓[/green] Indexed {indexed_count:,} segments")
+    else:
+        console.print(f"[dim]Using existing index with {current_count:,} segments[/dim]")
+
+    # Create agent
+    console.print(f"[dim]Initializing agent with model: {model_name}...[/dim]")
+    agent = create_castchat_agent(chroma_manager, model_name)
+
+    # Launch clai REPL
+    console.print("\n[bold green]Starting castchat REPL...[/bold green]")
+    console.print("[dim]Type your questions or 'exit' to quit[/dim]\n")
+
+    # Import clai and run
+    try:
+        from pydantic_ai.tools import clai_main  # type: ignore[attr-defined]
+
+        # Run the REPL with our agent
+        clai_main(agent=agent, model_override=model_name)
+    except ImportError:
+        console.print(
+            "[bold red]Error:[/bold red] clai command not found. "
+            "Make sure pydantic-ai[cli] is installed."
+        )
+        raise click.Abort()
+    except KeyboardInterrupt:
+        console.print("\n[dim]Goodbye![/dim]")
+
 
 # Note: _attach_podcast_archiver_passthroughs is now called lazily
 # from within the cli() function after logging is configured

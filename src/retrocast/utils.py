@@ -3,7 +3,7 @@ from collections.abc import Mapping
 from mimetypes import guess_extension
 from pathlib import Path
 
-import dateutil
+from dateutil import parser as dateutil_parser
 
 _user_agents = [
     "Overcast (+http://overcast.fm/; Apple Watch podcast app)",
@@ -25,7 +25,7 @@ def _headers_ua() -> dict:
 
 def _parse_date_or_none(date_string: str) -> str | None:
     try:
-        return dateutil.parser.parse(date_string).isoformat()
+        return dateutil_parser.parse(date_string).isoformat()
     except ValueError:
         return None
 

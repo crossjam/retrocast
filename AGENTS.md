@@ -59,15 +59,34 @@ uv run black src
 # Type checking
 uv run ty check src
 
+# Type checking via poe (handles optional castchat dependencies automatically)
+uv run poe type
+# This works with or without castchat dependencies installed
+
 # Package quality check
 uv run pyroma . --min=10
 ```
+
+**Note on Type Checking**: The `poe type` task automatically detects if castchat 
+dependencies (chromadb, pydantic-ai) are installed. If not installed, it excludes 
+castchat-specific files from type checking. This allows you to run type checks 
+without needing to install optional extras.
 
 ### Testing
 ```bash
 # Run tests with pytest
 uv run pytest
+
+# Run with verbose output
+uv run pytest -v
+
+# Run specific test file
+uv run pytest tests/test_castchat.py -v
 ```
+
+**Note on Testing**: All tests work with or without castchat dependencies installed. 
+The `test_castchat.py` file uses mocks for optional dependencies (chromadb, pydantic-ai), 
+allowing the test suite to run in any configuration.
 
 ### Pre-commit Hooks
 

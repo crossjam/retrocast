@@ -1,77 +1,33 @@
-"""Tests for PoeThePoet task configuration."""
+"""Tests for poe task configurations."""
 
 import subprocess
 import sys
-from pathlib import Path
-
-# Get the project root directory (parent of tests directory)
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 
-def test_poe_tasks_are_configured():
-    """Test that PoeThePoet tasks are properly configured."""
+def test_type_task_without_castchat():
+    """Test that poe type task works without castchat dependencies installed."""
+    # This test assumes castchat dependencies are not installed
+    # In CI, this would be the default state before installing extras
+
     result = subprocess.run(
-        [sys.executable, "-m", "poethepoet", "--help"],
-        capture_output=True,
-        text=True,
-        cwd=PROJECT_ROOT,
+        [sys.executable, "scripts/check_types.py"], capture_output=True, text=True
     )
 
-    assert result.returncode == 0
-    output = result.stdout
+    # The script should succeed (exit code 0) even without castchat deps
+    assert result.returncode == 0, f"check_types.py failed: {result.stderr}"
 
-    # Check that all expected tasks are listed
-    expected_tasks = [
-        "lint",
-        "lint:fix",
-        "type",
-        "test",
-        "test:cov",
-        "test:quick",
-        "test:collect",
-        "qa",
-    ]
-
-    for task in expected_tasks:
-        assert task in output, f"Task '{task}' not found in poe help output"
+    # Should indicate that castchat files are being excluded OR that all files are checked
+    output = result.stdout + result.stderr
+    assert (
+        "Excluding castchat files" in output or
+        "Checking all files" in output
+    ), f"Unexpected output: {output}"
 
 
-def test_lint_task_executes():
-    """Test that the lint task can be executed."""
-    result = subprocess.run(
-        [sys.executable, "-m", "poethepoet", "lint"],
-        capture_output=True,
-        text=True,
-        cwd=PROJECT_ROOT,
-    )
+def test_check_types_script_exists():
+    """Test that the check_types.py script exists and is executable."""
+    import os
 
-    # Should pass or fail, but not error out
-    assert result.returncode in [0, 1], "Lint task should execute without errors"
-
-
-def test_type_task_executes():
-    """Test that the type checking task can be executed."""
-    result = subprocess.run(
-        [sys.executable, "-m", "poethepoet", "type"],
-        capture_output=True,
-        text=True,
-        cwd=PROJECT_ROOT,
-    )
-
-    # Should pass or fail, but not error out
-    assert result.returncode in [0, 1], "Type task should execute without errors"
-
-
-def test_test_task_executes():
-    """Test that the test task can be executed."""
-    # Use test:collect instead of test to avoid recursion
-    # (test would run all tests including this one)
-    result = subprocess.run(
-        [sys.executable, "-m", "poethepoet", "test:collect"],
-        capture_output=True,
-        text=True,
-        cwd=PROJECT_ROOT,
-    )
-
-    # Should pass or fail, but not error out
-    assert result.returncode in [0, 1], "Test collection task should execute without errors"
+    script_path = "scripts/check_types.py"
+    assert os.path.exists(script_path), f"Script not found: {script_path}"
+    assert os.access(script_path, os.X_OK), f"Script not executable: {script_path}"

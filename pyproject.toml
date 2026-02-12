@@ -91,6 +91,12 @@ transcription-full = [
     "retrocast[transcription-mlx,transcription-cuda,transcription-diarization]",
 ]
 
+# AI-powered chat interface for exploring transcribed podcast content
+castchat = [
+    "chromadb>=0.5.23",
+    "pydantic-ai>=0.0.14",
+]
+
 [project.scripts]
 retrocast = "retrocast.cli:cli"
 
@@ -172,8 +178,8 @@ cmd = "ruff check --fix src/ tests/"
 
 # Type checking
 [tool.poe.tasks.type]
-help = "Run ty type checker on source files"
-cmd = "ty check src/"
+help = "Run ty type checker on source files (excludes castchat files if dependencies not installed)"
+script = "scripts.check_types:main"
 
 # Testing
 [tool.poe.tasks.test]
