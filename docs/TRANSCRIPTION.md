@@ -11,6 +11,7 @@ The retrocast transcription module enables you to transcribe podcast audio files
 - 💾 **Content Deduplication**: SHA256 hashing prevents re-transcribing the same audio
 - 🔍 **Full-Text Search**: Search across all transcribed content using SQLite FTS5
 - 📝 **Multiple Formats**: Export as TXT, JSON, SRT (subtitles), or VTT (WebVTT)
+- ✅ **Schema Validation**: Validate JSON transcription files against Pydantic models
 - 📊 **Rich CLI**: Progress bars, colored output, and detailed status messages
 
 ## Installation
@@ -237,6 +238,76 @@ retrocast transcription search [OPTIONS] QUERY
 | `--limit` | INT | 10 | Maximum number of results |
 | `--db` | PATH | app_dir/overcast.db | Database file path |
 
+### `retrocast transcription validate`
+
+Validate all JSON transcription files against the expected schema.
+
+**Usage:**
+```bash
+retrocast transcription validate [OPTIONS]
+```
+
+**Options:**
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `--output-dir` | PATH | app_dir/transcriptions | Directory containing transcription JSON files |
+| `--verbose`, `-v` | FLAG | - | Show detailed validation errors for each file |
+
+**Description:**
+
+The validate command checks all JSON transcription files in the specified directory to ensure they conform to the expected schema. It provides:
+
+- **Real-time progress**: Shows a progress bar with file counts and percentage complete
+- **Comprehensive validation**: Checks for:
+  - JSON parsing errors (malformed JSON)
+  - Schema violations (missing required fields, invalid data types)
+  - Data constraints (negative durations, invalid timestamps)
+- **Summary report**: Displays a table with counts and percentages of valid/invalid/error files
+- **Error details**: Lists problematic files and shows specific validation errors in verbose mode
+- **Proper exit codes**: Returns 0 if all files are valid, 1 if any errors are found
+
+**Example Output:**
+
+```
+Validating 42 transcription file(s)...
+
+  Validating TestPodcast/episode1.json... ━━━━━━━━━━━━━━━━━━━━━━━ 100% 0:00:05
+
+═══ Validation Summary ═══
+
+ Status         │ Count │ Percentage 
+────────────────┼───────┼────────────
+ Valid          │    40 │      95.2% 
+ Invalid Schema │     1 │       2.4% 
+ Parse Errors   │     1 │       2.4% 
+ Total          │    42 │     100.0% 
+
+Files with validation errors (1):
+  • TestPodcast/invalid_episode.json
+```
+
+**Examples:**
+
+```bash
+# Validate all transcriptions in default directory
+retrocast transcription validate
+
+# Show detailed errors for each invalid file
+retrocast transcription validate --verbose
+
+# Validate transcriptions in a custom directory
+retrocast transcription validate --output-dir /path/to/transcriptions
+```
+
+**Use Cases:**
+
+- Verify transcription file integrity after processing
+- Detect corrupted or malformed JSON files
+- Ensure schema compliance before sharing or archiving
+- Troubleshoot transcription issues
+- Validate files after manual edits or migrations
+
 ## Usage Examples
 
 ### Basic Transcription
@@ -367,6 +438,45 @@ Found 3 result(s) for: machine learning
 3. Data Science Podcast - ML Basics
    Time: 22:10
    Let's dive into machine learning algorithms and their applications...
+```
+
+### Validating Transcriptions
+
+```bash
+# Validate all transcription files in the default directory
+retrocast transcription validate
+
+# Get detailed error messages for each invalid file
+retrocast transcription validate --verbose
+
+# Validate transcriptions in a custom directory
+retrocast transcription validate --output-dir ~/my-transcripts/
+
+# Use validation in scripts (check exit code)
+if retrocast transcription validate; then
+    echo "All transcriptions are valid!"
+else
+    echo "Some transcriptions have errors"
+fi
+```
+
+**Validation Output Example:**
+```
+Validating 12 transcription file(s)...
+
+✓ TechPodcast/episode1.json
+✓ TechPodcast/episode2.json
+✗ TechPodcast/episode3.json: Validation failed
+    Field: ('duration',), Error: Input should be greater than or equal to 0
+
+═══ Validation Summary ═══
+
+ Status         │ Count │ Percentage 
+────────────────┼───────┼────────────
+ Valid          │    11 │      91.7% 
+ Invalid Schema │     1 │       8.3% 
+ Parse Errors   │     0 │       0.0% 
+ Total          │    12 │     100.0% 
 ```
 
 ## Workflow Examples
@@ -700,6 +810,26 @@ retrocast transcription search --podcast "Tech Talk" "machine learning"
 ### Q: What audio formats are supported?
 
 **A:** MP3, M4A, OGG, Opus, WAV, FLAC, and AAC.
+
+### Q: How do I verify my transcription files are valid?
+
+**A:** Use the `retrocast transcription validate` command to check all JSON transcription files against the expected schema:
+
+```bash
+# Validate all transcriptions
+retrocast transcription validate
+
+# Get detailed error messages
+retrocast transcription validate --verbose
+```
+
+This will identify:
+- Malformed JSON files
+- Missing required fields
+- Invalid data types or values (e.g., negative durations)
+- Schema violations
+
+The command returns exit code 0 if all files are valid, making it useful in scripts and CI/CD pipelines.
 
 ## Future Enhancements
 

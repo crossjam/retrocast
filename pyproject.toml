@@ -44,6 +44,7 @@ dependencies = [
  "loguru-config @ git+https://github.com/crossjam/loguru-config",
  "platformdirs",
  "podcast-chapter-tools",
+ "pydantic>=2.0.0",
  "python-dateutil",
  "requests",
  "rich",

@@ -1,9 +1,11 @@
 """CLI commands for processing podcast audio files (transcription, analysis)."""
 
+import json
 from pathlib import Path
 from typing import Optional
 
 import rich_click as click
+from pydantic import ValidationError
 from rich.console import Console
 from rich.progress import (
     BarColumn,
@@ -18,6 +20,7 @@ from rich.text import Text
 from retrocast.appdir import get_app_dir, get_default_db_path
 from retrocast.datastore import Datastore
 from retrocast.transcription import TranscriptionManager
+from retrocast.transcription.models import TranscriptionJSONModel
 
 console = Console()
 
@@ -452,6 +455,207 @@ def _list_downloaded_podcasts(datastore: Datastore, app_dir: Path) -> None:
     console.print(
         "\n[dim]Use --podcast <name> to select a specific podcast for transcription.[/dim]\n"
     )
+
+
+def _validate_single_file(
+    json_file: Path, output_dir: Path, verbose: bool
+) -> tuple[bool, Optional[str], Optional[str]]:
+    """Validate a single JSON file.
+
+    Returns:
+        Tuple of (is_valid, error_type, error_message)
+        error_type can be 'validation' or 'parse' or None
+    """
+    relative_path = json_file.relative_to(output_dir)
+
+    try:
+        with open(json_file, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        TranscriptionJSONModel(**data)
+        if verbose:
+            console.print(f"[green]✓[/green] {relative_path}")
+        return (True, None, None)
+
+    except json.JSONDecodeError as e:
+        error_msg = f"JSON parse error: {str(e)}"
+        if verbose:
+            console.print(f"[red]✗[/red] {relative_path}: {error_msg}")
+        return (False, "parse", error_msg)
+
+    except ValidationError as e:
+        if verbose:
+            console.print(f"[red]✗[/red] {relative_path}: Validation failed")
+            errors = e.errors()
+            if errors:
+                first_error = errors[0]
+                console.print(
+                    f"    [dim]Field: {first_error['loc']}, " f"Error: {first_error['msg']}[/dim]"
+                )
+        return (False, "validation", str(e))
+
+    except Exception as e:
+        error_msg = f"Unexpected error: {str(e)}"
+        if verbose:
+            console.print(f"[red]✗[/red] {relative_path}: {error_msg}")
+        return (False, "parse", error_msg)
+
+
+def _display_validation_summary(
+    json_files: list[Path],
+    valid_files: list[Path],
+    invalid_files: list[tuple[Path, str]],
+    error_files: list[tuple[Path, str]],
+    output_dir: Path,
+    verbose: bool,
+) -> None:
+    """Display validation summary table and error details."""
+    console.print("\n[bold cyan]═══ Validation Summary ═══[/bold cyan]\n")
+
+    summary_table = Table(show_header=True, show_edge=False)
+    summary_table.add_column("Status", style="bold")
+    summary_table.add_column("Count", justify="right")
+    summary_table.add_column("Percentage", justify="right")
+
+    total = len(json_files)
+    valid_pct = (len(valid_files) / total * 100) if total > 0 else 0
+    invalid_pct = (len(invalid_files) / total * 100) if total > 0 else 0
+    error_pct = (len(error_files) / total * 100) if total > 0 else 0
+
+    summary_table.add_row(
+        "[green]Valid[/green]", str(len(valid_files)), f"[green]{valid_pct:.1f}%[/green]"
+    )
+    summary_table.add_row(
+        "[yellow]Invalid Schema[/yellow]",
+        str(len(invalid_files)),
+        f"[yellow]{invalid_pct:.1f}%[/yellow]",
+    )
+    summary_table.add_row(
+        "[red]Parse Errors[/red]", str(len(error_files)), f"[red]{error_pct:.1f}%[/red]"
+    )
+    summary_table.add_row("[bold]Total[/bold]", f"[bold]{total}[/bold]", "[bold]100.0%[/bold]")
+
+    console.print(summary_table)
+    console.print()
+
+    if not verbose and (invalid_files or error_files):
+        console.print("[dim]Run with --verbose to see detailed error messages.[/dim]\n")
+
+    if invalid_files and not verbose:
+        console.print(f"[yellow]Files with validation errors ({len(invalid_files)}):[/yellow]")
+        for json_file, _ in invalid_files[:5]:
+            relative_path = json_file.relative_to(output_dir)
+            console.print(f"  • {relative_path}")
+        if len(invalid_files) > 5:
+            console.print(f"  [dim]... and {len(invalid_files) - 5} more[/dim]")
+        console.print()
+
+    if error_files and not verbose:
+        console.print(f"[red]Files with parse/read errors ({len(error_files)}):[/red]")
+        for json_file, _ in error_files[:5]:
+            relative_path = json_file.relative_to(output_dir)
+            console.print(f"  • {relative_path}")
+        if len(error_files) > 5:
+            console.print(f"  [dim]... and {len(error_files) - 5} more[/dim]")
+        console.print()
+
+
+@transcription.command(name="validate")
+@click.option(
+    "--output-dir",
+    type=click.Path(path_type=Path),
+    default=None,
+    help="Directory containing transcription JSON files (defaults to app_dir/transcriptions).",
+)
+@click.option(
+    "--verbose",
+    "-v",
+    is_flag=True,
+    help="Show detailed validation errors for each file.",
+)
+@click.pass_context
+def validate_transcriptions(
+    ctx: click.RichContext,
+    output_dir: Optional[Path],
+    verbose: bool,
+) -> None:
+    """Validate all JSON transcription files in the app directory.
+
+    Checks that all JSON transcription files conform to the expected schema
+    using pydantic validation. Displays progress during validation and provides
+    a summary report at the end.
+
+    Example:
+        retrocast transcription validate
+        retrocast transcription validate --verbose
+        retrocast transcription validate --output-dir /custom/path
+    """
+    # Setup
+    app_dir = get_app_dir(create=False)
+    if output_dir is None:
+        output_dir = app_dir / "transcriptions"
+
+    if not output_dir.exists():
+        console.print(
+            f"[red]Transcription directory not found: {output_dir}[/red]\n"
+            "No transcriptions to validate."
+        )
+        ctx.exit(1)
+
+    # Find all JSON files
+    json_files = list(output_dir.rglob("*.json"))
+
+    if not json_files:
+        console.print(
+            f"[yellow]No JSON files found in {output_dir}[/yellow]\nNo transcriptions to validate."
+        )
+        ctx.exit(0)
+
+    console.print(
+        f"\n[bold cyan]Validating {len(json_files)} transcription file(s)...[/bold cyan]\n"
+    )
+
+    # Track results
+    valid_files: list[Path] = []
+    invalid_files: list[tuple[Path, str]] = []
+    error_files: list[tuple[Path, str]] = []
+
+    # Validate files with progress bar
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        BarColumn(),
+        TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+        TimeElapsedColumn(),
+        console=console,
+    ) as progress:
+        task = progress.add_task("[cyan]Validating files...", total=len(json_files))
+
+        for json_file in json_files:
+            relative_path = json_file.relative_to(output_dir)
+            progress.update(task, description=f"[cyan]Validating {relative_path}...")
+
+            is_valid, error_type, error_msg = _validate_single_file(json_file, output_dir, verbose)
+
+            if is_valid:
+                valid_files.append(json_file)
+            elif error_type == "validation" and error_msg is not None:
+                invalid_files.append((json_file, error_msg))
+            elif error_msg is not None:  # parse or other error
+                error_files.append((json_file, error_msg))
+
+            progress.update(task, advance=1)
+
+    # Display summary
+    _display_validation_summary(
+        json_files, valid_files, invalid_files, error_files, output_dir, verbose
+    )
+
+    # Exit with appropriate status
+    if invalid_files or error_files:
+        ctx.exit(1)
+    else:
+        console.print("[bold green]✓ All transcription files are valid![/bold green]\n")
+        ctx.exit(0)
 
 
 @transcription.group(name="backends")
