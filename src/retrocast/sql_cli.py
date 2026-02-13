@@ -145,7 +145,8 @@ using the sqlite-utils CLI. The database path defaults to your
 scrobbledb database in the XDG data directory.
 
 Default Database Location:
-  {db_path}
+  {{PLATFORM_APP_DIR}}/{db_path.name}
+
 
 To check if your database is initialized:
   scrobbledb init --dry-run

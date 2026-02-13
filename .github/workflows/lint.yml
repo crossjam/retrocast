@@ -19,6 +19,13 @@ jobs:
         run: uv sync --locked
       - name: Run QA checks (lint, type, test)
         run: uv run poe qa
+      - name: Verify CLI docs are in sync
+        env:
+          COLUMNS: 200  # stabilize click help wrapping across environments
+        run: |
+          uv run retrocast download podcast-archiver --help
+          uv run poe docs:check
+          
       - name: Test CLI help command
         run: |
           uv run python -m retrocast.cli --help |& grep -q 'Usage:'

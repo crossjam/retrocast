@@ -67,6 +67,10 @@ lint = [
     "types-pygments>=2.19.0.20250809",
 ]
 
+docs = [
+    "cogapp>=3.0.0",
+]
+
 # Transcription backends - installed separately by user based on platform
 transcription-mlx = [
     "mlx-whisper>=0.4.0; platform_system=='Darwin'",
@@ -106,6 +110,7 @@ Homepage = "https://github.com/crossjam/retrocast"
 [dependency-groups]
 dev = [
     "black>=25.1.0",
+    "cogapp>=3.0.0",
     "pandas-stubs>=2.3.2.250926",
     "pip-audit>=2.10.0",
     "poethepoet>=0.32.1",
@@ -203,6 +208,17 @@ cmd = "pytest --collect-only -q"
 help = "Run all QA checks (lint, type, test)"
 sequence = ["lint", "type", "test"]
 ignore_fail = false
+
+# Documentation generation
+[tool.poe.tasks."docs:generate"]
+help = "Generate CLI documentation using cog"
+cmd = "env PYTHONPATH=src COLUMNS=200 uv run cog -r docs/cli/about.md docs/cli/castchat.md docs/cli/config.md docs/cli/download.md docs/cli/index.md docs/cli/meta.md docs/cli/sql.md docs/cli/sync.md docs/cli/transcription.md"
+# cmd = "env PYTHONPATH=src COLUMNS=100 uv run cog -r docs/cli/*.md"
+
+[tool.poe.tasks."docs:check"]
+help = "Check if CLI documentation is up to date"
+cmd = "env PYTHONPATH=src COLUMNS=200 uv run cog --check --diff docs/cli/about.md docs/cli/castchat.md docs/cli/config.md docs/cli/download.md docs/cli/index.md docs/cli/meta.md docs/cli/sql.md docs/cli/sync.md docs/cli/transcription.md"
+# cmd = "env PYTHONPATH=src COLUMNS=100 python -m cogapp --check docs/cli/*.md"
 
 # Transcription backend installation
 [tool.poe.tasks."install:transcription-mlx"]

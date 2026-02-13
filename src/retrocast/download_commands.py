@@ -56,7 +56,6 @@ def _read_urls_from_source(filename: str) -> tuple[list[str], list[str]]:
     "--directory",
     type=click.Path(file_okay=False, resolve_path=True, path_type=Path),
     default=Path.cwd(),
-    show_default=True,
     help="Directory to store downloaded files.",
 )
 @click.option(
