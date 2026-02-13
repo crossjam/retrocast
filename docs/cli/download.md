@@ -295,7 +295,7 @@ cog.out("```\n{}\n```".format(clean_help_output(result.output)))
 | --config             -c  FILE       Path to a config file. Command line arguments will take      |
 |                                     precedence.                                                  |
 |                                     [env var: PODCAST_ARCHIVER_CONFIG]                           |
-|                                     [default: {PLATFORM_APP_DIR}/config.yaml]                    |
+|                                     [default: /{PLATFORM_APP_DIR}/config.yaml]                   |
 | --database               FILE       Location of the database to keep track of downloaded         |
 |                                     episodes. By default, the database will be created as 'podcas|
 |                                     file.                                                        |
