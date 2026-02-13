@@ -73,11 +73,11 @@ result = CliRunner().invoke(cli, ["download", "--help"])
 cog.out("```\n{}\n```".format(clean_help_output(result.output)))
 ]]] -->
 ```
-                                                                                                                        
- Usage: cli download [OPTIONS] COMMAND [ARGS]...                                                                        
-                                                                                                                        
- Download episode content with pluggable backends                                                                       
-                                                                                                                        
+                                                                                                                                                                                                        
+ Usage: cli download [OPTIONS] COMMAND [ARGS]...                                                                                                                                                        
+                                                                                                                                                                                                        
+ Download episode content with pluggable backends                                                                                                                                                       
+                                                                                                                                                                                                        
 +--------------------------------------------------------------------------------------------------+
 | --help  Show this message and exit.                                                              |
 +--------------------------------------------------------------------------------------------------+
@@ -162,11 +162,11 @@ result = CliRunner().invoke(cli, ["download", "aria", "--help"])
 cog.out("```\n{}\n```".format(clean_help_output(result.output)))
 ]]] -->
 ```
-                                                                                                                        
- Usage: cli download aria [OPTIONS] [FILENAME]                                                                          
-                                                                                                                        
- Download URLs using the aria2c fetcher.                                                                                
-                                                                                                                        
+                                                                                                                                                                                                        
+ Usage: cli download aria [OPTIONS] [FILENAME]                                                                                                                                                          
+                                                                                                                                                                                                        
+ Download URLs using the aria2c fetcher.                                                                                                                                                                
+                                                                                                                                                                                                        
 +--------------------------------------------------------------------------------------------------+
 | --directory       -d  DIRECTORY             Directory to store downloaded files.                 |
 | --max-concurrent  -j  INTEGER RANGE [x>=1]  Maximum concurrent aria2c downloads.                 |
@@ -261,11 +261,11 @@ result = CliRunner().invoke(cli, ["download", "db", "--help"])
 cog.out("```\n{}\n```".format(clean_help_output(result.output)))
 ]]] -->
 ```
-                                                                                                                        
- Usage: cli download db [OPTIONS] COMMAND [ARGS]...                                                                     
-                                                                                                                        
- Manage downloaded episodes database.                                                                                   
-                                                                                                                        
+                                                                                                                                                                                                        
+ Usage: cli download db [OPTIONS] COMMAND [ARGS]...                                                                                                                                                     
+                                                                                                                                                                                                        
+ Manage downloaded episodes database.                                                                                                                                                                   
+                                                                                                                                                                                                        
 +--------------------------------------------------------------------------------------------------+
 | --help  Show this message and exit.                                                              |
 +--------------------------------------------------------------------------------------------------+
@@ -348,13 +348,12 @@ result = CliRunner().invoke(cli, ["download", "db", "init", "--help"])
 cog.out("```\n{}\n```".format(clean_help_output(result.output)))
 ]]] -->
 ```
-                                                                                                                        
- Usage: cli download db init [OPTIONS]                                                                                  
-                                                                                                                        
- Initialize episode downloads database schema.                                                                          
- Creates the episode_downloads table and indexes in the retrocast database. This command is idempotent and safe to run  
- multiple times.                                                                                                        
-                                                                                                                        
+                                                                                                                                                                                                        
+ Usage: cli download db init [OPTIONS]                                                                                                                                                                  
+                                                                                                                                                                                                        
+ Initialize episode downloads database schema.                                                                                                                                                          
+ Creates the episode_downloads table and indexes in the retrocast database. This command is idempotent and safe to run multiple times.                                                                  
+                                                                                                                                                                                                        
 +--------------------------------------------------------------------------------------------------+
 | --dry-run        Show what would be created without making changes.                              |
 | --db-path  FILE  Path to database file. Defaults to app directory.                               |
@@ -442,15 +441,14 @@ result = CliRunner().invoke(cli, ["download", "db", "search", "--help"])
 cog.out("```\n{}\n```".format(clean_help_output(result.output)))
 ]]] -->
 ```
-                                                                                                                        
- Usage: cli download db search [OPTIONS] QUERY                                                                          
-                                                                                                                        
- Search episode downloads using full-text search.                                                                       
- Searches episode titles, descriptions, summaries, and shownotes.                                                       
-                                                                                                                        
- Examples: retrocast download db search "python" retrocast download db search "machine learning" --podcast "Practical   
- AI" retrocast download db search "interview" --limit 10                                                                
-                                                                                                                        
+                                                                                                                                                                                                        
+ Usage: cli download db search [OPTIONS] QUERY                                                                                                                                                          
+                                                                                                                                                                                                        
+ Search episode downloads using full-text search.                                                                                                                                                       
+ Searches episode titles, descriptions, summaries, and shownotes.                                                                                                                                       
+                                                                                                                                                                                                        
+ Examples: retrocast download db search "python" retrocast download db search "machine learning" --podcast "Practical AI" retrocast download db search "interview" --limit 10                           
+                                                                                                                                                                                                        
 +--------------------------------------------------------------------------------------------------+
 | --podcast  TEXT     Filter by podcast title (exact match).                                       |
 | --limit    INTEGER  Maximum number of results to display.                                        |
@@ -549,13 +547,12 @@ result = CliRunner().invoke(cli, ["download", "db", "update", "--help"])
 cog.out("```\n{}\n```".format(clean_help_output(result.output)))
 ]]] -->
 ```
-                                                                                                                        
- Usage: cli download db update [OPTIONS]                                                                                
-                                                                                                                        
- Update episode downloads database from filesystem.                                                                     
- Scans the episode_downloads directory and updates the database with discovered episodes and their metadata from        
- .info.json files.                                                                                                      
-                                                                                                                        
+                                                                                                                                                                                                        
+ Usage: cli download db update [OPTIONS]                                                                                                                                                                
+                                                                                                                                                                                                        
+ Update episode downloads database from filesystem.                                                                                                                                                     
+ Scans the episode_downloads directory and updates the database with discovered episodes and their metadata from .info.json files.                                                                      
+                                                                                                                                                                                                        
 +--------------------------------------------------------------------------------------------------+
 | --rescan                    Delete existing records and rebuild from scratch.                    |
 | --verify                    Verify all files still exist and mark missing ones.                  |
@@ -603,8 +600,8 @@ def clean_help_output(text):
     
     # Replace host-specific paths with placeholder
     # Match pattern: [default: /any/path/to/config.yaml] across multiple lines
-    path_pattern = re.compile(r'\[default:\s+.+?/config\.yaml\]', re.DOTALL)
-    text = path_pattern.sub('[default: {PLATFORM_APP_DIR}/config.yaml]', text)
+    # path_pattern = re.compile(r'\[default:\s+.+?/config\.yaml\]', re.DOTALL)
+    # text = path_pattern.sub('[default: {PLATFORM_APP_DIR}/config.yaml]', text)
     
     # Wrap long table lines to 100 characters for documentation readability
     # The CLI outputs 120-char tables, but the documentation standard is 100 chars
@@ -613,6 +610,8 @@ def clean_help_output(text):
     target_width = 100
     
     for line in lines:
+        if '[default: ' in line: continue
+
         if line.startswith('|') and line.endswith('|') and len(line) > target_width:
             # This is a long table row - needs wrapping
             # Extract content between the |'s
@@ -657,37 +656,33 @@ def clean_help_output(text):
         else:
             fixed_lines.append(line)
     
+
     return '\n'.join(fixed_lines)
 
 result = CliRunner().invoke(cli, ["download", "podcast-archiver", "--help"])
+assert result.exit_code == 0
 cog.out("```\n{}\n```".format(clean_help_output(result.output)))
 ]]] -->
 ```
-                                                                                                                        
- Usage: cli download podcast-archiver [OPTIONS]                                                                         
-                                                                                                                        
- Archive all of your favorite podcasts                                                                                  
-                                                                                                                        
+                                                                                                                                                                                                        
+ Usage: cli download podcast-archiver [OPTIONS]                                                                                                                                                         
+                                                                                                                                                                                                        
+ Archive all of your favorite podcasts                                                                                                                                                                  
+                                                                                                                                                                                                        
 +--------------------------------------------------------------------------------------------------+
 | --help               -h             Show this message and exit.                                  |
 | --feed               -f  TEXT       Feed URLs to archive. Use repeatedly for multiple feeds.     |
 |                                     [env var: PODCAST_ARCHIVER_FEEDS]                            |
 | --opml               -o  FILE       OPML files containing feed URLs to archive. OPML files can   |
-|                                     be exported from a                                           |
-|                                     variety of podcatchers. Use repeatedly for multiple files.   |
+|                                     be exported from a variety of podcatchers. Use repeatedly for|
 |                                     [env var: PODCAST_ARCHIVER_OPML_FILES]                       |
 | --dir                -d  DIRECTORY  Directory to which to download the podcast archive. By       |
-|                                     default, the archive will                                    |
-|                                     be created in the current working directory  ('.').          |
+|                                     default, the archive will be created in the current working d|
 |                                     [env var: PODCAST_ARCHIVER_ARCHIVE_DIRECTORY]                |
 | --filename-template  -F  TEXT       Template to be used when generating filenames. Available     |
-|                                     template variables are:                                      |
-|                                     'episode.title, 'episode.published_time, 'episode.original_fi|
+|                                     template variables are: 'episode.title, 'episode.published_ti|
 |                                     'episode.subtitle, 'show.title, 'show.subtitle, 'show.author,|
-|                                     and 'ext' (the filename extension)                           |
 |                                     [env var: PODCAST_ARCHIVER_FILENAME_TEMPLATE]                |
-|                                     [default: {show.title}/{episode.published_time:%Y-%m-%d} -   |
-|                                     {episode.title}.{ext}]                                       |
 | --write-info-json                   Write episode metadata to a .info.json file next to the      |
 |                                     media file itself.                                           |
 |                                     [env var: PODCAST_ARCHIVER_WRITE_INFO_JSON]                  |
@@ -702,17 +697,14 @@ cog.out("```\n{}\n```".format(clean_help_output(result.output)))
 |                                     debugging purposes.                                          |
 |                                     [env var: PODCAST_ARCHIVER_DEBUG_PARTIAL]                    |
 | --verbose            -v             Increase the level of verbosity while downloading. Can be    |
-|                                     passed multiple times.                                       |
-|                                     Increased verbosity and non-interactive execution (in a cronj|
-|                                     etc.) will disable progress bars. Non-interactive execution a|
-|                                     the verbosity unless --quiet is passed.                      |
+|                                     passed multiple times. Increased verbosity and non-interactiv|
+|                                     compose, etc.) will disable progress bars. Non-interactive ex|
 |                                     [env var: PODCAST_ARCHIVER_VERBOSE]                          |
 | --slugify            -S             Format filenames in the most compatible way, replacing all   |
 |                                     special characters.                                          |
 |                                     [env var: PODCAST_ARCHIVER_SLUGIFY_PATHS]                    |
 | --max-episodes       -m  INTEGER    Only download the given number of episodes per podcast feed. |
-|                                     Useful if you don't                                          |
-|                                     really need the entire backlog.                              |
+|                                     Useful if you don't really need the entire backlog.          |
 |                                     [env var: PODCAST_ARCHIVER_MAXIMUM_EPISODE_COUNT]            |
 | --version            -V             Show the version and exit.                                   |
 | --config-generate                   Emit an example YAML config file to stdout and exit.         |
@@ -720,17 +712,14 @@ cog.out("```\n{}\n```".format(clean_help_output(result.output)))
 |                                     precedence.                                                  |
 |                                     [env var: PODCAST_ARCHIVER_CONFIG]                           |
 | --database               FILE       Location of the database to keep track of downloaded         |
-|                                     episodes. By default, the                                    |
-|                                     database will be created as 'podcast-archiver.db' in the dire|
+|                                     episodes. By default, the database will be created as 'podcas|
 |                                     file.                                                        |
 |                                     [env var: PODCAST_ARCHIVER_DATABASE]                         |
 | --ignore-database                   Ignore the episodes database when downloading. This will     |
-|                                     cause files to be                                            |
-|                                     downloaded again, even if they already exist in the database.|
+|                                     cause files to be downloaded again, even if they already exis|
 |                                     [env var: PODCAST_ARCHIVER_IGNORE_DATABASE]                  |
 | --sleep-seconds          INTEGER    Run podcast-archiver continuously. Set to a non-zero number  |
-|                                     of seconds to sleep                                          |
-|                                     after all available episodes have been downloaded. Otherwise |
+|                                     of seconds to sleep after all available episodes have been do|
 |                                     exits after all downloads have been completed.               |
 |                                     [env var: PODCAST_ARCHIVER_SLEEP_SECONDS]                    |
 +--------------------------------------------------------------------------------------------------+
