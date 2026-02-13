@@ -31,7 +31,6 @@ cog.out("```\n{}\n```".format(clean_help_output(result.output)))
 | summary   Display overall transcription statistics.                                              |
 | validate  Validate all JSON transcription files in the app directory.                            |
 +--------------------------------------------------------------------------------------------------+
-
 ```
 <!-- [[[end]]] -->
 
@@ -64,7 +63,6 @@ cog.out("```\n{}\n```".format(clean_help_output(result.output)))
 | list  List available transcription backends.                                                     |
 | test  Test if a specific backend is available.                                                   |
 +--------------------------------------------------------------------------------------------------+
-
 ```
 <!-- [[[end]]] -->
 
@@ -103,7 +101,6 @@ cog.out("```\n{}\n```".format(clean_help_output(result.output)))
 | list     List transcribed episodes.                                                              |
 | summary  Show summary statistics for transcribed episodes.                                       |
 +--------------------------------------------------------------------------------------------------+
-
 ```
 <!-- [[[end]]] -->
 
@@ -144,7 +141,6 @@ cog.out("```\n{}\n```".format(clean_help_output(result.output)))
 | list     List all podcasts with transcriptions.                                                  |
 | summary  Show summary statistics for podcasts.                                                   |
 +--------------------------------------------------------------------------------------------------+
-
 ```
 <!-- [[[end]]] -->
 
@@ -221,7 +217,6 @@ cog.out("```\n{}\n```".format(clean_help_output(result.output)))
 |                                     app_dir/retrocast.db).                                       |
 | --help                                               Show this message and exit.                 |
 +--------------------------------------------------------------------------------------------------+
-
 ```
 <!-- [[[end]]] -->
 
@@ -292,7 +287,6 @@ cog.out("```\n{}\n```".format(clean_help_output(result.output)))
 | --db         PATH             Path to database file (defaults to app_dir/retrocast.db).          |
 | --help                        Show this message and exit.                                        |
 +--------------------------------------------------------------------------------------------------+
-
 ```
 <!-- [[[end]]] -->
 
@@ -335,7 +329,6 @@ cog.out("```\n{}\n```".format(clean_help_output(result.output)))
 | --db    PATH  Path to database file (defaults to app_dir/retrocast.db).                          |
 | --help        Show this message and exit.                                                        |
 +--------------------------------------------------------------------------------------------------+
-
 ```
 <!-- [[[end]]] -->
 
@@ -379,7 +372,6 @@ cog.out("```\n{}\n```".format(clean_help_output(result.output)))
 | --verbose     -v        Show detailed validation errors for each file.                           |
 | --help                  Show this message and exit.                                              |
 +--------------------------------------------------------------------------------------------------+
-
 ```
 <!-- [[[end]]] -->
 

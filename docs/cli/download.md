@@ -26,7 +26,6 @@ cog.out("```\n{}\n```".format(clean_help_output(result.output)))
 | db                Manage downloaded episodes database.                                           |
 | podcast-archiver  Archive all of your favorite podcasts                                          |
 +--------------------------------------------------------------------------------------------------+
-
 ```
 <!-- [[[end]]] -->
 
@@ -58,7 +57,6 @@ cog.out("```\n{}\n```".format(clean_help_output(result.output)))
 | --secret              TEXT                  RPC secret token for aria2c.                         |
 | --help                                      Show this message and exit.                          |
 +--------------------------------------------------------------------------------------------------+
-
 ```
 <!-- [[[end]]] -->
 
@@ -101,7 +99,6 @@ cog.out("```\n{}\n```".format(clean_help_output(result.output)))
 | search  Search episode downloads using full-text search.                                         |
 | update  Update episode downloads database from filesystem.                                       |
 +--------------------------------------------------------------------------------------------------+
-
 ```
 <!-- [[[end]]] -->
 
@@ -130,7 +127,6 @@ cog.out("```\n{}\n```".format(clean_help_output(result.output)))
 | --db-path  FILE  Path to database file. Defaults to app directory.                               |
 | --help           Show this message and exit.                                                     |
 +--------------------------------------------------------------------------------------------------+
-
 ```
 <!-- [[[end]]] -->
 
@@ -171,7 +167,6 @@ cog.out("```\n{}\n```".format(clean_help_output(result.output)))
 | --db-path  FILE     Path to database file. Defaults to app directory.                            |
 | --help              Show this message and exit.                                                  |
 +--------------------------------------------------------------------------------------------------+
-
 ```
 <!-- [[[end]]] -->
 
@@ -215,7 +210,6 @@ cog.out("```\n{}\n```".format(clean_help_output(result.output)))
 | --downloads-dir  DIRECTORY  Path to episode_downloads directory. Defaults to app directory.      |
 | --help                      Show this message and exit.                                          |
 +--------------------------------------------------------------------------------------------------+
-
 ```
 <!-- [[[end]]] -->
 
@@ -295,7 +289,6 @@ cog.out("```\n{}\n```".format(clean_help_output(result.output)))
 | --config             -c  FILE       Path to a config file. Command line arguments will take      |
 |                                     precedence.                                                  |
 |                                     [env var: PODCAST_ARCHIVER_CONFIG]                           |
-
 | --database               FILE       Location of the database to keep track of downloaded         |
 |                                     episodes. By default, the database will be created as 'podcas|
 |                                     file.                                                        |
@@ -308,8 +301,6 @@ cog.out("```\n{}\n```".format(clean_help_output(result.output)))
 |                                     exits after all downloads have been completed.               |
 |                                     [env var: PODCAST_ARCHIVER_SLEEP_SECONDS]                    |
 +--------------------------------------------------------------------------------------------------+
-
-
 ```
 <!-- [[[end]]] -->
 

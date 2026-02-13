@@ -54,6 +54,8 @@ def clean_help_output(text: str) -> str:
     target_width = 100
 
     for line in lines:
+        if not line:
+            continue
         if line.startswith("|") and line.endswith("|") and len(line) > target_width:
             content = line[1:-1]
             leading_spaces = len(content) - len(content.lstrip())
