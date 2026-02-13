@@ -42,7 +42,8 @@ def clean_help_output(text: str) -> str:
     # Replace host-specific config paths with placeholder
     text = re.sub(
         r"(\|\s+?\[default:\s+)(/.+?)(/config\.yaml]\s+?\|)",
-        r"\g<1>/{PLATFORM_APP_DIR}\g<3>",
+        # r"\g<1>/{PLATFORM_APP_DIR}\g<3>",
+        "",
         text,
         flags=re.DOTALL,
     )
