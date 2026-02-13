@@ -779,7 +779,7 @@ retrocast download podcast-archiver --feed https://example.com/feed.xml
 
 Downloaded episodes are stored in:
 ```
-~/.local/share/net.memexponent.retrocast/episode_downloads/
+{PLATFORM_APP_DIR}/net.memexponent.retrocast/episode_downloads/
 ```
 
 Each episode includes:
