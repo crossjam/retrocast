@@ -5,69 +5,9 @@ The `download` command group provides tools for downloading podcast episode file
 ## Command Group Help
 
 <!-- [[[cog
-import re
 from click.testing import CliRunner
 from retrocast.cli import cli
-
-def clean_help_output(text):
-    """Strip ANSI codes, replace box-drawing characters, and wrap to 100 chars."""
-    ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
-    text = ansi_escape.sub('', text)
-    replacements = {
-        '╭': '+', '╰': '+', '╮': '+', '╯': '+',
-        '─': '-', '│': '|', '├': '+', '┤': '+',
-        '┬': '+', '┴': '+', '┼': '+',
-    }
-    for old, new in replacements.items():
-        text = text.replace(old, new)
-    
-    # Wrap long table lines to 100 characters for documentation readability
-    lines = text.split('\n')
-    fixed_lines = []
-    target_width = 100
-    
-    for line in lines:
-        if line.startswith('|') and line.endswith('|') and len(line) > target_width:
-            content = line[1:-1]
-            leading_spaces = len(content) - len(content.lstrip())
-            
-            if leading_spaces > 30:
-                # Continuation line - just trim to target width
-                trimmed = '|' + content[:target_width-2] + '|'
-                fixed_lines.append(trimmed)
-            else:
-                # Check if content fits after removing trailing spaces
-                content_stripped = content.rstrip()
-                if len(content_stripped) < target_width - 2:
-                    # Content fits, just needs padding adjustment
-                    line = '|' + content_stripped.ljust(target_width - 2) + '|'
-                    fixed_lines.append(line)
-                else:
-                    # Content is genuinely too long - need to wrap it
-                    break_point = target_width - 2
-                    spaces_in_content = [i for i, c in enumerate(content[:break_point]) if c == ' ']
-                    if spaces_in_content:
-                        split_at = spaces_in_content[-1]
-                        first_part = '|' + content[:split_at].rstrip()
-                        first_part = first_part + ' ' * (target_width - 1 - len(first_part)) + '|'
-                        remaining = content[split_at:].strip()
-                        if remaining:  # Only create continuation if there's actual content
-                            second_part = '|' + ' ' * 37 + remaining
-                            second_part = second_part[:target_width-1].ljust(target_width-1) + '|'
-                            fixed_lines.append(first_part)
-                            fixed_lines.append(second_part)
-                        else:
-                            fixed_lines.append(first_part)
-                    else:
-                        # No good break point, just trim
-                        fixed_lines.append('|' + content[:target_width-2] + '|')
-        elif line.startswith('+') and line.endswith('+') and '-' in line and len(line) > target_width:
-            # Border line - normalize to target width
-            fixed_lines.append('+' + '-' * (target_width - 2) + '+')
-        else:
-            fixed_lines.append(line)
-    
-    return '\n'.join(fixed_lines)
+from retrocast.doc_utils import clean_help_output
 
 result = CliRunner().invoke(cli, ["download", "--help"])
 cog.out("```\n{}\n```".format(clean_help_output(result.output)))
@@ -97,66 +37,9 @@ cog.out("```\n{}\n```".format(clean_help_output(result.output)))
 Download URLs using the embedded aria2c fetcher.
 
 <!-- [[[cog
-import re
 from click.testing import CliRunner
 from retrocast.cli import cli
-
-def clean_help_output(text):
-    """Strip ANSI codes, replace box-drawing characters, and wrap to 100 chars."""
-    ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
-    text = ansi_escape.sub('', text)
-    replacements = {
-        '╭': '+', '╰': '+', '╮': '+', '╯': '+',
-        '─': '-', '│': '|', '├': '+', '┤': '+',
-        '┬': '+', '┴': '+', '┼': '+',
-    }
-    for old, new in replacements.items():
-        text = text.replace(old, new)
-    
-    # Wrap long table lines to 100 characters for documentation readability
-    lines = text.split('\n')
-    fixed_lines = []
-    target_width = 100
-    
-    for line in lines:
-        if line.startswith('|') and line.endswith('|') and len(line) > target_width:
-            content = line[1:-1]
-            leading_spaces = len(content) - len(content.lstrip())
-            if leading_spaces > 30:
-                trimmed = '|' + content[:target_width-2] + '|'
-                fixed_lines.append(trimmed)
-            else:
-                # Check if content fits after removing trailing spaces
-                content_stripped = content.rstrip()
-                if len(content_stripped) < target_width - 2:
-                    # Content fits, just needs padding adjustment
-                    line = '|' + content_stripped.ljust(target_width - 2) + '|'
-                    fixed_lines.append(line)
-                else:
-                    # Content is genuinely too long - need to wrap it
-                    break_point = target_width - 2
-                    spaces_in_content = [i for i, c in enumerate(content[:break_point]) if c == ' ']
-                    if spaces_in_content:
-                        split_at = spaces_in_content[-1]
-                        first_part = '|' + content[:split_at].rstrip()
-                        first_part = first_part + ' ' * (target_width - 1 - len(first_part)) + '|'
-                        remaining = content[split_at:].strip()
-                        if remaining:  # Only create continuation if there's actual content
-                            second_part = '|' + ' ' * 37 + remaining
-                            second_part = second_part[:target_width-1].ljust(target_width-1) + '|'
-                            fixed_lines.append(first_part)
-                            fixed_lines.append(second_part)
-                        else:
-                            fixed_lines.append(first_part)
-                    else:
-                        # No good break point, just trim
-                        fixed_lines.append('|' + content[:target_width-2] + '|')
-        elif line.startswith('+') and line.endswith('+') and '-' in line and len(line) > target_width:
-            fixed_lines.append('+' + '-' * (target_width - 2) + '+')
-        else:
-            fixed_lines.append(line)
-    
-    return '\n'.join(fixed_lines)
+from retrocast.doc_utils import clean_help_output
 
 result = CliRunner().invoke(cli, ["download", "aria", "--help"])
 cog.out("```\n{}\n```".format(clean_help_output(result.output)))
@@ -196,66 +79,10 @@ The aria2c fetcher provides:
 Manage the database of downloaded episodes.
 
 <!-- [[[cog
-import re
 from click.testing import CliRunner
 from retrocast.cli import cli
+from retrocast.doc_utils import clean_help_output
 
-def clean_help_output(text):
-    """Strip ANSI codes, replace box-drawing characters, and wrap to 100 chars."""
-    ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
-    text = ansi_escape.sub('', text)
-    replacements = {
-        '╭': '+', '╰': '+', '╮': '+', '╯': '+',
-        '─': '-', '│': '|', '├': '+', '┤': '+',
-        '┬': '+', '┴': '+', '┼': '+',
-    }
-    for old, new in replacements.items():
-        text = text.replace(old, new)
-    
-    # Wrap long table lines to 100 characters for documentation readability
-    lines = text.split('\n')
-    fixed_lines = []
-    target_width = 100
-    
-    for line in lines:
-        if line.startswith('|') and line.endswith('|') and len(line) > target_width:
-            content = line[1:-1]
-            leading_spaces = len(content) - len(content.lstrip())
-            if leading_spaces > 30:
-                trimmed = '|' + content[:target_width-2] + '|'
-                fixed_lines.append(trimmed)
-            else:
-                # Check if content fits after removing trailing spaces
-                content_stripped = content.rstrip()
-                if len(content_stripped) < target_width - 2:
-                    # Content fits, just needs padding adjustment
-                    line = '|' + content_stripped.ljust(target_width - 2) + '|'
-                    fixed_lines.append(line)
-                else:
-                    # Content is genuinely too long - need to wrap it
-                    break_point = target_width - 2
-                    spaces_in_content = [i for i, c in enumerate(content[:break_point]) if c == ' ']
-                    if spaces_in_content:
-                        split_at = spaces_in_content[-1]
-                        first_part = '|' + content[:split_at].rstrip()
-                        first_part = first_part + ' ' * (target_width - 1 - len(first_part)) + '|'
-                        remaining = content[split_at:].strip()
-                        if remaining:  # Only create continuation if there's actual content
-                            second_part = '|' + ' ' * 37 + remaining
-                            second_part = second_part[:target_width-1].ljust(target_width-1) + '|'
-                            fixed_lines.append(first_part)
-                            fixed_lines.append(second_part)
-                        else:
-                            fixed_lines.append(first_part)
-                    else:
-                        # No good break point, just trim
-                        fixed_lines.append('|' + content[:target_width-2] + '|')
-        elif line.startswith('+') and line.endswith('+') and '-' in line and len(line) > target_width:
-            fixed_lines.append('+' + '-' * (target_width - 2) + '+')
-        else:
-            fixed_lines.append(line)
-    
-    return '\n'.join(fixed_lines)
 
 result = CliRunner().invoke(cli, ["download", "db", "--help"])
 cog.out("```\n{}\n```".format(clean_help_output(result.output)))
@@ -283,66 +110,10 @@ cog.out("```\n{}\n```".format(clean_help_output(result.output)))
 Initialize the episode downloads database schema.
 
 <!-- [[[cog
-import re
 from click.testing import CliRunner
 from retrocast.cli import cli
+from retrocast.doc_utils import clean_help_output
 
-def clean_help_output(text):
-    """Strip ANSI codes, replace box-drawing characters, and wrap to 100 chars."""
-    ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
-    text = ansi_escape.sub('', text)
-    replacements = {
-        '╭': '+', '╰': '+', '╮': '+', '╯': '+',
-        '─': '-', '│': '|', '├': '+', '┤': '+',
-        '┬': '+', '┴': '+', '┼': '+',
-    }
-    for old, new in replacements.items():
-        text = text.replace(old, new)
-    
-    # Wrap long table lines to 100 characters for documentation readability
-    lines = text.split('\n')
-    fixed_lines = []
-    target_width = 100
-    
-    for line in lines:
-        if line.startswith('|') and line.endswith('|') and len(line) > target_width:
-            content = line[1:-1]
-            leading_spaces = len(content) - len(content.lstrip())
-            if leading_spaces > 30:
-                trimmed = '|' + content[:target_width-2] + '|'
-                fixed_lines.append(trimmed)
-            else:
-                # Check if content fits after removing trailing spaces
-                content_stripped = content.rstrip()
-                if len(content_stripped) < target_width - 2:
-                    # Content fits, just needs padding adjustment
-                    line = '|' + content_stripped.ljust(target_width - 2) + '|'
-                    fixed_lines.append(line)
-                else:
-                    # Content is genuinely too long - need to wrap it
-                    break_point = target_width - 2
-                    spaces_in_content = [i for i, c in enumerate(content[:break_point]) if c == ' ']
-                    if spaces_in_content:
-                        split_at = spaces_in_content[-1]
-                        first_part = '|' + content[:split_at].rstrip()
-                        first_part = first_part + ' ' * (target_width - 1 - len(first_part)) + '|'
-                        remaining = content[split_at:].strip()
-                        if remaining:  # Only create continuation if there's actual content
-                            second_part = '|' + ' ' * 37 + remaining
-                            second_part = second_part[:target_width-1].ljust(target_width-1) + '|'
-                            fixed_lines.append(first_part)
-                            fixed_lines.append(second_part)
-                        else:
-                            fixed_lines.append(first_part)
-                    else:
-                        # No good break point, just trim
-                        fixed_lines.append('|' + content[:target_width-2] + '|')
-        elif line.startswith('+') and line.endswith('+') and '-' in line and len(line) > target_width:
-            fixed_lines.append('+' + '-' * (target_width - 2) + '+')
-        else:
-            fixed_lines.append(line)
-    
-    return '\n'.join(fixed_lines)
 
 result = CliRunner().invoke(cli, ["download", "db", "init", "--help"])
 cog.out("```\n{}\n```".format(clean_help_output(result.output)))
@@ -376,66 +147,10 @@ Creates the `episode_downloads` table with full-text search capability.
 Search downloaded episodes using full-text search.
 
 <!-- [[[cog
-import re
 from click.testing import CliRunner
 from retrocast.cli import cli
+from retrocast.doc_utils import clean_help_output
 
-def clean_help_output(text):
-    """Strip ANSI codes, replace box-drawing characters, and wrap to 100 chars."""
-    ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
-    text = ansi_escape.sub('', text)
-    replacements = {
-        '╭': '+', '╰': '+', '╮': '+', '╯': '+',
-        '─': '-', '│': '|', '├': '+', '┤': '+',
-        '┬': '+', '┴': '+', '┼': '+',
-    }
-    for old, new in replacements.items():
-        text = text.replace(old, new)
-    
-    # Wrap long table lines to 100 characters for documentation readability
-    lines = text.split('\n')
-    fixed_lines = []
-    target_width = 100
-    
-    for line in lines:
-        if line.startswith('|') and line.endswith('|') and len(line) > target_width:
-            content = line[1:-1]
-            leading_spaces = len(content) - len(content.lstrip())
-            if leading_spaces > 30:
-                trimmed = '|' + content[:target_width-2] + '|'
-                fixed_lines.append(trimmed)
-            else:
-                # Check if content fits after removing trailing spaces
-                content_stripped = content.rstrip()
-                if len(content_stripped) < target_width - 2:
-                    # Content fits, just needs padding adjustment
-                    line = '|' + content_stripped.ljust(target_width - 2) + '|'
-                    fixed_lines.append(line)
-                else:
-                    # Content is genuinely too long - need to wrap it
-                    break_point = target_width - 2
-                    spaces_in_content = [i for i, c in enumerate(content[:break_point]) if c == ' ']
-                    if spaces_in_content:
-                        split_at = spaces_in_content[-1]
-                        first_part = '|' + content[:split_at].rstrip()
-                        first_part = first_part + ' ' * (target_width - 1 - len(first_part)) + '|'
-                        remaining = content[split_at:].strip()
-                        if remaining:  # Only create continuation if there's actual content
-                            second_part = '|' + ' ' * 37 + remaining
-                            second_part = second_part[:target_width-1].ljust(target_width-1) + '|'
-                            fixed_lines.append(first_part)
-                            fixed_lines.append(second_part)
-                        else:
-                            fixed_lines.append(first_part)
-                    else:
-                        # No good break point, just trim
-                        fixed_lines.append('|' + content[:target_width-2] + '|')
-        elif line.startswith('+') and line.endswith('+') and '-' in line and len(line) > target_width:
-            fixed_lines.append('+' + '-' * (target_width - 2) + '+')
-        else:
-            fixed_lines.append(line)
-    
-    return '\n'.join(fixed_lines)
 
 result = CliRunner().invoke(cli, ["download", "db", "search", "--help"])
 cog.out("```\n{}\n```".format(clean_help_output(result.output)))
@@ -478,70 +193,10 @@ retrocast download db search "python" --limit 10
 Update the episode downloads database by scanning the filesystem.
 
 <!-- [[[cog
-import re
 from click.testing import CliRunner
 from retrocast.cli import cli
+from retrocast.doc_utils import clean_help_output
 
-def clean_help_output(text):
-    """Strip ANSI codes, replace box-drawing characters, and wrap to 100 chars."""
-    ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
-    text = ansi_escape.sub('', text)
-    replacements = {
-        '╭': '+', '╰': '+', '╮': '+', '╯': '+',
-        '─': '-', '│': '|', '├': '+', '┤': '+',
-        '┬': '+', '┴': '+', '┼': '+',
-    }
-    for old, new in replacements.items():
-        text = text.replace(old, new)
-    
-    # Replace host-specific paths with placeholder (if present)
-    path_pattern = re.compile(r'\[default:\s+.+?/config\.yaml\]', re.DOTALL)
-    text = path_pattern.sub('[default: {PLATFORM_APP_DIR}/config.yaml]', text)
-    
-    # Wrap long table lines to 100 characters for documentation readability
-    lines = text.split('\n')
-    fixed_lines = []
-    target_width = 100
-    
-    for line in lines:
-        if line.startswith('|') and line.endswith('|') and len(line) > target_width:
-            content = line[1:-1]
-            leading_spaces = len(content) - len(content.lstrip())
-            if leading_spaces > 30:
-                trimmed = '|' + content[:target_width-2] + '|'
-                fixed_lines.append(trimmed)
-            else:
-                # Check if content fits after removing trailing spaces
-                content_stripped = content.rstrip()
-                if len(content_stripped) < target_width - 2:
-                    # Content fits, just needs padding adjustment
-                    line = '|' + content_stripped.ljust(target_width - 2) + '|'
-                    fixed_lines.append(line)
-                else:
-                    # Content is genuinely too long - need to wrap it
-                    break_point = target_width - 2
-                    spaces_in_content = [i for i, c in enumerate(content[:break_point]) if c == ' ']
-                    if spaces_in_content:
-                        split_at = spaces_in_content[-1]
-                        first_part = '|' + content[:split_at].rstrip()
-                        first_part = first_part + ' ' * (target_width - 1 - len(first_part)) + '|'
-                        remaining = content[split_at:].strip()
-                        if remaining:  # Only create continuation if there's actual content
-                            second_part = '|' + ' ' * 37 + remaining
-                            second_part = second_part[:target_width-1].ljust(target_width-1) + '|'
-                            fixed_lines.append(first_part)
-                            fixed_lines.append(second_part)
-                        else:
-                            fixed_lines.append(first_part)
-                    else:
-                        # No good break point, just trim
-                        fixed_lines.append('|' + content[:target_width-2] + '|')
-        elif line.startswith('+') and line.endswith('+') and '-' in line and len(line) > target_width:
-            fixed_lines.append('+' + '-' * (target_width - 2) + '+')
-        else:
-            fixed_lines.append(line)
-    
-    return '\n'.join(fixed_lines)
 
 result = CliRunner().invoke(cli, ["download", "db", "update", "--help"])
 cog.out("```\n{}\n```".format(clean_help_output(result.output)))
@@ -582,82 +237,10 @@ retrocast download db update --verify
 Archive podcasts using the podcast-archiver backend.
 
 <!-- [[[cog
-import re
 from click.testing import CliRunner
 from retrocast.cli import cli
+from retrocast.doc_utils import clean_help_output
 
-def clean_help_output(text):
-    """Strip ANSI codes and replace box-drawing characters with plain ASCII."""
-    ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
-    text = ansi_escape.sub('', text)
-    replacements = {
-        '╭': '+', '╰': '+', '╮': '+', '╯': '+',
-        '─': '-', '│': '|', '├': '+', '┤': '+',
-        '┬': '+', '┴': '+', '┼': '+',
-    }
-    for old, new in replacements.items():
-        text = text.replace(old, new)
-    
-    # Replace host-specific paths with placeholder
-    # Match pattern: [default: /any/path/to/config.yaml] across multiple lines
-    # path_pattern = re.compile(r'\[default:\s+.+?/config\.yaml\]', re.DOTALL)
-    # text = path_pattern.sub('[default: {PLATFORM_APP_DIR}/config.yaml]', text)
-    
-    # Wrap long table lines to 100 characters for documentation readability
-    # The CLI outputs 120-char tables, but the documentation standard is 100 chars
-    lines = text.split('\n')
-    fixed_lines = []
-    target_width = 100
-    
-    for line in lines:
-        if '[default: ' in line: continue
-
-        if line.startswith('|') and line.endswith('|') and len(line) > target_width:
-            # This is a long table row - needs wrapping
-            # Extract content between the |'s
-            content = line[1:-1]
-            
-            # Check if this is already a continuation line (starts with lots of spaces)
-            leading_spaces = len(content) - len(content.lstrip())
-            if leading_spaces > 30:
-                # This is already a continuation line, keep as is but trim to target
-                trimmed = '|' + content[:target_width-2] + '|'
-                fixed_lines.append(trimmed)
-            else:
-                # This is a main line that's too long
-                # Check if content fits after removing trailing spaces
-                content_stripped = content.rstrip()
-                if len(content_stripped) < target_width - 2:
-                    # Content fits, just needs padding adjustment
-                    line = '|' + content_stripped.ljust(target_width - 2) + '|'
-                    fixed_lines.append(line)
-                else:
-                    # Content is genuinely too long - need to wrap it
-                    break_point = target_width - 2
-                    spaces_in_content = [i for i, c in enumerate(content[:break_point]) if c == ' ']
-                    if spaces_in_content:
-                        split_at = spaces_in_content[-1]
-                        first_part = '|' + content[:split_at].rstrip()
-                        first_part = first_part + ' ' * (target_width - 1 - len(first_part)) + '|'
-                        remaining = content[split_at:].strip()
-                        if remaining:  # Only create continuation if there's actual content
-                            second_part = '|' + ' ' * 37 + remaining
-                            second_part = second_part[:target_width-1].ljust(target_width-1) + '|'
-                            fixed_lines.append(first_part)
-                            fixed_lines.append(second_part)
-                        else:
-                            fixed_lines.append(first_part)
-                    else:
-                        # No good break point, just trim
-                        fixed_lines.append('|' + content[:target_width-2] + '|')
-        elif line.startswith('+') and line.endswith('+') and '-' in line and len(line) > target_width:
-            # This is a border line - normalize to target width
-            fixed_lines.append('+' + '-' * (target_width - 2) + '+')
-        else:
-            fixed_lines.append(line)
-    
-
-    return '\n'.join(fixed_lines)
 
 result = CliRunner().invoke(cli, ["download", "podcast-archiver", "--help"])
 assert result.exit_code == 0
@@ -683,6 +266,7 @@ cog.out("```\n{}\n```".format(clean_help_output(result.output)))
 |                                     template variables are: 'episode.title, 'episode.published_ti|
 |                                     'episode.subtitle, 'show.title, 'show.subtitle, 'show.author,|
 |                                     [env var: PODCAST_ARCHIVER_FILENAME_TEMPLATE]                |
+|                                     [default: {show.title}/{episode.published_time:%Y-%m-%d} - {e|
 | --write-info-json                   Write episode metadata to a .info.json file next to the      |
 |                                     media file itself.                                           |
 |                                     [env var: PODCAST_ARCHIVER_WRITE_INFO_JSON]                  |

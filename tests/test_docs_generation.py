@@ -141,6 +141,28 @@ def test_all_command_groups_documented():
         ), f"Documentation file {command}.md should exist for {command} command"
 
 
+def test_clean_help_output_imported_not_defined():
+    """Test that clean_help_output is imported from doc_utils, not defined inline."""
+    docs_files = [
+        "docs/cli/download.md",
+        "docs/cli/transcription.md",
+    ]
+
+    for filepath in docs_files:
+        with open(filepath, 'r') as f:
+            content = f.read()
+
+        # Should have imports
+        assert (
+            "from retrocast.doc_utils import clean_help_output" in content
+        ), f"{filepath} should import clean_help_output from doc_utils"
+
+        # Should NOT have function definitions
+        assert (
+            "def clean_help_output(text):" not in content
+        ), f"{filepath} should not define clean_help_output inline"
+
+
 def test_clean_help_output_wrapping():
     """Test that clean_help_output properly handles long lines with spaces.
 
