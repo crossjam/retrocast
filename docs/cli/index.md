@@ -13,7 +13,7 @@ cog.out("```\n{}\n```".format(result.output))
 ```
 Usage: cli [OPTIONS] COMMAND [ARGS]...
 
-  Save listening history and feed/episode info from Overcast to SQLite.
+  Manage podcast subscriptions. Download episodes. Analyze with AI.
 
 Options:
   --version      Show the version and exit.
