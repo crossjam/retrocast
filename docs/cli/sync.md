@@ -11,15 +11,12 @@ result = CliRunner().invoke(cli, ["sync", "--help"])
 cog.out("```\n{}\n```".format(result.output))
 ]]] -->
 ```
-Usage: cli sync [OPTIONS] COMMAND [ARGS]...
+Usage: cli about [OPTIONS]
 
-  Synchronize subscription metadata
+  Display information about retrocast
 
 Options:
   --help  Show this message and exit.
-
-Commands:
-  overcast  Synchronize subscription metadata via overcast plugin
 
 ```
 <!-- [[[end]]] -->
@@ -37,25 +34,12 @@ result = CliRunner().invoke(cli, ["sync", "overcast", "--help"])
 cog.out("```\n{}\n```".format(result.output))
 ]]] -->
 ```
-Usage: cli sync overcast [OPTIONS] COMMAND [ARGS]...
+Usage: cli about [OPTIONS]
 
-  Synchronize subscription metadata via overcast plugin
+  Display information about retrocast
 
 Options:
   --help  Show this message and exit.
-
-Commands:
-  all            Run all steps to save, extend, download transcripts, and...
-  auth           Save authentication credentials to a JSON file.
-  chapters       Download and store available chapters for all or starred...
-  check          Check authentication and database setup status.
-  episodes       Export episodes as CSV or JSON filtered by feed titles.
-  extend         Download XML feed and extract all feed and episode tags...
-  html           Download and store available chapters for all or starred...
-  init           Initialize Overcast database in user platform directory.
-  save           Save Overcast info to SQLite database.
-  subscriptions  List feed titles.
-  transcripts    Download available transcripts for all or starred episodes.
 
 ```
 <!-- [[[end]]] -->
@@ -71,21 +55,12 @@ result = CliRunner().invoke(cli, ["sync", "overcast", "all", "--help"])
 cog.out("```\n{}\n```".format(result.output))
 ]]] -->
 ```
-Usage: cli sync overcast all [OPTIONS]
+Usage: cli about [OPTIONS]
 
-  Run all steps to save, extend, download transcripts, and chapters.
-
-  This command sequentially executes the following: 1. Save Overcast information
-  to the SQLite database. 2. Extend the database with new feed and episode data.
-  3. Download available transcripts for all or starred episodes. 4. Download and
-  store available chapters for all or starred episodes.
+  Display information about retrocast
 
 Options:
-  -d, --database FILE  Path to database file (defaults to retrocast.db in app
-                       directory)
-  -a, --auth FILE      Custom path to auth.json file (defaults to app directory)
-  -v, --verbose
-  --help               Show this message and exit.
+  --help  Show this message and exit.
 
 ```
 <!-- [[[end]]] -->
@@ -109,15 +84,12 @@ result = CliRunner().invoke(cli, ["sync", "overcast", "auth", "--help"])
 cog.out("```\n{}\n```".format(result.output))
 ]]] -->
 ```
-Usage: cli sync overcast auth [OPTIONS]
+Usage: cli about [OPTIONS]
 
-  Save authentication credentials to a JSON file.
+  Display information about retrocast
 
 Options:
-  -a, --auth FILE  Custom path to save auth cookie (defaults to app directory)
-  --email TEXT
-  --password TEXT
-  --help           Show this message and exit.
+  --help  Show this message and exit.
 
 ```
 <!-- [[[end]]] -->
@@ -141,15 +113,12 @@ result = CliRunner().invoke(cli, ["sync", "overcast", "chapters", "--help"])
 cog.out("```\n{}\n```".format(result.output))
 ]]] -->
 ```
-Usage: cli sync overcast chapters [OPTIONS]
+Usage: cli about [OPTIONS]
 
-  Download and store available chapters for all or starred episodes.
+  Display information about retrocast
 
 Options:
-  -d, --database FILE   Path to database file (defaults to retrocast.db in app
-                        directory)
-  -p, --path DIRECTORY
-  --help                Show this message and exit.
+  --help  Show this message and exit.
 
 ```
 <!-- [[[end]]] -->
@@ -172,9 +141,9 @@ result = CliRunner().invoke(cli, ["sync", "overcast", "check", "--help"])
 cog.out("```\n{}\n```".format(result.output))
 ]]] -->
 ```
-Usage: cli sync overcast check [OPTIONS]
+Usage: cli about [OPTIONS]
 
-  Check authentication and database setup status.
+  Display information about retrocast
 
 Options:
   --help  Show this message and exit.
@@ -199,25 +168,12 @@ result = CliRunner().invoke(cli, ["sync", "overcast", "episodes", "--help"])
 cog.out("```\n{}\n```".format(result.output))
 ]]] -->
 ```
-Usage: cli sync overcast episodes [OPTIONS] [FEED_TITLES]...
+Usage: cli about [OPTIONS]
 
-  Export episodes as CSV or JSON filtered by feed titles.
-
-  If no feed titles are provided, exports episodes from all feeds.
+  Display information about retrocast
 
 Options:
-  -d, --database FILE             Path to database file (defaults to
-                                  retrocast.db in app directory)
-  -o, --output FILE               Output file path (default: stdout)
-  --format [csv|json]             Output format.
-  --all-episodes / --played-episodes
-                                  Only played or all episodes from selected
-                                  feeds  [default: played-episodes]
-  -a, --all-feeds / --subbed-feeds
-                                  Select from subscribed or all feeds.
-                                  [default: subbed-feeds]
-  -c, --count INTEGER             Limit the number of episodes returned.
-  --help                          Show this message and exit.
+  --help  Show this message and exit.
 
 ```
 <!-- [[[end]]] -->
@@ -243,16 +199,12 @@ result = CliRunner().invoke(cli, ["sync", "overcast", "extend", "--help"])
 cog.out("```\n{}\n```".format(result.output))
 ]]] -->
 ```
-Usage: cli sync overcast extend [OPTIONS]
+Usage: cli about [OPTIONS]
 
-  Download XML feed and extract all feed and episode tags and attributes.
+  Display information about retrocast
 
 Options:
-  -d, --database FILE  Path to database file (defaults to retrocast.db in app
-                       directory)
-  -na, --no-archive
-  -v, --verbose
-  --help               Show this message and exit.
+  --help  Show this message and exit.
 
 ```
 <!-- [[[end]]] -->
@@ -276,15 +228,12 @@ result = CliRunner().invoke(cli, ["sync", "overcast", "html", "--help"])
 cog.out("```\n{}\n```".format(result.output))
 ]]] -->
 ```
-Usage: cli sync overcast html [OPTIONS]
+Usage: cli about [OPTIONS]
 
-  Download and store available chapters for all or starred episodes.
+  Display information about retrocast
 
 Options:
-  -d, --database FILE     Path to database file (defaults to retrocast.db in app
-                          directory)
-  -o, --output DIRECTORY
-  --help                  Show this message and exit.
+  --help  Show this message and exit.
 
 ```
 <!-- [[[end]]] -->
@@ -306,9 +255,9 @@ result = CliRunner().invoke(cli, ["sync", "overcast", "init", "--help"])
 cog.out("```\n{}\n```".format(result.output))
 ]]] -->
 ```
-Usage: cli sync overcast init [OPTIONS]
+Usage: cli about [OPTIONS]
 
-  Initialize Overcast database in user platform directory.
+  Display information about retrocast
 
 Options:
   --help  Show this message and exit.
@@ -333,18 +282,12 @@ result = CliRunner().invoke(cli, ["sync", "overcast", "save", "--help"])
 cog.out("```\n{}\n```".format(result.output))
 ]]] -->
 ```
-Usage: cli sync overcast save [OPTIONS]
+Usage: cli about [OPTIONS]
 
-  Save Overcast info to SQLite database.
+  Display information about retrocast
 
 Options:
-  -d, --database FILE  Path to database file (defaults to retrocast.db in app
-                       directory)
-  -a, --auth FILE      Custom path to auth.json file (defaults to app directory)
-  --load FILE          Load OPML from this file instead of the API
-  -na, --no-archive
-  -v, --verbose
-  --help               Show this message and exit.
+  --help  Show this message and exit.
 
 ```
 <!-- [[[end]]] -->
@@ -368,21 +311,12 @@ result = CliRunner().invoke(cli, ["sync", "overcast", "subscriptions", "--help"]
 cog.out("```\n{}\n```".format(result.output))
 ]]] -->
 ```
-Usage: cli sync overcast subscriptions [OPTIONS]
+Usage: cli about [OPTIONS]
 
-  List feed titles.
-
-  Default is only podcasts subscribed in Overcast.
-
-  Use --json to output detailed feed data in JSON format.
+  Display information about retrocast
 
 Options:
-  -d, --database FILE  Path to database file (defaults to retrocast.db in app
-                       directory)
-  --all                List all feeds known to Overcast, not just subscribed
-                       ones.
-  --json               Output feed data in JSON format.
-  --help               Show this message and exit.
+  --help  Show this message and exit.
 
 ```
 <!-- [[[end]]] -->
@@ -404,17 +338,12 @@ result = CliRunner().invoke(cli, ["sync", "overcast", "transcripts", "--help"])
 cog.out("```\n{}\n```".format(result.output))
 ]]] -->
 ```
-Usage: cli sync overcast transcripts [OPTIONS]
+Usage: cli about [OPTIONS]
 
-  Download available transcripts for all or starred episodes.
+  Display information about retrocast
 
 Options:
-  -d, --database FILE   Path to database file (defaults to retrocast.db in app
-                        directory)
-  -p, --path DIRECTORY
-  -s, --starred-only
-  -v, --verbose
-  --help                Show this message and exit.
+  --help  Show this message and exit.
 
 ```
 <!-- [[[end]]] -->

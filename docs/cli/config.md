@@ -11,19 +11,12 @@ result = CliRunner().invoke(cli, ["config", "--help"])
 cog.out("```\n{}\n```".format(result.output))
 ]]] -->
 ```
-Usage: cli config [OPTIONS] COMMAND [ARGS]...
+Usage: cli about [OPTIONS]
 
-  Manage the retrocast configuration data
+  Display information about retrocast
 
 Options:
   --help  Show this message and exit.
-
-Commands:
-  archive     Archive the configuration directory as a gzipped tarball
-  check       Report configuration status without making changes
-  initialize  Create the retrocast configuration directory
-  location    Output the location of the configuration directory.
-  reset-db    Reset the database schema (WARNING: destroys all data)
 
 ```
 <!-- [[[end]]] -->
@@ -41,18 +34,12 @@ result = CliRunner().invoke(cli, ["config", "archive", "--help"])
 cog.out("```\n{}\n```".format(result.output))
 ]]] -->
 ```
-Usage: cli config archive [OPTIONS]
+Usage: cli about [OPTIONS]
 
-  Archive the configuration directory as a gzipped tarball
+  Display information about retrocast
 
 Options:
-  -o, --output FILE               Destination for the gzipped archive. Writes to
-                                  stdout when omitted.
-  -c, --compression-level INTEGER RANGE
-                                  Gzip compression level (0-9).  [default: 6;
-                                  0<=x<=9]
-  -f, --force                     Overwrite the output archive if it exists.
-  --help                          Show this message and exit.
+  --help  Show this message and exit.
 
 ```
 <!-- [[[end]]] -->
@@ -76,9 +63,9 @@ result = CliRunner().invoke(cli, ["config", "check", "--help"])
 cog.out("```\n{}\n```".format(result.output))
 ]]] -->
 ```
-Usage: cli config check [OPTIONS]
+Usage: cli about [OPTIONS]
 
-  Report configuration status without making changes
+  Display information about retrocast
 
 Options:
   --help  Show this message and exit.
@@ -108,13 +95,12 @@ result = CliRunner().invoke(cli, ["config", "initialize", "--help"])
 cog.out("```\n{}\n```".format(result.output))
 ]]] -->
 ```
-Usage: cli config initialize [OPTIONS]
+Usage: cli about [OPTIONS]
 
-  Create the retrocast configuration directory
+  Display information about retrocast
 
 Options:
-  -y, --yes  Create the directory without confirmation prompts.
-  --help     Show this message and exit.
+  --help  Show this message and exit.
 
 ```
 <!-- [[[end]]] -->
@@ -138,26 +124,12 @@ result = CliRunner().invoke(cli, ["config", "location", "--help"])
 cog.out("```\n{}\n```".format(result.output))
 ]]] -->
 ```
-Usage: cli config location [OPTIONS]
+Usage: cli about [OPTIONS]
 
-  Output the location of the configuration directory.
-
-  By default, displays a formatted table showing all configuration paths. Use
-  --format json to output all paths as a JSON object. Use --db-path to output
-  only the database path as a JSON string. Use --app-dir to output only the app
-  directory path as a JSON string.
-
-  Examples:     retrocast config location              # Table view
-  retrocast config location --format json  # All paths as JSON     retrocast
-  config location --db-path    # Just database path     retrocast config
-  location --app-dir    # Just app directory
+  Display information about retrocast
 
 Options:
-  -f, --format [console|json]
-  -d, --db-path                Output only the database path as a JSON string
-  -a, --app-dir                Output only the app directory path as a JSON
-                               string
-  --help                       Show this message and exit.
+  --help  Show this message and exit.
 
 ```
 <!-- [[[end]]] -->
@@ -181,14 +153,12 @@ result = CliRunner().invoke(cli, ["config", "reset-db", "--help"])
 cog.out("```\n{}\n```".format(result.output))
 ]]] -->
 ```
-Usage: cli config reset-db [OPTIONS]
+Usage: cli about [OPTIONS]
 
-  Reset the database schema (WARNING: destroys all data)
+  Display information about retrocast
 
 Options:
-  --dry-run  Show what would be reset without actually performing the reset.
-  -y, --yes  Skip confirmation prompt and proceed with reset.
-  --help     Show this message and exit.
+  --help  Show this message and exit.
 
 ```
 <!-- [[[end]]] -->

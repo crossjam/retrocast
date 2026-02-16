@@ -11,15 +11,12 @@ result = CliRunner().invoke(cli, ["meta", "--help"])
 cog.out("```\n{}\n```".format(result.output))
 ]]] -->
 ```
-Usage: cli meta [OPTIONS] COMMAND [ARGS]...
+Usage: cli about [OPTIONS]
 
-  Download episode metadata and derived information
+  Display information about retrocast
 
 Options:
   --help  Show this message and exit.
-
-Commands:
-  overcast  Retrieve episode metadata and information via overcast plugin
 
 ```
 <!-- [[[end]]] -->
@@ -37,16 +34,12 @@ result = CliRunner().invoke(cli, ["meta", "overcast", "--help"])
 cog.out("```\n{}\n```".format(result.output))
 ]]] -->
 ```
-Usage: cli meta overcast [OPTIONS] COMMAND [ARGS]...
+Usage: cli about [OPTIONS]
 
-  Retrieve episode metadata and information via overcast plugin
+  Display information about retrocast
 
 Options:
   --help  Show this message and exit.
-
-Commands:
-  chapters     Download and store available chapters for all or starred...
-  transcripts  Download available transcripts for all or starred episodes.
 
 ```
 <!-- [[[end]]] -->
@@ -62,15 +55,12 @@ result = CliRunner().invoke(cli, ["meta", "overcast", "chapters", "--help"])
 cog.out("```\n{}\n```".format(result.output))
 ]]] -->
 ```
-Usage: cli meta overcast chapters [OPTIONS]
+Usage: cli about [OPTIONS]
 
-  Download and store available chapters for all or starred episodes.
+  Display information about retrocast
 
 Options:
-  -d, --database FILE   Path to database file (defaults to retrocast.db in app
-                        directory)
-  -p, --path DIRECTORY
-  --help                Show this message and exit.
+  --help  Show this message and exit.
 
 ```
 <!-- [[[end]]] -->
@@ -93,17 +83,12 @@ result = CliRunner().invoke(cli, ["meta", "overcast", "transcripts", "--help"])
 cog.out("```\n{}\n```".format(result.output))
 ]]] -->
 ```
-Usage: cli meta overcast transcripts [OPTIONS]
+Usage: cli about [OPTIONS]
 
-  Download available transcripts for all or starred episodes.
+  Display information about retrocast
 
 Options:
-  -d, --database FILE   Path to database file (defaults to retrocast.db in app
-                        directory)
-  -p, --path DIRECTORY
-  -s, --starred-only
-  -v, --verbose
-  --help                Show this message and exit.
+  --help  Show this message and exit.
 
 ```
 <!-- [[[end]]] -->

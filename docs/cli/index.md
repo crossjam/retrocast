@@ -22,14 +22,14 @@ Options:
   --help         Show this message and exit.
 
 Commands:
-  about*         Display information about retrocast
-  chat           Interactive AI chat for exploring transcribed podcast...
-  configure      Manage the retrocast configuration data
-  download       Download episode content with pluggable backends
-  index          Create and manage search indexes
-  query          Query and inspect SQLite database
-  subscribe      Manage feed subscriptions
-  transcribe     Manage audio transcriptions (create, search, analyze).
+  about*      Display information about retrocast
+  chat        Interactive AI chat for exploring transcribed podcast content.
+  configure   Manage the retrocast configuration data
+  download    Download episode content with pluggable backends
+  index       Create and manage search indexes
+  query       Query and inspect SQLite database
+  subscribe   Manage feed subscriptions
+  transcribe  Manage audio transcriptions (create, search, analyze).
 
 ```
 <!-- [[[end]]] -->
