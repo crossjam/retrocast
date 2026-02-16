@@ -767,10 +767,9 @@ def castchat(
 
     # Import clai and run
     try:
-        from pydantic_ai.tools import clai_main  # type: ignore[attr-defined]
-
         # Run the REPL with our agent
-        clai_main(agent=agent, model_override=model_name)
+
+        agent.to_cli_sync(prog_name="castchat")
     except ImportError:
         console.print(
             "[bold red]Error:[/bold red] clai command not found. "
