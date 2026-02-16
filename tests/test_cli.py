@@ -260,6 +260,15 @@ def test_subscribe_group_exposes_overcast_transcripts_help() -> None:
     assert "Download available transcripts" in result.output
 
 
+def test_index_group_exposes_status_help() -> None:
+    runner = CliRunner()
+
+    result = runner.invoke(cli, ["index", "status", "--help"])
+
+    assert result.exit_code == 0
+    assert "Show index command availability" in result.output
+
+
 def test_config_initialize_creates_database_with_schemas(monkeypatch, tmp_path: Path) -> None:
     """Test that config initialize creates database with all required schemas."""
     app_dir = tmp_path / "retrocast-tests"

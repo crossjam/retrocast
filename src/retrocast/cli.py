@@ -555,6 +555,12 @@ def index(ctx: click.Context) -> None:
     pass
 
 
+@index.command()
+def status() -> None:
+    """Show index command availability"""
+    Console().print("[yellow]Index management commands are not implemented yet.[/yellow]")
+
+
 def _attach_podcast_archiver_passthroughs(main_group: DefaultGroup) -> None:
     download_command = main_group.commands.get("download")
 

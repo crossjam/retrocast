@@ -43,4 +43,4 @@ Commands:
 - [query](query.md) - Query and inspect SQLite database
 - [subscribe](subscribe.md) - Synchronize subscription metadata
 - [transcribe](transcribe.md) - Manage audio transcriptions
-- [index](index.md) - Manage search indexes
+- [index](index.md) - Create and manage search indexes
