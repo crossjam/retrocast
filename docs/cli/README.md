@@ -6,13 +6,12 @@ This directory contains automatically generated CLI reference documentation for 
 
 - [index.md](index.md) - Main CLI reference with overview of all commands
 - [about.md](about.md) - About command documentation
-- [castchat.md](castchat.md) - Interactive AI chat documentation
-- [config.md](config.md) - Configuration management documentation
+- [chat.md](chat.md) - Interactive AI chat documentation
+- [configure.md](configure.md) - Configuration management documentation
 - [download.md](download.md) - Episode download documentation
-- [meta.md](meta.md) - Metadata download documentation
-- [sql.md](sql.md) - SQL query documentation
-- [sync.md](sync.md) - Synchronization documentation
-- [transcription.md](transcription.md) - Transcription documentation
+- [query.md](query.md) - SQL query documentation
+- [subscribe.md](subscribe.md) - Subscription synchronization documentation
+- [transcribe.md](transcribe.md) - Transcription documentation
 
 ## Generating Documentation
 

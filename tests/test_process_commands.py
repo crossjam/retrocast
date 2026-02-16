@@ -20,7 +20,7 @@ class TestTranscriptionCommands:
 
     def test_transcription_help(self, runner):
         """Test transcription command help."""
-        result = runner.invoke(cli, ["transcription", "--help"])
+        result = runner.invoke(cli, ["transcribe", "--help"])
         assert result.exit_code == 0
         assert "Manage audio transcriptions" in result.output
         assert "process" in result.output
@@ -28,20 +28,20 @@ class TestTranscriptionCommands:
 
     def test_list_backends(self, runner):
         """Test backends list command."""
-        result = runner.invoke(cli, ["transcription", "backends", "list"])
+        result = runner.invoke(cli, ["transcribe", "backends", "list"])
         assert result.exit_code == 0
         assert "Backend" in result.output
         assert "mlx-whisper" in result.output
 
     def test_test_backend_unknown(self, runner):
         """Test backends test with unknown backend."""
-        result = runner.invoke(cli, ["transcription", "backends", "test", "nonexistent"])
+        result = runner.invoke(cli, ["transcribe", "backends", "test", "nonexistent"])
         assert result.exit_code == 0
         assert "Unknown backend" in result.output
 
     def test_test_backend_mlx(self, runner):
         """Test backends test with MLX backend."""
-        result = runner.invoke(cli, ["transcription", "backends", "test", "mlx-whisper"])
+        result = runner.invoke(cli, ["transcribe", "backends", "test", "mlx-whisper"])
         assert result.exit_code == 0
         assert "mlx-whisper" in result.output
         # Should show not available on non-macOS or without mlx_whisper installed
@@ -51,13 +51,13 @@ class TestTranscriptionCommands:
 
     def test_process_no_paths(self, runner):
         """Test process command with no paths."""
-        result = runner.invoke(cli, ["transcription", "process"])
+        result = runner.invoke(cli, ["transcribe", "process"])
         assert result.exit_code != 0
         # Should error because no paths provided
 
     def test_process_help(self, runner):
         """Test process command help."""
-        result = runner.invoke(cli, ["transcription", "process", "--help"])
+        result = runner.invoke(cli, ["transcribe", "process", "--help"])
         assert result.exit_code == 0
         assert "Process audio files" in result.output
         assert "--backend" in result.output
@@ -71,7 +71,7 @@ class TestTranscriptionCommands:
         """Test process --list-podcasts with no downloads directory."""
         with runner.isolated_filesystem():
             result = runner.invoke(
-                cli, ["transcription", "process", "--list-podcasts", "--db", "test.db"]
+                cli, ["transcribe", "process", "--list-podcasts", "--db", "test.db"]
             )
             assert result.exit_code == 0
             # Should show message about no downloads
@@ -88,14 +88,14 @@ class TestTranscriptionCommands:
             cwd = Path(os.getcwd())
             with patch("retrocast.process_commands.get_app_dir", return_value=cwd):
                 result = runner.invoke(
-                    cli, ["transcription", "process", "--from-downloads", "--db", "test.db"]
+                    cli, ["transcribe", "process", "--from-downloads", "--db", "test.db"]
                 )
             assert result.exit_code != 0
             assert "downloads directory not found" in result.output
 
     def test_search_help(self, runner):
         """Test search command help."""
-        result = runner.invoke(cli, ["transcription", "search", "--help"])
+        result = runner.invoke(cli, ["transcribe", "search", "--help"])
         assert result.exit_code == 0
         assert "Search transcribed podcast content" in result.output
         assert "--podcast" in result.output
@@ -111,7 +111,7 @@ class TestTranscriptionCommands:
 
     def test_search_no_query(self, runner):
         """Test search command with no query."""
-        result = runner.invoke(cli, ["transcription", "search"])
+        result = runner.invoke(cli, ["transcribe", "search"])
         assert result.exit_code != 0
         # Should error because query is required
 
@@ -119,7 +119,7 @@ class TestTranscriptionCommands:
         """Test search command with non-existent/empty database."""
         with runner.isolated_filesystem():
             result = runner.invoke(
-                cli, ["transcription", "search", "test", "--db", "nonexistent.db"]
+                cli, ["transcribe", "search", "test", "--db", "nonexistent.db"]
             )
             # Should succeed but find no results (empty database created)
             assert result.exit_code == 0
@@ -127,7 +127,7 @@ class TestTranscriptionCommands:
 
     def test_summary_help(self, runner):
         """Test summary command help."""
-        result = runner.invoke(cli, ["transcription", "summary", "--help"])
+        result = runner.invoke(cli, ["transcribe", "summary", "--help"])
         assert result.exit_code == 0
         assert "Display overall transcription statistics" in result.output
 
@@ -135,7 +135,7 @@ class TestTranscriptionCommands:
         """Test summary command with new/empty database."""
         with runner.isolated_filesystem():
             result = runner.invoke(
-                cli, ["transcription", "summary", "--db", "test.db"]
+                cli, ["transcribe", "summary", "--db", "test.db"]
             )
             # Should succeed but show no transcriptions message
             assert result.exit_code == 0
@@ -143,7 +143,7 @@ class TestTranscriptionCommands:
 
     def test_podcasts_list_help(self, runner):
         """Test podcasts list command help."""
-        result = runner.invoke(cli, ["transcription", "podcasts", "list", "--help"])
+        result = runner.invoke(cli, ["transcribe", "podcasts", "list", "--help"])
         assert result.exit_code == 0
         assert "List all podcasts with transcriptions" in result.output
         assert "--limit" in result.output
@@ -152,14 +152,14 @@ class TestTranscriptionCommands:
         """Test podcasts list with new/empty database."""
         with runner.isolated_filesystem():
             result = runner.invoke(
-                cli, ["transcription", "podcasts", "list", "--db", "test.db"]
+                cli, ["transcribe", "podcasts", "list", "--db", "test.db"]
             )
             assert result.exit_code == 0
             assert "No transcriptions found" in result.output
 
     def test_podcasts_summary_help(self, runner):
         """Test podcasts summary command help."""
-        result = runner.invoke(cli, ["transcription", "podcasts", "summary", "--help"])
+        result = runner.invoke(cli, ["transcribe", "podcasts", "summary", "--help"])
         assert result.exit_code == 0
         assert "Show summary statistics for podcasts" in result.output
 
@@ -167,14 +167,14 @@ class TestTranscriptionCommands:
         """Test podcasts summary with new/empty database."""
         with runner.isolated_filesystem():
             result = runner.invoke(
-                cli, ["transcription", "podcasts", "summary", "--db", "test.db"]
+                cli, ["transcribe", "podcasts", "summary", "--db", "test.db"]
             )
             assert result.exit_code == 0
             assert "No transcriptions found" in result.output
 
     def test_episodes_list_help(self, runner):
         """Test episodes list command help."""
-        result = runner.invoke(cli, ["transcription", "episodes", "list", "--help"])
+        result = runner.invoke(cli, ["transcribe", "episodes", "list", "--help"])
         assert result.exit_code == 0
         assert "List transcribed episodes" in result.output
         assert "--podcast" in result.output
@@ -186,14 +186,14 @@ class TestTranscriptionCommands:
         """Test episodes list with new/empty database."""
         with runner.isolated_filesystem():
             result = runner.invoke(
-                cli, ["transcription", "episodes", "list", "--db", "test.db"]
+                cli, ["transcribe", "episodes", "list", "--db", "test.db"]
             )
             assert result.exit_code == 0
             assert "No transcriptions found" in result.output
 
     def test_episodes_summary_help(self, runner):
         """Test episodes summary command help."""
-        result = runner.invoke(cli, ["transcription", "episodes", "summary", "--help"])
+        result = runner.invoke(cli, ["transcribe", "episodes", "summary", "--help"])
         assert result.exit_code == 0
         assert "Show summary statistics for transcribed episodes" in result.output
         assert "--podcast" in result.output
@@ -202,7 +202,7 @@ class TestTranscriptionCommands:
         """Test episodes summary with new/empty database."""
         with runner.isolated_filesystem():
             result = runner.invoke(
-                cli, ["transcription", "episodes", "summary", "--db", "test.db"]
+                cli, ["transcribe", "episodes", "summary", "--db", "test.db"]
             )
             assert result.exit_code == 0
             assert "No transcriptions found" in result.output

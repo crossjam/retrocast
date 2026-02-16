@@ -31,7 +31,7 @@ def test_sql_query_attaches_podcast_archiver(monkeypatch, tmp_path: Path) -> Non
     result = runner.invoke(
         cli,
         [
-            "sql",
+            "query",
             "--database",
             str(main_db),
             "query",
@@ -52,7 +52,7 @@ def test_sql_rows_supports_podcast_archiver_tables(monkeypatch, tmp_path: Path) 
     result = runner.invoke(
         cli,
         [
-            "sql",
+            "query",
             "--database",
             str(main_db),
             "rows",

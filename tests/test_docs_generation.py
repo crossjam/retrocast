@@ -16,13 +16,12 @@ def test_docs_cli_directory_exists():
         "README.md",
         "index.md",
         "about.md",
-        "castchat.md",
-        "config.md",
+        "chat.md",
+        "configure.md",
         "download.md",
-        "meta.md",
-        "sql.md",
-        "sync.md",
-        "transcription.md",
+        "query.md",
+        "subscribe.md",
+        "transcribe.md",
     ]
 
     for filename in expected_files:
@@ -52,14 +51,13 @@ def test_docs_check_command():
     # Get list of markdown files to check (excluding README.md which doesn't have cog directives)
     docs_files = [
         "docs/cli/about.md",
-        "docs/cli/castchat.md",
-        "docs/cli/config.md",
+        "docs/cli/chat.md",
+        "docs/cli/configure.md",
         "docs/cli/download.md",
         "docs/cli/index.md",
-        "docs/cli/meta.md",
-        "docs/cli/sql.md",
-        "docs/cli/sync.md",
-        "docs/cli/transcription.md",
+        "docs/cli/query.md",
+        "docs/cli/subscribe.md",
+        "docs/cli/transcribe.md",
     ]
 
     # Run the docs:check task
@@ -125,13 +123,13 @@ def test_all_command_groups_documented():
     # These are the main command groups from the CLI
     command_groups = [
         "about",
-        "castchat",
-        "config",
+        "chat",
+        "configure",
         "download",
-        "meta",
-        "sql",
-        "sync",
-        "transcription",
+        "index",
+        "query",
+        "subscribe",
+        "transcribe",
     ]
 
     for command in command_groups:
@@ -145,7 +143,7 @@ def test_clean_help_output_imported_not_defined():
     """Test that clean_help_output is imported from doc_utils, not defined inline."""
     docs_files = [
         "docs/cli/download.md",
-        "docs/cli/transcription.md",
+        "docs/cli/transcribe.md",
     ]
 
     for filepath in docs_files:

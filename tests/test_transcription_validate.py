@@ -36,7 +36,7 @@ def test_validate_command_with_valid_files():
         # Run validate command
         result = runner.invoke(
             cli,
-            ["transcription", "validate", "--output-dir", str(Path(tmpdir) / "transcriptions")],
+            ["transcribe", "validate", "--output-dir", str(Path(tmpdir) / "transcriptions")],
         )
 
         assert result.exit_code == 0
@@ -71,7 +71,7 @@ def test_validate_command_with_invalid_files():
         # Run validate command
         result = runner.invoke(
             cli,
-            ["transcription", "validate", "--output-dir", str(Path(tmpdir) / "transcriptions")],
+            ["transcribe", "validate", "--output-dir", str(Path(tmpdir) / "transcriptions")],
         )
 
         assert result.exit_code == 1
@@ -95,7 +95,7 @@ def test_validate_command_with_broken_json():
         # Run validate command
         result = runner.invoke(
             cli,
-            ["transcription", "validate", "--output-dir", str(Path(tmpdir) / "transcriptions")],
+            ["transcribe", "validate", "--output-dir", str(Path(tmpdir) / "transcriptions")],
         )
 
         assert result.exit_code == 1
@@ -146,7 +146,7 @@ def test_validate_command_verbose_mode():
         result = runner.invoke(
             cli,
             [
-                "transcription",
+                "transcribe",
                 "validate",
                 "--output-dir",
                 str(Path(tmpdir) / "transcriptions"),
@@ -171,7 +171,7 @@ def test_validate_command_no_files():
 
         # Run validate command
         result = runner.invoke(
-            cli, ["transcription", "validate", "--output-dir", str(output_dir)]
+            cli, ["transcribe", "validate", "--output-dir", str(output_dir)]
         )
 
         assert result.exit_code == 0
@@ -187,7 +187,7 @@ def test_validate_command_missing_directory():
 
         # Run validate command
         result = runner.invoke(
-            cli, ["transcription", "validate", "--output-dir", str(nonexistent)]
+            cli, ["transcribe", "validate", "--output-dir", str(nonexistent)]
         )
 
         assert result.exit_code == 1
@@ -224,7 +224,7 @@ def test_validate_command_with_speakers():
         # Run validate command
         result = runner.invoke(
             cli,
-            ["transcription", "validate", "--output-dir", str(Path(tmpdir) / "transcriptions")],
+            ["transcribe", "validate", "--output-dir", str(Path(tmpdir) / "transcriptions")],
         )
 
         assert result.exit_code == 0

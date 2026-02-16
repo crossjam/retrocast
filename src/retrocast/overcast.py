@@ -217,7 +217,7 @@ def _auth_and_fetch(auth_path: str | None, archive: Path | None) -> str:
 @click.group()
 @click.pass_context
 def overcast(ctx: click.Context) -> None:
-    """Synchronize subscription metadata via overcast plugin"""
+    """Manage subscriptions via overcast plugin"""
     pass
 
 
@@ -259,12 +259,14 @@ def init(ctx: click.Context) -> None:
         console.print("[dim]Database schema initialized successfully.[/dim]")
         console.print()
         console.print("[dim]Next steps:[/dim]")
-        console.print("  1. Authenticate:  [cyan]retrocast sync overcast auth[/cyan]")
-        console.print("  2. Sync data:     [cyan]retrocast sync overcast save[/cyan]")
-        console.print("  3. Download:     [cyan]retrocast retrieve overcast transcripts[/cyan]")
+        console.print("  1. Authenticate:  [cyan]retrocast subscribe overcast auth[/cyan]")
+        console.print("  2. Sync data:     [cyan]retrocast subscribe overcast save[/cyan]")
+        console.print("  3. Download:      [cyan]retrocast subscribe overcast transcripts[/cyan]")
         console.print()
     else:
-        console.print("[dim]Use [cyan]retrocast sync overcast check[/cyan] to verify setup.[/dim]")
+        console.print(
+            "[dim]Use [cyan]retrocast subscribe overcast check[/cyan] to verify setup.[/dim]"
+        )
         console.print()
 
 
@@ -296,7 +298,7 @@ def check(ctx: click.Context) -> None:
         "App Directory",
         str(app_dir),
         "[green]✓[/green]" if app_exists else "[red]✗ Missing[/red]",
-        "" if app_exists else "Run: retrocast config initialize",
+        "" if app_exists else "Run: retrocast configure initialize",
     )
 
     # Add auth row
@@ -307,7 +309,7 @@ def check(ctx: click.Context) -> None:
             "Auth File",
             str(auth_path),
             "[red]✗ Not found[/red]",
-            "Run: retrocast sync overcast auth",
+            "Run: retrocast subscribe overcast auth",
         )
 
     # Add database row
@@ -318,7 +320,7 @@ def check(ctx: click.Context) -> None:
             "Database",
             str(db_path),
             "[red]✗ Not found[/red]",
-            "Run: retrocast sync overcast save",
+            "Run: retrocast subscribe overcast save",
         )
 
     console.print()
@@ -526,12 +528,6 @@ def transcripts(  # noqa: C901
 ) -> None:
     """Download available transcripts for all or starred episodes."""
 
-    if ctx.command_path.startswith("retrocast sync"):
-        Console(stderr=True).print(
-            "[yellow]Use `retrocast retrieve overcast transcripts` for future runs."
-            " The current location will be deprecated.[/yellow]",
-        )
-
     resolved_db_path = _resolve_db_path(ctx, db_path)
 
     if not _confirm_db_creation(resolved_db_path):
@@ -624,12 +620,6 @@ def chapters(
     archive_path: str | None,
 ) -> None:
     """Download and store available chapters for all or starred episodes."""
-
-    if ctx.command_path.startswith("retrocast sync"):
-        Console(stderr=True).print(
-            "[yellow]Use `retrocast retrieve overcast chapters` for future runs."
-            " The current location will be deprecated.[/yellow]",
-        )
 
     resolved_db_path = _resolve_db_path(ctx, db_path)
     app_dir = _ensure_app_dir_from_ctx(ctx)

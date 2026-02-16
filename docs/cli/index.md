@@ -23,13 +23,13 @@ Options:
 
 Commands:
   about*         Display information about retrocast
-  castchat       Interactive AI chat for exploring transcribed podcast...
-  config         Manage the retrocast configuration data
+  chat           Interactive AI chat for exploring transcribed podcast...
+  configure      Manage the retrocast configuration data
   download       Download episode content with pluggable backends
-  meta           Download episode metadata and derived information
-  sql            Query and inspect SQLite database
-  sync           Synchronize subscription metadata
-  transcription  Manage audio transcriptions (create, search, analyze).
+  index          Create and manage search indexes
+  query          Query and inspect SQLite database
+  subscribe      Manage feed subscriptions
+  transcribe     Manage audio transcriptions (create, search, analyze).
 
 ```
 <!-- [[[end]]] -->
@@ -37,10 +37,10 @@ Commands:
 ## Available Command Groups
 
 - [about](about.md) - Display information about retrocast
-- [castchat](castchat.md) - Interactive AI chat for exploring transcribed podcasts
-- [config](config.md) - Manage retrocast configuration
+- [chat](chat.md) - Interactive AI chat for exploring transcribed podcasts
+- [configure](configure.md) - Manage retrocast configuration
 - [download](download.md) - Download episode content
-- [meta](meta.md) - Download episode metadata
-- [sql](sql.md) - Query and inspect SQLite database
-- [sync](sync.md) - Synchronize subscription metadata
-- [transcription](transcription.md) - Manage audio transcriptions
+- [query](query.md) - Query and inspect SQLite database
+- [subscribe](subscribe.md) - Synchronize subscription metadata
+- [transcribe](transcribe.md) - Manage audio transcriptions
+- [index](index.md) - Manage search indexes
