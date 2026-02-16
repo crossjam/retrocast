@@ -43,7 +43,7 @@ _podcast_archiver_attached = False
 @click.option("-q", "--quiet", is_flag=True, help="Enable quiet mode (ERROR level logging only).")
 @click.pass_context
 def cli(ctx: click.Context, verbose: bool, quiet: bool) -> None:
-    """Save listening history and feed/episode info from Overcast to SQLite."""
+    """Manage podcast subscriptions. Download episodes. Analyze with AI."""
     global _podcast_archiver_attached
 
     # Initialize context object if it doesn't exist
