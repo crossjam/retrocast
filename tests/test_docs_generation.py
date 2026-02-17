@@ -80,7 +80,7 @@ def test_cog_directives_present():
     docs_cli_dir = Path("docs/cli")
 
     # Check a few key files for cog directives
-    files_to_check = ["index.md", "config.md", "download.md"]
+    files_to_check = ["index.md", "configure.md", "download.md"]
 
     for filename in files_to_check:
         file_path = docs_cli_dir / filename
