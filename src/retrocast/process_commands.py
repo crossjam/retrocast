@@ -28,7 +28,7 @@ console = Console()
 AUDIO_EXTENSIONS = {".mp3", ".m4a", ".ogg", ".opus", ".wav", ".flac", ".aac"}
 
 
-@click.group(name="transcription")
+@click.group(name="transcribe")
 @click.pass_context
 def transcription(ctx: click.RichContext) -> None:
     """Manage audio transcriptions (create, search, analyze)."""
@@ -125,25 +125,25 @@ def process_audio(  # noqa: C901
     Examples:
 
         # Process a single file
-        retrocast transcription process episode.mp3
+        retrocast transcribe process episode.mp3
 
         # Process all files in a directory
-        retrocast transcription process /path/to/podcast/
+        retrocast transcribe process /path/to/podcast/
 
         # Use specific backend and model
-        retrocast transcription process --backend mlx-whisper --model medium file.mp3
+        retrocast transcribe process --backend mlx-whisper --model medium file.mp3
 
         # Save as SRT subtitle format
-        retrocast transcription process --format srt episode.mp3
+        retrocast transcribe process --format srt episode.mp3
 
         # Process all downloaded episodes from a specific podcast
-        retrocast transcription process --from-downloads --podcast "Tech Podcast"
+        retrocast transcribe process --from-downloads --podcast "Tech Podcast"
 
         # List available podcasts from downloads
-        retrocast transcription process --list-podcasts
+        retrocast transcribe process --list-podcasts
 
         # Process all downloaded episodes
-        retrocast transcription process --from-downloads
+        retrocast transcribe process --from-downloads
     """
     # Setup
     app_dir = get_app_dir(create=True)
@@ -585,9 +585,9 @@ def validate_transcriptions(
     a summary report at the end.
 
     Example:
-        retrocast transcription validate
-        retrocast transcription validate --verbose
-        retrocast transcription validate --output-dir /custom/path
+        retrocast transcribe validate
+        retrocast transcribe validate --verbose
+        retrocast transcribe validate --output-dir /custom/path
     """
     # Setup
     app_dir = get_app_dir(create=False)
@@ -674,7 +674,7 @@ def list_backends() -> None:
     Shows which backends are installed and available on your system.
 
     Example:
-        retrocast transcription backends list
+        retrocast transcribe backends list
     """
     from retrocast.transcription.backends import get_all_backends
 
@@ -730,7 +730,7 @@ def test_backend(backend_name: str) -> None:
     BACKEND_NAME: Name of backend to test (e.g., 'mlx-whisper')
 
     Example:
-        retrocast transcription backends test mlx-whisper
+        retrocast transcribe backends test mlx-whisper
     """
     from retrocast.transcription.backends import get_all_backends
 
@@ -863,19 +863,19 @@ def search(
     Examples:
 
         # Simple search
-        retrocast transcription search "machine learning"
+        retrocast transcribe search "machine learning"
 
         # Search with filters
-        retrocast transcription search "AI" --podcast "Tech Podcast" --limit 10
+        retrocast transcribe search "AI" --podcast "Tech Podcast" --limit 10
 
         # Search with date range
-        retrocast transcription search "python" --date-from "2024-01-01" --date-to "2024-12-31"
+        retrocast transcribe search "python" --date-from "2024-01-01" --date-to "2024-12-31"
 
         # Export results to JSON
-        retrocast transcription search "data science" --export json --output results.json
+        retrocast transcribe search "data science" --export json --output results.json
 
         # Search with context and pagination
-        retrocast transcription search "neural networks" --context 2 --page 2 --limit 10
+        retrocast transcribe search "neural networks" --context 2 --page 2 --limit 10
     """
     from rich.markup import escape
 
@@ -1224,7 +1224,7 @@ def summary(
     including counts, duration, backends used, and more.
 
     Example:
-        retrocast transcription summary
+        retrocast transcribe summary
     """
     # Setup database
     if db_path is None:
@@ -1241,7 +1241,7 @@ def summary(
     if stats["total_transcriptions"] == 0:
         console.print(
             "\n[yellow]No transcriptions found in database.[/yellow]\n"
-            "Use 'retrocast transcription process' to create transcriptions.\n"
+            "Use 'retrocast transcribe process' to create transcriptions.\n"
         )
         return
 
@@ -1336,8 +1336,8 @@ def podcasts_list(
     Shows podcasts sorted by number of transcribed episodes.
 
     Example:
-        retrocast transcription podcasts list
-        retrocast transcription podcasts list --limit 10
+        retrocast transcribe podcasts list
+        retrocast transcribe podcasts list --limit 10
     """
     # Setup database
     if db_path is None:
@@ -1354,7 +1354,7 @@ def podcasts_list(
     if not stats:
         console.print(
             "\n[yellow]No transcriptions found in database.[/yellow]\n"
-            "Use 'retrocast transcription process' to create transcriptions.\n"
+            "Use 'retrocast transcribe process' to create transcriptions.\n"
         )
         return
 
@@ -1407,8 +1407,8 @@ def podcasts_summary(
     Otherwise, shows overview for all podcasts.
 
     Examples:
-        retrocast transcription podcasts summary
-        retrocast transcription podcasts summary "Tech Podcast"
+        retrocast transcribe podcasts summary
+        retrocast transcribe podcasts summary "Tech Podcast"
     """
     # Setup database
     if db_path is None:
@@ -1468,7 +1468,7 @@ def podcasts_summary(
         if not stats:
             console.print(
                 "\n[yellow]No transcriptions found in database.[/yellow]\n"
-                "Use 'retrocast transcription process' to create transcriptions.\n"
+                "Use 'retrocast transcribe process' to create transcriptions.\n"
             )
             return
 
@@ -1577,9 +1577,9 @@ def episodes_list(
     Shows episodes sorted by the specified order (default: most recent first).
 
     Examples:
-        retrocast transcription episodes list
-        retrocast transcription episodes list --podcast "Tech Podcast"
-        retrocast transcription episodes list --order duration --limit 10
+        retrocast transcribe episodes list
+        retrocast transcribe episodes list --podcast "Tech Podcast"
+        retrocast transcribe episodes list --order duration --limit 10
     """
     # Setup database
     if db_path is None:
@@ -1617,7 +1617,7 @@ def episodes_list(
         else:
             console.print(
                 "\n[yellow]No transcriptions found in database.[/yellow]\n"
-                "Use 'retrocast transcription process' to create transcriptions.\n"
+                "Use 'retrocast transcribe process' to create transcriptions.\n"
             )
         return
 
@@ -1710,8 +1710,8 @@ def episodes_summary(
     Displays aggregate statistics about transcribed episodes.
 
     Examples:
-        retrocast transcription episodes summary
-        retrocast transcription episodes summary --podcast "Tech Podcast"
+        retrocast transcribe episodes summary
+        retrocast transcribe episodes summary --podcast "Tech Podcast"
     """
     # Setup database
     if db_path is None:
@@ -1734,7 +1734,7 @@ def episodes_summary(
         else:
             console.print(
                 "\n[yellow]No transcriptions found in database.[/yellow]\n"
-                "Use 'retrocast transcription process' to create transcriptions.\n"
+                "Use 'retrocast transcribe process' to create transcriptions.\n"
             )
         return
 

@@ -186,7 +186,7 @@ Examples:
         self.format_options(ctx, formatter)
 
 
-@click.group(cls=SqlGroup)
+@click.group(name="query", cls=SqlGroup)
 @click.option(
     "--database",
     "-d",

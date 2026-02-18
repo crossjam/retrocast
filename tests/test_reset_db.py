@@ -41,7 +41,7 @@ def test_reset_db_with_nonexistent_database(monkeypatch, tmp_path: Path) -> None
     monkeypatch.setattr(platformdirs, "user_data_dir", lambda *_, **__: str(app_dir))
 
     runner = CliRunner()
-    result = runner.invoke(cli, ["config", "reset-db"])
+    result = runner.invoke(cli, ["configure", "reset-db"])
 
     assert result.exit_code == 0
     assert "does not exist" in result.output.lower()
@@ -59,7 +59,7 @@ def test_reset_db_dry_run(monkeypatch, tmp_path: Path) -> None:
     monkeypatch.setattr(platformdirs, "user_data_dir", lambda *_, **__: str(app_dir))
 
     runner = CliRunner()
-    result = runner.invoke(cli, ["config", "reset-db", "--dry-run"])
+    result = runner.invoke(cli, ["configure", "reset-db", "--dry-run"])
 
     assert result.exit_code == 0
     assert "dry run" in result.output.lower()
@@ -86,7 +86,7 @@ def test_reset_db_with_confirmation_no(monkeypatch, tmp_path: Path) -> None:
     monkeypatch.setattr(platformdirs, "user_data_dir", lambda *_, **__: str(app_dir))
 
     runner = CliRunner()
-    result = runner.invoke(cli, ["config", "reset-db"], input="n\n")
+    result = runner.invoke(cli, ["configure", "reset-db"], input="n\n")
 
     assert result.exit_code == 0
     assert "cancelled" in result.output.lower()
@@ -119,7 +119,7 @@ def test_reset_db_with_confirmation_yes(monkeypatch, tmp_path: Path) -> None:
     monkeypatch.setattr(platformdirs, "user_data_dir", lambda *_, **__: str(app_dir))
 
     runner = CliRunner()
-    result = runner.invoke(cli, ["config", "reset-db"], input="y\n")
+    result = runner.invoke(cli, ["configure", "reset-db"], input="y\n")
 
     assert result.exit_code == 0
     assert "successfully" in result.output.lower()
@@ -148,7 +148,7 @@ def test_reset_db_with_yes_flag(monkeypatch, tmp_path: Path) -> None:
     monkeypatch.setattr(platformdirs, "user_data_dir", lambda *_, **__: str(app_dir))
 
     runner = CliRunner()
-    result = runner.invoke(cli, ["config", "reset-db", "-y"])
+    result = runner.invoke(cli, ["configure", "reset-db", "-y"])
 
     assert result.exit_code == 0
     assert "successfully" in result.output.lower()
@@ -175,7 +175,7 @@ def test_reset_db_recreates_all_tables(monkeypatch, tmp_path: Path) -> None:
     monkeypatch.setattr(platformdirs, "user_data_dir", lambda *_, **__: str(app_dir))
 
     runner = CliRunner()
-    result = runner.invoke(cli, ["config", "reset-db", "-y"])
+    result = runner.invoke(cli, ["configure", "reset-db", "-y"])
 
     assert result.exit_code == 0
 
@@ -225,7 +225,7 @@ def test_reset_db_dry_run_shows_correct_counts(monkeypatch, tmp_path: Path) -> N
     monkeypatch.setattr(platformdirs, "user_data_dir", lambda *_, **__: str(app_dir))
 
     runner = CliRunner()
-    result = runner.invoke(cli, ["config", "reset-db", "--dry-run"])
+    result = runner.invoke(cli, ["configure", "reset-db", "--dry-run"])
 
     assert result.exit_code == 0
 

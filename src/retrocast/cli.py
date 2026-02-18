@@ -29,7 +29,7 @@ from retrocast.datastore import Datastore
 from retrocast.download_commands import download
 from retrocast.episode_db_commands import episode_db
 from retrocast.logging_config import setup_logging
-from retrocast.overcast import chapters, overcast, transcripts
+from retrocast.overcast import overcast
 from retrocast.process_commands import transcription
 
 from . import sql_cli
@@ -83,7 +83,7 @@ def about() -> None:
     console.print(Markdown(about_text))
 
 
-@cli.group()
+@cli.group(name="configure")
 @click.pass_context
 def config(ctx: click.Context) -> None:
     """Manage the retrocast configuration data"""
@@ -119,7 +119,7 @@ def check(ctx: click.Context) -> None:
         "App Directory",
         str(app_dir),
         "[green]✓ Found[/green]" if app_exists else "[red]✗ Missing[/red]",
-        "" if app_exists else "Run: retrocast config initialize",
+        "" if app_exists else "Run: retrocast configure initialize",
     )
 
     if app_exists:
@@ -127,7 +127,7 @@ def check(ctx: click.Context) -> None:
             "Auth File",
             str(auth_path),
             "[green]✓ Found[/green]" if auth_exists else "[yellow]⚠ Missing[/yellow]",
-            "retrocast sync overcast auth" if not auth_exists else "",
+            "retrocast subscribe overcast auth" if not auth_exists else "",
         )
 
         # Database row with initialization status
@@ -136,10 +136,10 @@ def check(ctx: click.Context) -> None:
             db_action = ""
         elif db_exists:
             db_status = "[yellow]⚠ Not initialized[/yellow]"
-            db_action = "retrocast config initialize"
+            db_action = "retrocast configure initialize"
         else:
             db_status = "[yellow]⚠ Missing[/yellow]"
-            db_action = "retrocast config initialize"
+            db_action = "retrocast configure initialize"
 
         table.add_row(
             "Database",
@@ -214,9 +214,9 @@ def config_initialize(ctx: click.Context, yes: bool) -> None:
     console.print(table)
     console.print()
     console.print("[dim]Next steps:[/dim]")
-    console.print("  1. Authenticate: [cyan]retrocast sync overcast auth[/cyan]")
-    console.print("  2. Sync data:    [cyan]retrocast sync overcast save[/cyan]")
-    console.print("  3. Download:     [cyan]retrocast meta overcast transcripts[/cyan]")
+    console.print("  1. Authenticate: [cyan]retrocast subscribe overcast auth[/cyan]")
+    console.print("  2. Sync data:    [cyan]retrocast subscribe overcast save[/cyan]")
+    console.print("  3. Download:     [cyan]retrocast subscribe overcast transcripts[/cyan]")
     console.print()
 
 
@@ -316,10 +316,10 @@ def location(ctx: click.Context, output_format, db_path_flag: bool, app_dir_flag
     Use --app-dir to output only the app directory path as a JSON string.
 
     Examples:
-        retrocast config location              # Table view
-        retrocast config location --format json  # All paths as JSON
-        retrocast config location --db-path    # Just database path
-        retrocast config location --app-dir    # Just app directory
+        retrocast configure location              # Table view
+        retrocast configure location --format json  # All paths as JSON
+        retrocast configure location --db-path    # Just database path
+        retrocast configure location --app-dir    # Just app directory
     """
 
     # Validate mutual exclusivity of output options
@@ -377,7 +377,7 @@ def location(ctx: click.Context, output_format, db_path_flag: bool, app_dir_flag
         "App Directory",
         str(app_dir),
         "[green]✓ Found[/green]" if app_exists else "[red]✗ Missing[/red]",
-        "" if app_exists else "Run: retrocast config initialize",
+        "" if app_exists else "Run: retrocast configure initialize",
     )
 
     if app_exists:
@@ -385,13 +385,13 @@ def location(ctx: click.Context, output_format, db_path_flag: bool, app_dir_flag
             "Auth File",
             str(auth_path),
             "[green]✓ Found[/green]" if auth_exists else "[yellow]⚠ Missing[/yellow]",
-            "retrocast sync overcast auth" if not auth_exists else "",
+            "retrocast subscribe overcast auth" if not auth_exists else "",
         )
         table.add_row(
             "Database",
             str(db_path),
             "[green]✓ Found[/green]" if db_exists else "[yellow]⚠ Missing[/yellow]",
-            "retrocast sync overcast save" if not db_exists else "",
+            "retrocast subscribe overcast save" if not db_exists else "",
         )
     else:
         table.add_row("Auth File", str(auth_path), "[dim]n/a[/dim]", "Initialize app directory")
@@ -534,7 +534,7 @@ def reset_db(ctx: click.Context, dry_run: bool, yes: bool) -> None:
         console.print("[green]✓ Database schema reset successfully![/green]")
         console.print()
         console.print("[dim]The database has been reset to a clean state with empty tables.[/dim]")
-        console.print("[dim]Run 'retrocast sync overcast save' to populate with data.[/dim]")
+        console.print("[dim]Run 'retrocast subscribe overcast save' to populate with data.[/dim]")
     except Exception as e:
         console.print(f"[red]✗ Error resetting database: {e}[/red]")
         logger.exception("Database reset failed")
@@ -543,16 +543,22 @@ def reset_db(ctx: click.Context, dry_run: bool, yes: bool) -> None:
 
 @cli.group()
 @click.pass_context
-def sync(ctx: click.Context) -> None:
-    """Synchronize subscription metadata"""
+def subscribe(ctx: click.Context) -> None:
+    """Manage feed subscriptions"""
     pass
 
 
 @cli.group()
 @click.pass_context
-def meta(ctx: click.Context) -> None:
-    """Download episode metadata and derived information"""
+def index(ctx: click.Context) -> None:
+    """Create and manage search indexes"""
     pass
+
+
+@index.command()
+def status() -> None:
+    """Show index command availability"""
+    Console().print("[yellow]Index management commands are not implemented yet.[/yellow]")
 
 
 def _attach_podcast_archiver_passthroughs(main_group: DefaultGroup) -> None:
@@ -634,16 +640,8 @@ def _attach_podcast_archiver_passthroughs(main_group: DefaultGroup) -> None:
     logger.debug(f"Attached llm command: {archiver_wrapped}")
 
 
-# Register overcast commands
-sync.add_command(overcast)
-
-# Register retrieval aliases
-overcast_meta = click.Group(
-    "overcast", help="Retrieve episode metadata and information via overcast plugin"
-)
-overcast_meta.add_command(transcripts)
-overcast_meta.add_command(chapters)
-meta.add_command(overcast_meta)
+# Register subscription commands
+subscribe.add_command(overcast)
 
 # Register download commands
 cli.add_command(download)
@@ -655,9 +653,10 @@ download.add_command(episode_db)
 cli.add_command(transcription)
 
 cli.add_command(sql_cli.sql)
+cli.add_command(index)
 
 
-@cli.command()
+@cli.command(name="chat")
 @click.option(
     "-d",
     "--database",
@@ -717,7 +716,7 @@ def castchat(
 
     if not db_path.exists():
         console.print(f"[bold red]Error:[/bold red] Database not found at {db_path}")
-        console.print("Run [cyan]retrocast sync overcast[/cyan] first to create the database")
+        console.print("Run [cyan]retrocast subscribe overcast[/cyan] first to create the database")
         raise click.Abort()
 
     # Initialize datastore
@@ -749,7 +748,7 @@ def castchat(
         if indexed_count == 0:
             console.print("[bold red]No transcription segments found![/bold red]")
             console.print(
-                "Run [cyan]retrocast transcription transcribe[/cyan] to transcribe episodes first"
+                "Run [cyan]retrocast transcribe process[/cyan] to transcribe episodes first"
             )
             raise click.Abort()
 

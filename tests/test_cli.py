@@ -89,7 +89,7 @@ def test_config_check_reports_missing_without_creating(monkeypatch, tmp_path: Pa
         shutil.rmtree(app_dir)
 
     runner = CliRunner()
-    result = runner.invoke(cli, ["config", "check"])
+    result = runner.invoke(cli, ["configure", "check"])
 
     assert result.exit_code == 1
     assert "retrocast configuration" in result.output.lower()
@@ -108,12 +108,12 @@ def test_config_check_detects_uninitialized_database(monkeypatch, tmp_path: Path
     monkeypatch.setattr(platformdirs, "user_data_dir", lambda *_, **__: str(app_dir))
 
     runner = CliRunner()
-    result = runner.invoke(cli, ["config", "check"])
+    result = runner.invoke(cli, ["configure", "check"])
 
     assert result.exit_code == 1
     assert "Not initialized" in result.output
     # Check for the action text (may be wrapped in table)
-    assert "config" in result.output.lower() and "initialize" in result.output.lower()
+    assert "configure" in result.output.lower() and "initialize" in result.output.lower()
 
 
 def test_config_check_detects_initialized_database(monkeypatch, tmp_path: Path) -> None:
@@ -130,7 +130,7 @@ def test_config_check_detects_initialized_database(monkeypatch, tmp_path: Path) 
     monkeypatch.setattr(platformdirs, "user_data_dir", lambda *_, **__: str(app_dir))
 
     runner = CliRunner()
-    result = runner.invoke(cli, ["config", "check"])
+    result = runner.invoke(cli, ["configure", "check"])
 
     assert result.exit_code == 1  # Still incomplete due to missing auth
     assert "Initialized" in result.output
@@ -142,7 +142,7 @@ def test_config_location_json(monkeypatch, tmp_path: Path) -> None:
     monkeypatch.setattr(platformdirs, "user_data_dir", lambda *_, **__: str(app_dir))
 
     runner = CliRunner()
-    result = runner.invoke(cli, ["config", "location", "--format", "json"])
+    result = runner.invoke(cli, ["configure", "location", "--format", "json"])
 
     assert result.exit_code == 0, result.output
     assert json.loads(result.stdout) == {
@@ -157,7 +157,7 @@ def test_config_location_missing(monkeypatch, tmp_path: Path) -> None:
     monkeypatch.setattr(platformdirs, "user_data_dir", lambda *_, **__: str(app_dir))
 
     runner = CliRunner()
-    result = runner.invoke(cli, ["config", "location"])
+    result = runner.invoke(cli, ["configure", "location"])
 
     assert result.exit_code == 1
     assert "configuration locations" in result.output.lower()
@@ -175,7 +175,7 @@ def test_config_location_ready(monkeypatch, tmp_path: Path) -> None:
     monkeypatch.setattr(platformdirs, "user_data_dir", lambda *_, **__: str(app_dir))
 
     runner = CliRunner()
-    result = runner.invoke(cli, ["config", "location"])
+    result = runner.invoke(cli, ["configure", "location"])
 
     assert result.exit_code == 0, result.output
     assert "configuration ready" in result.output.lower()
@@ -187,7 +187,7 @@ def test_config_location_db_path(monkeypatch, tmp_path: Path) -> None:
     monkeypatch.setattr(platformdirs, "user_data_dir", lambda *_, **__: str(app_dir))
 
     runner = CliRunner()
-    result = runner.invoke(cli, ["config", "location", "--db-path"])
+    result = runner.invoke(cli, ["configure", "location", "--db-path"])
 
     assert result.exit_code == 0, result.output
     # Parse the JSON string output
@@ -199,7 +199,7 @@ def test_config_location_app_dir(monkeypatch, tmp_path: Path) -> None:
     monkeypatch.setattr(platformdirs, "user_data_dir", lambda *_, **__: str(app_dir))
 
     runner = CliRunner()
-    result = runner.invoke(cli, ["config", "location", "--app-dir"])
+    result = runner.invoke(cli, ["configure", "location", "--app-dir"])
 
     assert result.exit_code == 0, result.output
     # Parse the JSON string output
@@ -213,17 +213,17 @@ def test_config_location_mutual_exclusivity(monkeypatch, tmp_path: Path) -> None
     runner = CliRunner()
 
     # Test --format json with --db-path
-    result = runner.invoke(cli, ["config", "location", "--format", "json", "--db-path"])
+    result = runner.invoke(cli, ["configure", "location", "--format", "json", "--db-path"])
     assert result.exit_code != 0
     assert "only one output option" in result.output.lower()
 
     # Test --db-path with --app-dir
-    result = runner.invoke(cli, ["config", "location", "--db-path", "--app-dir"])
+    result = runner.invoke(cli, ["configure", "location", "--db-path", "--app-dir"])
     assert result.exit_code != 0
     assert "only one output option" in result.output.lower()
 
     # Test --format json with --app-dir
-    result = runner.invoke(cli, ["config", "location", "--format", "json", "--app-dir"])
+    result = runner.invoke(cli, ["configure", "location", "--format", "json", "--app-dir"])
     assert result.exit_code != 0
     assert "only one output option" in result.output.lower()
 
@@ -236,7 +236,7 @@ def test_config_location_json_encoding(monkeypatch, tmp_path: Path) -> None:
     runner = CliRunner()
 
     # Test --db-path with special characters in path
-    result = runner.invoke(cli, ["config", "location", "--db-path"])
+    result = runner.invoke(cli, ["configure", "location", "--db-path"])
     assert result.exit_code == 0, result.output
     # Verify JSON is properly encoded and parseable
     parsed = json.loads(result.stdout)
@@ -244,20 +244,29 @@ def test_config_location_json_encoding(monkeypatch, tmp_path: Path) -> None:
     assert "retrocast tests with spaces" in parsed
 
     # Test --app-dir with special characters in path
-    result = runner.invoke(cli, ["config", "location", "--app-dir"])
+    result = runner.invoke(cli, ["configure", "location", "--app-dir"])
     assert result.exit_code == 0, result.output
     parsed = json.loads(result.stdout)
     assert parsed == str(app_dir)
     assert "retrocast tests with spaces" in parsed
 
 
-def test_meta_group_exposes_overcast_transcripts_help() -> None:
+def test_subscribe_group_exposes_overcast_transcripts_help() -> None:
     runner = CliRunner()
 
-    result = runner.invoke(cli, ["meta", "overcast", "transcripts", "--help"])
+    result = runner.invoke(cli, ["subscribe", "overcast", "transcripts", "--help"])
 
     assert result.exit_code == 0
     assert "Download available transcripts" in result.output
+
+
+def test_index_group_exposes_status_help() -> None:
+    runner = CliRunner()
+
+    result = runner.invoke(cli, ["index", "status", "--help"])
+
+    assert result.exit_code == 0
+    assert "Show index command availability" in result.output
 
 
 def test_config_initialize_creates_database_with_schemas(monkeypatch, tmp_path: Path) -> None:
@@ -266,7 +275,7 @@ def test_config_initialize_creates_database_with_schemas(monkeypatch, tmp_path: 
     monkeypatch.setattr(platformdirs, "user_data_dir", lambda *_, **__: str(app_dir))
 
     runner = CliRunner()
-    result = runner.invoke(cli, ["config", "initialize", "-y"])
+    result = runner.invoke(cli, ["configure", "initialize", "-y"])
 
     assert result.exit_code == 0, result.output
     assert app_dir.exists()
@@ -309,11 +318,11 @@ def test_config_initialize_idempotent(monkeypatch, tmp_path: Path) -> None:
     runner = CliRunner()
 
     # First initialization
-    result1 = runner.invoke(cli, ["config", "initialize", "-y"])
+    result1 = runner.invoke(cli, ["configure", "initialize", "-y"])
     assert result1.exit_code == 0
 
     # Second initialization (should succeed without errors)
-    result2 = runner.invoke(cli, ["config", "initialize", "-y"])
+    result2 = runner.invoke(cli, ["configure", "initialize", "-y"])
     assert result2.exit_code == 0
 
     # Database should still be valid
@@ -321,13 +330,13 @@ def test_config_initialize_idempotent(monkeypatch, tmp_path: Path) -> None:
     assert db_path.exists()
 
 
-def test_sync_overcast_init_creates_database_with_schemas(monkeypatch, tmp_path: Path) -> None:
-    """Test that sync overcast init creates database with all required schemas."""
+def test_subscribe_overcast_init_creates_database_with_schemas(monkeypatch, tmp_path: Path) -> None:
+    """Test that subscribe overcast init creates database with all required schemas."""
     app_dir = tmp_path / "retrocast-tests"
     monkeypatch.setattr(platformdirs, "user_data_dir", lambda *_, **__: str(app_dir))
 
     runner = CliRunner()
-    result = runner.invoke(cli, ["sync", "overcast", "init"])
+    result = runner.invoke(cli, ["subscribe", "overcast", "init"])
 
     assert result.exit_code == 0, result.output
     assert app_dir.exists()
@@ -362,20 +371,20 @@ def test_sync_overcast_init_creates_database_with_schemas(monkeypatch, tmp_path:
     assert "Created" in result.output or "Already exists" in result.output
 
 
-def test_sync_overcast_init_idempotent(monkeypatch, tmp_path: Path) -> None:
-    """Test that sync overcast init can be run multiple times safely."""
+def test_subscribe_overcast_init_idempotent(monkeypatch, tmp_path: Path) -> None:
+    """Test that subscribe overcast init can be run multiple times safely."""
     app_dir = tmp_path / "retrocast-tests"
     monkeypatch.setattr(platformdirs, "user_data_dir", lambda *_, **__: str(app_dir))
 
     runner = CliRunner()
 
     # First initialization
-    result1 = runner.invoke(cli, ["sync", "overcast", "init"])
+    result1 = runner.invoke(cli, ["subscribe", "overcast", "init"])
     assert result1.exit_code == 0
     assert "Created" in result1.output
 
     # Second initialization (should succeed and report already exists)
-    result2 = runner.invoke(cli, ["sync", "overcast", "init"])
+    result2 = runner.invoke(cli, ["subscribe", "overcast", "init"])
     assert result2.exit_code == 0
     assert "Already exists" in result2.output
 
