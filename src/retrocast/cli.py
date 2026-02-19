@@ -28,6 +28,7 @@ from retrocast.appdir import (
 from retrocast.datastore import Datastore
 from retrocast.download_commands import download
 from retrocast.episode_db_commands import episode_db
+from retrocast.index_commands import index
 from retrocast.logging_config import setup_logging
 from retrocast.overcast import overcast
 from retrocast.process_commands import transcription
@@ -548,21 +549,83 @@ def subscribe(ctx: click.Context) -> None:
     pass
 
 
-@cli.group()
-@click.pass_context
-def index(ctx: click.Context) -> None:
-    """Create and manage search indexes"""
-    pass
-
-
-@index.command()
-def status() -> None:
-    """Show index command availability"""
-    Console().print("[yellow]Index management commands are not implemented yet.[/yellow]")
-
-
 def _attach_podcast_archiver_passthroughs(main_group: DefaultGroup) -> None:
     download_command = main_group.commands.get("download")
+
+    if not download_command:
+        logger.warning("Could not find 'download' subcommand for podcast_archiver passthrough")
+        return
+
+    # Type assertion: self_command is a Group (has commands and add_command)
+    download_command = cast("click.Group", download_command)
+
+    wrapped_context_settings = podcast_archiver_command.context_settings
+    wrapped_context_settings["ignore_unknown_options"] = True
+    wrapped_context_settings["allow_extra_args"] = True
+    logger.debug(f"Wrapped context settings: {wrapped_context_settings}")
+
+    @download_command.command(
+        name="podcast-archiver",
+        help=podcast_archiver_command.help,
+        context_settings=wrapped_context_settings,
+    )
+    @rich_click.pass_context
+    def archiver_wrapped(ctx: rich_click.RichContext, **kwargs):
+        app_dir = get_app_dir()
+        config_file = (app_dir / "podcast_archiver.yaml") if app_dir else None
+        database_path = (app_dir / "episodes.db") if app_dir else None
+        download_path = (app_dir / "episode_downloads") if app_dir else None
+
+        logger.debug(
+            f"Attached app dir, config file, db: {app_dir}, {config_file}, {database_path}"
+        )
+
+        if not ctx.params.get("database"):
+            logger.info(f"Using app dir database parameter: {str(database_path)}")
+            ctx.params["database"] = database_path
+
+        param_source = ctx.get_parameter_source("archive_directory")
+        logger.info(
+            f"archive directory option source, defaulted: {param_source}"
+            f", {param_source in (ParameterSource.DEFAULT, ParameterSource.DEFAULT_MAP)}"
+        )
+
+        if not ctx.params.get("archive_directory") or (
+            param_source in (ParameterSource.DEFAULT, ParameterSource.DEFAULT_MAP)
+        ):
+            logger.info(f"Using app dir download dir parameter: {str(download_path)}")
+            ctx.params["dir"] = download_path
+            ctx.params["archive_directory"] = download_path
+
+        logger.debug(f"ctx.args: {ctx.args}")
+        logger.debug(f"ctx.params (before modification): {ctx.params}")
+
+        if not ctx.params["archive_directory"].exists():
+            logger.info(f"Ensuring download dir exists: {ctx.params['archive_directory']}\\n")
+            ctx.params["archive_directory"].mkdir(exist_ok=True)
+        else:
+            logger.info(f"Download dir exists: {ctx.params['archive_directory']}")
+
+        # Set --write-info-json to True by default if not explicitly set by user
+        # This enables the episode database feature to index metadata
+        # The original podcast-archiver command has this parameter with default=False,
+        # but we want to change the default to True in the wrapped version
+        if "write_info_json" in ctx.params:
+            param_source = ctx.get_parameter_source("write_info_json")
+            logger.debug(f"write_info_json parameter source: {param_source}")
+            if param_source in (ParameterSource.DEFAULT, ParameterSource.DEFAULT_MAP):
+                # User didn't explicitly set it, so enable it by default
+                logger.info("Setting write_info_json=True for episode database compatibility")
+                ctx.params["write_info_json"] = True
+
+        for k, v in ctx.params.items():
+            logger.debug(f"Param {k} | {type(v)}: {v}")
+
+        # ctx.invoke(podcast_archiver_command.main)
+        ctx.forward(podcast_archiver_command)
+
+    archiver_wrapped.params = podcast_archiver_command.params.copy()
+    logger.debug(f"Attached llm command: {archiver_wrapped}")
 
     if not download_command:
         logger.warning("Could not find 'download' subcommand for podcast_archiver passthrough")
@@ -658,30 +721,16 @@ cli.add_command(index)
 
 @cli.command(name="chat")
 @click.option(
-    "-d",
-    "--database",
-    "db_path",
-    type=click.Path(exists=True, path_type=Path),
-    help="Path to retrocast database (defaults to app directory database)",
-)
-@click.option(
     "-m",
     "--model",
     "model_name",
     default="claude-sonnet-4-20250514",
     help="Anthropic model to use for the agent",
 )
-@click.option(
-    "--rebuild-index",
-    is_flag=True,
-    help="Rebuild the ChromaDB index from scratch",
-)
 @click.pass_context
 def castchat(
     ctx: click.Context,
-    db_path: Path | None,
     model_name: str,
-    rebuild_index: bool,
 ) -> None:
     """Interactive AI chat for exploring transcribed podcast content.
 
@@ -689,6 +738,9 @@ def castchat(
     podcast transcription archive using natural language queries. The agent
     can search across all transcribed episodes to answer questions about
     topics, guests, and specific content.
+
+    Requires a vector index. Build one first:
+        retrocast index vector build
 
     Requires chromadb and pydantic-ai dependencies:
         pip install retrocast[castchat]
@@ -700,7 +752,7 @@ def castchat(
     """
     try:
         from retrocast.castchat_agent import create_castchat_agent
-        from retrocast.chromadb_manager import ChromaDBManager
+        from retrocast.index.manager import ChromaDBManager
     except ImportError as e:
         console = Console()
         console.print("[bold red]Error:[/bold red] castchat dependencies not installed")
@@ -710,20 +762,6 @@ def castchat(
 
     console = Console()
 
-    # Get database path
-    if db_path is None:
-        db_path = get_default_db_path(create=False)
-
-    if not db_path.exists():
-        console.print(f"[bold red]Error:[/bold red] Database not found at {db_path}")
-        console.print("Run [cyan]retrocast subscribe overcast[/cyan] first to create the database")
-        raise click.Abort()
-
-    # Initialize datastore
-    from retrocast.datastore import Datastore
-
-    datastore = Datastore(db_path)
-
     # Get app directory for ChromaDB storage
     app_dir = get_app_dir(create=True)
     chroma_dir = app_dir / "chromadb"
@@ -732,29 +770,15 @@ def castchat(
     console.print(f"[dim]Initializing ChromaDB at {chroma_dir}...[/dim]")
     chroma_manager = ChromaDBManager(chroma_dir)
 
-    # Check if index needs to be built or rebuilt
+    # Check if index exists
     current_count = chroma_manager.get_collection_count()
+    if current_count == 0:
+        console.print("[bold red]Error:[/bold red] Vector index is empty or not found.")
+        console.print("  - Build the index first by running:")
+        console.print("    [cyan]retrocast index vector build[/cyan]")
+        raise click.Abort()
 
-    if rebuild_index or current_count == 0:
-        if rebuild_index:
-            console.print("[yellow]Rebuilding index...[/yellow]")
-            chroma_manager.reset()
-        else:
-            console.print("[yellow]Index is empty. Building initial index...[/yellow]")
-
-        with console.status("[bold green]Indexing transcription segments..."):
-            indexed_count = chroma_manager.index_transcriptions(datastore)
-
-        if indexed_count == 0:
-            console.print("[bold red]No transcription segments found![/bold red]")
-            console.print(
-                "Run [cyan]retrocast transcribe process[/cyan] to transcribe episodes first"
-            )
-            raise click.Abort()
-
-        console.print(f"[green]✓[/green] Indexed {indexed_count:,} segments")
-    else:
-        console.print(f"[dim]Using existing index with {current_count:,} segments[/dim]")
+    console.print(f"[dim]Using existing index with {current_count:,} segments[/dim]")
 
     # Create agent
     console.print(f"[dim]Initializing agent with model: {model_name}...[/dim]")
@@ -767,7 +791,6 @@ def castchat(
     # Import clai and run
     try:
         # Run the REPL with our agent
-
         agent.to_cli_sync(prog_name="castchat")
     except ImportError:
         console.print(

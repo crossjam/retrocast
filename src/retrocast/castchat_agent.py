@@ -6,7 +6,7 @@ from loguru import logger
 from pydantic_ai import Agent, RunContext
 from pydantic_ai.models.anthropic import AnthropicModel
 
-from retrocast.chromadb_manager import ChromaDBManager
+from retrocast.index.manager import ChromaDBManager
 
 
 def create_castchat_agent(

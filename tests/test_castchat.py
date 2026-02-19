@@ -72,7 +72,7 @@ def temp_db(tmp_path):
 @pytest.fixture
 def chroma_manager(tmp_path):
     """Create a ChromaDBManager with mocked ChromaDB."""
-    from retrocast.chromadb_manager import ChromaDBManager
+    from retrocast.index.manager import ChromaDBManager
 
     chroma_dir = tmp_path / "chromadb"
 
@@ -82,7 +82,7 @@ def chroma_manager(tmp_path):
     mock_collection.count.return_value = 0
     mock_client.get_or_create_collection.return_value = mock_collection
 
-    with patch("retrocast.chromadb_manager.chromadb.PersistentClient", return_value=mock_client):
+    with patch("retrocast.index.manager.chromadb.PersistentClient", return_value=mock_client):
         manager = ChromaDBManager(chroma_dir)
         manager.collection = mock_collection
         return manager
@@ -90,11 +90,11 @@ def chroma_manager(tmp_path):
 
 def test_chromadb_manager_initialization(tmp_path):
     """Test ChromaDBManager initializes correctly."""
-    from retrocast.chromadb_manager import ChromaDBManager
+    from retrocast.index.manager import ChromaDBManager
 
     chroma_dir = tmp_path / "chromadb"
 
-    with patch("retrocast.chromadb_manager.chromadb.PersistentClient") as mock_client_class:
+    with patch("retrocast.index.manager.chromadb.PersistentClient") as mock_client_class:
         mock_client = MagicMock()
         mock_collection = MagicMock()
         mock_client.get_or_create_collection.return_value = mock_collection
