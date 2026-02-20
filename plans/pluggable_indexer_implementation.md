@@ -16,6 +16,19 @@ codebase.
 as the default vector indexer due to its minimal dependencies, high performance,
 simple file-based persistence, and permissive Apache 2.0 license.
 
+### V1 Scope
+
+This plan covers **semantic similarity search** over transcript segments:
+- Embedding text segments into vectors
+- Storing vectors in a pluggable backend
+- Searching by semantic similarity
+
+**Explicitly out of scope for V1:**
+- Hybrid search (FTS + vectors)
+- Custom chunking strategies (core owns chunking)
+- `register_commands` hook (plugins cannot add CLI commands in V1)
+- `plugin install/uninstall` commands (users use pip/uv directly in V1)
+
 ---
 
 ## Motivation & Current State
@@ -364,7 +377,40 @@ class IndexerBackend:
         return None
 ```
 
+### Separation of Responsibilities: Core vs Backend
+
+A key architectural principle is that **backends are thin** — they only handle vector
+storage and retrieval. All data preparation happens in core.
+
+| Responsibility | Owner | Rationale |
+|----------------|-------|-----------|
+| Transcript retrieval from SQLite | **Core** | Backends don't touch `Datastore` |
+| Chunking / segmentation | **Core** | Consistent behavior across backends |
+| Metadata normalization | **Core** | Uniform metadata schema |
+| Generating embeddings | **Core** (via `EmbeddingProvider`) | Backends receive pre-computed vectors or delegate to core |
+| Vector storage | **Backend** | Backend-specific persistence |
+| Similarity search | **Backend** | Backend-specific algorithms |
+| Filtering by metadata | **Backend** | Applied during search |
+
+**Backends must NOT:**
+- Import or use `Datastore` directly
+- Implement their own chunking logic
+- Define their own metadata schemas
+
+**Backends receive:**
+- An iterator of `TranscriptionSegment` dicts (already chunked, with normalized metadata)
+- A `storage_dir` path (from `appdir` helpers)
+- Optional configuration dict
+
+This separation ensures:
+- Fewer backend implementations to maintain
+- Consistent results across engines
+- Simpler testing (backends can be tested with mock data)
+- Clear path to future features (hybrid search, multiple embedders)
+
 ### Hook Specifications
+
+**V1 implements a single hook:**
 
 ```python
 @hookspec
@@ -373,6 +419,9 @@ def register_indexer_backends(register):
     `register` is a callable: register(backend_instance)
     """
 ```
+
+**Deferred to V2:** A `register_commands(cli)` hook for plugins to add CLI commands.
+This is intentionally omitted from V1 to keep the plugin surface area small and stable.
 
 ---
 
@@ -517,14 +566,23 @@ def get_embedding_provider(provider_id: str = "sentence-transformers", **kwargs)
   # Track failed plugins for later reporting
   _failed_plugins: list[tuple[str, Exception]] = []
   _loaded = False
+  
+  # Our own registry mapping plugin modules to their distribution info.
+  # This avoids mutating pluggy's private `pm._plugin_distinfo` attribute.
+  _plugin_distinfo: dict[object, metadata.Distribution | None] = {}
 
   RETROCAST_LOAD_PLUGINS = os.environ.get("RETROCAST_LOAD_PLUGINS", None)
 
-  def load_plugins() -> None:
+  def load_plugins(*, load_entrypoints: bool = True) -> None:
       """Load all registered plugins with robust error handling.
       
       Plugin loading failures are logged but do not prevent retrocast from starting.
       Use get_failed_plugins() to retrieve any plugins that failed to load.
+      
+      Args:
+          load_entrypoints: If False, skip external plugin discovery (for testing).
+                           Default True. Can also be disabled via sys._called_from_test
+                           sentinel or RETROCAST_LOAD_PLUGINS="" environment variable.
       """
       global _loaded, _failed_plugins
       if _loaded:
@@ -532,22 +590,21 @@ def get_embedding_provider(provider_id: str = "sentence-transformers", **kwargs)
       _loaded = True
       _failed_plugins = []
 
-      # Skip external plugins during tests
-      if hasattr(sys, "_called_from_test"):
-          _load_default_plugins()
-          return
+      # Determine whether to load external plugins
+      skip_external = (
+          not load_entrypoints
+          or hasattr(sys, "_called_from_test")
+          or RETROCAST_LOAD_PLUGINS == ""
+      )
 
-      # Handle RETROCAST_LOAD_PLUGINS environment variable
-      if RETROCAST_LOAD_PLUGINS is not None:
-          if RETROCAST_LOAD_PLUGINS == "":
-              # Empty string = load only built-in defaults
-              logger.debug("RETROCAST_LOAD_PLUGINS is empty; skipping external plugins")
-          else:
-              # Comma-separated list = load only named packages
-              for pkg_name in RETROCAST_LOAD_PLUGINS.split(","):
-                  pkg_name = pkg_name.strip()
-                  if pkg_name:
-                      _load_plugin_package(pkg_name)
+      if skip_external:
+          logger.debug("Skipping external plugin discovery")
+      elif RETROCAST_LOAD_PLUGINS is not None:
+          # Comma-separated list = load only named packages
+          for pkg_name in RETROCAST_LOAD_PLUGINS.split(","):
+              pkg_name = pkg_name.strip()
+              if pkg_name:
+                  _load_plugin_package(pkg_name)
       else:
           # Default: load all installed plugins via setuptools entrypoints
           _load_all_entrypoint_plugins()
@@ -564,6 +621,7 @@ def get_embedding_provider(provider_id: str = "sentence-transformers", **kwargs)
                   try:
                       mod = ep.load()
                       pm.register(mod, name=ep.name)
+                      _plugin_distinfo[mod] = dist  # Track in our own registry
                       logger.debug(f"Loaded plugin '{ep.name}' from {dist.name}")
                   except Exception as exc:
                       _failed_plugins.append((f"{dist.name}:{ep.name}", exc))
@@ -582,6 +640,7 @@ def get_embedding_provider(provider_id: str = "sentence-transformers", **kwargs)
               try:
                   mod = ep.load()
                   pm.register(mod, name=ep.name)
+                  _plugin_distinfo[mod] = dist  # Track in our own registry
                   logger.debug(f"Loaded plugin '{ep.name}' from {pkg_name}")
               except Exception as exc:
                   _failed_plugins.append((f"{pkg_name}:{ep.name}", exc))
@@ -596,6 +655,7 @@ def get_embedding_provider(provider_id: str = "sentence-transformers", **kwargs)
           try:
               mod = importlib.import_module(plugin_path)
               pm.register(mod, plugin_path)
+              _plugin_distinfo[mod] = None  # Built-in, no distribution
               logger.debug(f"Loaded built-in plugin '{plugin_path}'")
           except Exception as exc:
               # Built-in plugins failing is a critical error — re-raise
@@ -605,6 +665,10 @@ def get_embedding_provider(provider_id: str = "sentence-transformers", **kwargs)
   def get_failed_plugins() -> list[tuple[str, Exception]]:
       """Return list of (plugin_name, exception) for plugins that failed to load."""
       return list(_failed_plugins)
+  
+  def get_plugin_distinfo(plugin: object) -> metadata.Distribution | None:
+      """Get distribution info for a plugin, or None if built-in."""
+      return _plugin_distinfo.get(plugin)
   ```
 
 - [ ] **1.4** Create `src/retrocast/indexer.py`:
@@ -614,6 +678,32 @@ def get_embedding_provider(provider_id: str = "sentence-transformers", **kwargs)
   - Implement `get_backends() -> dict[str, IndexerBackend]`:
     - Calls `load_plugins()`.
     - Iterates `pm.hook.register_indexer_backends(register=register)`.
+    - **Detects backend ID collisions** and raises a clear error:
+      ```python
+      def get_backends() -> dict[str, IndexerBackend]:
+          """Get all registered backends, keyed by backend_id.
+          
+          Raises:
+              ValueError: If two plugins register the same backend_id
+          """
+          load_plugins()
+          backends: dict[str, IndexerBackend] = {}
+          sources: dict[str, str] = {}  # backend_id -> source description
+          
+          def register(backend: IndexerBackend) -> None:
+              bid = backend.backend_id
+              if bid in backends:
+                  raise ValueError(
+                      f"Backend ID collision: '{bid}' is registered by both "
+                      f"'{sources[bid]}' and '{backend.display_name}'. "
+                      f"Each backend must have a unique backend_id."
+                  )
+              backends[bid] = backend
+              sources[bid] = backend.display_name
+          
+          pm.hook.register_indexer_backends(register=register)
+          return backends
+      ```
     - Returns mapping of `backend_id → backend_instance`.
   - Implement `get_backend(name: str) -> IndexerBackend` with a clear error message
     listing available backend IDs when the requested one isn't found.
@@ -1567,8 +1657,8 @@ Column definitions:
   registered backends dict.
 - For each backend, call `backend.is_available()` to populate the Available column
   without actually constructing or connecting to the backend.
-- Determine **Source** by cross-referencing `pm.list_plugin_distinfo()`: if the
-  plugin module that registered the backend has a distinfo entry, use
+- Determine **Source** by using our own `get_plugin_distinfo()` registry (not pluggy's
+  private `pm._plugin_distinfo`): if the plugin module has a distinfo entry, use
   `distinfo.metadata["Name"]`; otherwise label it `"built-in"`.
 - If **no backends at all** are registered (empty dict), print a friendly message:
   ```
@@ -1650,24 +1740,47 @@ Column definitions:
 
 ### Phase 6 — Test Support Utilities
 
-- [ ] **6.1** Create `tests/conftest.py` and add `sys._called_from_test = True` so
-  `load_plugins()` skips entrypoint loading during tests (identical to llm's approach):
+- [ ] **6.1** Create `tests/conftest.py` to configure plugin loading for tests:
 
   ```python
   import sys
+  import pytest
   
-  # Prevent plugin discovery during tests to avoid pollution from locally installed plugins
+  # Sentinel to prevent plugin discovery during tests (fallback mechanism).
+  # The preferred approach is to call load_plugins(load_entrypoints=False).
   sys._called_from_test = True
+  
+  @pytest.fixture(autouse=True)
+  def reset_plugin_state():
+      """Reset plugin loading state before each test."""
+      from retrocast import plugins
+      plugins._loaded = False
+      plugins._failed_plugins = []
+      plugins._plugin_distinfo = {}
+      yield
+      # Cleanup after test
+      plugins._loaded = False
   ```
 
 - [ ] **6.2** Create test fixtures in `tests/fixtures/test_plugins/`:
-  - `dummy_backend.py` — Minimal valid backend for positive tests:
+  - `dummy_backend.py` — **In-memory backend for testing** that requires no vector libraries.
+    This allows CLI and integration tests without heavy dependencies:
     ```python
     from retrocast.indexer import IndexerBackend, TranscriptionSegment
     from typing import Any, Iterator
     from pathlib import Path
 
     class DummyBackend(IndexerBackend):
+        """In-memory backend for testing. No external dependencies required.
+        
+        This backend stores segments in a Python list and performs simple
+        substring matching for search. It implements the full IndexerBackend
+        contract, making it suitable for:
+        - CLI command tests
+        - Integration tests without vector libraries
+        - Plugin system tests
+        """
+        
         backend_id = "dummy"
         display_name = "Dummy Backend (for testing)"
         index_version = "1.0"
@@ -1677,7 +1790,7 @@ Column definitions:
             self._configured = False
         
         def is_available(self) -> tuple[bool, str]:
-            return (True, "")
+            return (True, "")  # Always available — no dependencies
         
         def configure(self, storage_dir: Path, config: dict[str, Any] | None = None) -> None:
             self._configured = True
@@ -1692,7 +1805,17 @@ Column definitions:
         
         def search(self, query: str, n_results: int = 5, podcast_filter: str | None = None) -> list[dict]:
             # Simple substring search for testing
-            results = [s for s in self._segments if query.lower() in s["text"].lower()]
+            results = []
+            for s in self._segments:
+                if query.lower() in s["text"].lower():
+                    if podcast_filter and s["metadata"].get("podcast_title") != podcast_filter:
+                        continue
+                    results.append({
+                        "segment_id": s["segment_id"],
+                        "text": s["text"],
+                        "metadata": s["metadata"],
+                        "distance": 0.0,  # Fake distance
+                    })
             return results[:n_results]
         
         def get_count(self) -> int:
@@ -1760,12 +1883,15 @@ Column definitions:
 
 - [ ] **6.5** Write unit tests in `tests/test_plugins.py`:
   - [ ] Test that `load_plugins()` is idempotent (calling it twice doesn't double-register).
+  - [ ] Test that `load_plugins(load_entrypoints=False)` skips external plugins.
   - [ ] Test `get_plugins()` excludes default plugins unless `all=True`.
   - [ ] Test that a manually registered plugin appears in `get_plugins()`.
   - [ ] Test that `register_indexer_backends` hook adds a new backend to `get_backends()`.
   - [ ] Test that a broken plugin (raises on load) is caught and added to `get_failed_plugins()`.
   - [ ] Test that `RETROCAST_LOAD_PLUGINS=""` skips external plugins.
   - [ ] Test that `RETROCAST_LOAD_PLUGINS="pkg-a,pkg-b"` loads only named packages.
+  - [ ] **Test backend ID collision detection**: register two backends with the same
+        `backend_id` and verify `get_backends()` raises `ValueError` with a clear message.
 
 - [ ] **6.6** Write unit tests in `tests/test_index_commands.py`:
   - [ ] Test `build_vector_index` with a mock backend registered via the plugin system.
@@ -1828,7 +1954,11 @@ Column definitions:
 
 ---
 
-## Phase 8 — Plugin Install / Uninstall CLI Commands
+## Phase 8 — Plugin Install / Uninstall CLI Commands (V2 — DEFERRED)
+
+> **Note:** This phase is deferred to V2. For V1, users install plugins using standard
+> tools (`pip install retrocast-zvec` or `uv add retrocast-zvec`). This keeps V1
+> focused on the core backend abstraction and avoids packaging edge cases.
 
 This phase adds first-class CLI support for installing and uninstalling retrocast
 backend plugins **into the correct Python environment** — the same environment that
@@ -2794,6 +2924,12 @@ This phase creates user-facing documentation for the plugin system.
 | **Use existing `appdir.py` for storage paths** | Consistent with existing codebase pattern; platform-appropriate directories via `platformdirs`; backends don't determine their own storage |
 | **CLI layer owns storage location decisions** | Backends receive `storage_dir` from CLI; keeps backends portable and testable; follows existing ChromaDB pattern in `index_commands.py` |
 | **Per-backend subdirectories under `indexes/`** | Clean separation (`indexes/usearch/`, `indexes/chromadb/`); no cross-contamination; easy to reset one backend without affecting others |
+| **Core owns chunking, backends own storage** | Backends are thin (vector storage + search only); core handles transcript retrieval, chunking, metadata normalization; ensures consistency across backends |
+| **Single hook in V1 (`register_indexer_backends`)** | Smaller plugin surface area; `register_commands` hook deferred to V2 after backend system stabilizes |
+| **Fail fast on backend ID collisions** | Two plugins registering the same `backend_id` raises `ValueError` immediately; prevents subtle bugs |
+| **Own distinfo registry instead of mutating pluggy internals** | Avoid `pm._plugin_distinfo` private attribute; more robust across pluggy versions |
+| **Testable `load_plugins()` via parameter** | `load_plugins(load_entrypoints=False)` for tests; `sys._called_from_test` kept as fallback |
+| **In-memory DummyBackend for tests** | No vector library dependencies; enables CLI testing without heavy deps |
 | Mirror llm's `plugins.py` / `hookspecs.py` split | Clear separation; familiar to contributors who know llm |
 | `_loaded` guard in `load_plugins()` | Prevents double-registration across multiple CLI invocations |
 | Skip entrypoint loading in tests | Avoids test pollution from locally installed plugins |
