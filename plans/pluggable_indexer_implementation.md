@@ -77,11 +77,6 @@ class IndexerBackend:
 ### Hook Specifications
 
 ```python
-# retrocast/hookspecs.py
-@hookspec
-def register_commands(cli):
-    """Register additional CLI commands on the root `cli` group."""
-
 @hookspec
 def register_indexer_backends(register):
     """Register IndexerBackend instances.
@@ -100,7 +95,6 @@ def register_indexer_backends(register):
 - [ ] **1.2** Create `src/retrocast/hookspecs.py`:
   - Define `hookspec = HookspecMarker("retrocast")`.
   - Define `hookimpl = HookimplMarker("retrocast")`.
-  - Add `register_commands(cli)` hookspec (for future third-party CLI extensions).
   - Add `register_indexer_backends(register)` hookspec.
 
 - [ ] **1.3** Create `src/retrocast/plugins.py`:
@@ -286,9 +280,8 @@ Column definitions:
 - [ ] **4.3** At the end of `cli.py` (after all commands are defined), call:
   ```python
   load_plugins()
-  pm.hook.register_commands(cli=cli)
   ```
-  This allows external plugins to add new top-level CLI commands.
+
 
 ---
 
@@ -323,7 +316,6 @@ Column definitions:
   - [ ] Test that `load_plugins()` is idempotent (calling it twice doesn't double-register).
   - [ ] Test `get_plugins()` excludes default plugins unless `all=True`.
   - [ ] Test that a manually registered plugin appears in `get_plugins()`.
-  - [ ] Test that `register_commands` hook adds a new CLI command.
   - [ ] Test that `register_indexer_backends` hook adds a new backend to `get_backends()`.
 
 - [ ] **6.3** Write unit tests in `tests/test_index_commands.py`:
@@ -519,7 +511,7 @@ Update the `plugin list` command with richer output now that install/uninstall e
     {
       "name": "retrocast-usearch",
       "version": "0.1.0",
-      "hooks": ["register_indexer_backends", "register_commands"]
+      "hooks": ["register_indexer_backends"]
     }
   ]
   ```
@@ -611,7 +603,6 @@ loop a plugin author uses during development:
 | `src/retrocast/index/manager.py` | Existing | Refactor → shim → eventually remove |
 | `src/retrocast/index_commands.py` | Existing | Refactor (use plugin system, add `--backend`, add `backends` sub-command) |
 | `src/retrocast/plugin_commands.py` | New | Create (`plugin list`, `plugin install`, `plugin uninstall`) |
-| `src/retrocast/cli.py` | Existing | Add `plugin` group + `register_commands` hook call at end of file |
 | `pyproject.toml` | Existing | Add `pluggy` dependency; document `[project.entry-points.retrocast]` convention |
 | `tests/conftest.py` | Existing | Add `sys._called_from_test` sentinel |
 | `tests/test_plugins.py` | New | Create (idempotency, `get_plugins`, register hooks, broken plugin handling) |
